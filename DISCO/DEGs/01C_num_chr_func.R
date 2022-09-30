@@ -1,0 +1,256 @@
+################ USER-DEFINED FUNCTIONS
+
+# 0. Import libraries
+library(reshape2)
+library(ggplot2)
+library(stringr)
+library(scales)
+
+
+# 1. Import data
+ImportIntersectDE <- function(path, ext, row_col) {
+  if (missing(ext)) {
+    deg_files <- list.files(path = path, pattern = "\\.csv$",full.names = TRUE)
+    if (missing(row_col)) {
+      deg <- lapply(deg_files, read.csv, row.names=1)
+    }
+    else {
+      deg <- lapply(deg_files, read.csv, row.names=row_col)
+    }
+  }
+  else {
+    deg_files <- list.files(path = path, pattern = paste0("\\.",ext,"$"),full.names = TRUE)
+    if (missing(row_col)) {
+      deg <- lapply(deg_files, read.csv, row.names=1)
+    }
+    else {
+      deg <- lapply(deg_files, read.csv, row.names=row_col)
+    }
+  }
+  names_deg <- list.files(path = path, pattern = "\\.csv$",full.names = FALSE)
+  names(deg) <- substr(names_deg, 1, nchar(names_deg)-4)
+  return(deg)
+}
+
+# 2. Function to get chromosome number from gene symbol - Pattama
+Annot.chr.name <- function(gene.list){
+  library("biomaRt")
+  require(biomaRt)
+  # define biomart object
+  mart <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl",mirror = "uswest")
+  Annot_idf <- getBM(attributes = c("hgnc_symbol",
+                                    "chromosome_name",
+                                    "description"),
+                     filters = c("hgnc_symbol") ,
+                     values=list(gene.list),
+                     mart = mart)
+  #delete chromosome name with CHR label
+  library(stringr)
+  Annot_df <- Annot_idf[!str_detect(Annot_idf$chromosome_name,  "CHR"),]
+  return(Annot_df)
+}
+
+# 3. Map genes from intersected genes against chromosome - Pattama
+map_chr <- function(RRA_df,Annot_df){
+  map_chr_df <- merge(RRA_df,Annot_df, by.x= "Gene", by.y= "hgnc_symbol")
+  return(map_chr_df)
+}
+
+# 4. Count the number of genes of X- and Y-chr - Pattama
+num_chr2 <- function(map_chr_df){
+  chrX <- lapply(map_chr_df, function(x) nrow(x[x$chromosome_name == "X",]))
+  chrY <- lapply(map_chr_df, function(x) nrow(x[x$chromosome_name == "Y",]))
+  chrA <- lapply(map_chr_df, function(x) nrow(x[ (!x$chromosome_name == "X"|!x$chromosome_name == "Y"),]))
+  num_df <- data.frame(X = unlist(chrX), Y = unlist(chrY), Autosome = unlist(chrA))
+  return(num_df)
+}
+
+# 5. Counts chr and organize df
+num_chr_order <- function(df, path, sex) {
+  num_df <- num_chr2(df)
+  num_df$ct <- as.factor(rownames(num_df))
+  num_df <- melt(num_df, id.vars = "ct")
+  colnames(num_df) <- c("ct", "chr", "count")
+  write.csv(num_df, paste0(path,"/", sex, "_num_chr.csv"))
+  return(num_df)
+}
+
+# 6. Extract Gene names - X for F-DEGs and Y for for M-DEGs
+ExtractGenes <- function(chr_sex, chr) {
+  sexchr <- lapply(chr_sex, function(x) x[x$chromosome_name == chr,"Gene"])
+  genes_names <- unique(unlist(sexchr, use.names = FALSE))
+  chr_mtx <- matrix(nrow = length(names(sexchr)), ncol=length(genes_names))
+  rownames(chr_mtx) <- names(sexchr)
+  colnames(chr_mtx) <- genes_names
+  for (ct in rownames(chr_mtx)) {
+    for (gene in colnames(chr_mtx)) {
+      if (gene %in% sexchr[[ct]]) {
+        chr_mtx[ct, gene] <- "y"
+      } else {
+        chr_mtx[ct, gene] <- "n"
+      }
+    }
+  }
+  chr_df <- reshape::melt.matrix(chr_mtx)
+  colnames(chr_df) <- c("ct", "gene", "DEG")
+  return(chr_df)
+}
+
+# 7. Analyze each ct
+ProcessCt <- function(main_dir, dis_type, ext, row_col) {
+  path <- paste0(main_dir, dis_type, "/01B_num_DEGs")
+  sub_ct <- list.dirs(path, recursive=FALSE, full.names = FALSE)
+  df_F <- list()
+  df_M <- list()
+  for (ct in 1:length(sub_ct)) {
+    deg <- ImportIntersectDE(paste(path, sub_ct[ct], sep="/"))
+    colnames(deg[[1]]) <- c("Gene")
+    colnames(deg[[2]]) <- c("Gene")
+    names(deg) <- lapply(1:length(names(deg)), function(i) str_replace(names(deg)[i], "_intersected_genes", ""))
+    for (i in names(deg)) {
+      if (grepl("F", i, fixed=TRUE)){
+        df_F <- append(df_F, list(deg[[i]]))
+      } else {
+        df_M <- append(df_M, list(deg[[i]]))
+      }
+    }
+  }
+  names(df_F) <- sub_ct
+  names(df_M) <- sub_ct
+  Annot_F <- lapply(df_F, function(x) Annot.chr.name(x$Gene))
+  Annot_M <- lapply(df_M, function(x) Annot.chr.name(x$Gene))
+  chr_F <- list()
+  chr_M <- list()
+  for(i in 1:length(df_F)){
+  chr_F_df <- map_chr(df_F[[i]], Annot_F[[i]])
+    chr_F <- append(chr_F,list(chr_F_df))
+    chr_M_df <- map_chr(df_M[[i]], Annot_M[[i]])
+    chr_M <- append(chr_M,list(chr_M_df))
+  }
+  names(chr_F) <- names(df_F)
+  names(chr_M) <- names(df_M)
+  dir.create(paste(main_dir, dis_type, "01C_num_chr", sep="/"), showWarnings = FALSE)
+  output_path <- paste(main_dir, dis_type, "01C_num_chr", sep="/")
+  num_chrF <- num_chr_order(chr_F, output_path, "F")
+  num_chrM <- num_chr_order(chr_M, output_path, "M")
+  num_chr_list <- list(num_chrF, num_chrM)
+  names(num_chr_list) <- c("F", "M")
+  
+  return(list("F" = chr_F, "M" = chr_M))
+}
+
+# 8. Plot heatmap of sex-genes across cts
+PlotHeatmap <- function(main_dir, dis_type, chr_sex, chr, sex) {
+  sexdf <- ExtractGenes(chr_sex, chr)
+  pdf(paste0(main_dir, dis_type,  "/01C_num_chr/", chr, "genes_heatmap_in_", sex, ".pdf"))
+  print(
+    ggplot(sexdf, aes(ct, gene)) +
+      geom_tile(aes(fill=DEG), color = "light grey") + 
+      scale_fill_manual(values = c("y" =  "#F8766D", "n"= "#00BFC4")) +
+      scale_color_manual(values = c("y" =  "#F8766D", "n"= "#00BFC4")) +
+      labs(x = "Cell types", y = paste0(sex, " genes"), fill = "Expressed", main = sex) +
+      theme(panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(),
+            panel.background = element_blank(), 
+            axis.line = element_line(colour = "black"),
+            axis.title.x = element_text(size=12, face="bold", colour = "black"),
+            axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
+            axis.ticks.x=element_blank(),
+            axis.title.y = element_text(size=12, face="bold", colour = "black"),
+            axis.text.y = element_text(size=8, colour = "black"),
+            legend.position = "bottom", 
+            legend.title = element_text(size=12, face="bold", colour = "black"))
+    
+  )
+  dev.off()
+}
+
+# 9. Plots heatmaps
+PlotSexHmp <- function(main_dir, dis_type, chr_sex_list) {
+  PlotHeatmap(main_dir, dis_type, chr_sex_list[[1]], "X", "F")
+  PlotHeatmap(main_dir, dis_type, chr_sex_list[[2]], "Y", "M")
+}
+
+# 10. Retrieve p-values from Fisher's test done in 02A_Fisher
+ExtractPval <- function(main_dir, dis_type, sex) {
+  pval <- read.csv(paste0(main_dir, dis_type, "/02A_Fisher_sex_genes/", sex, "_Fisher_results_v2.csv"))
+  names(pval)[names(pval) == 'X.1'] <- 'ct'
+  #pval$ct <- as.factor(pval$ct)
+  pval$signX <- rep(NA, length(pval$X_enriched_pval))
+  pval$signY <- rep(NA, length(pval$Y_enriched_pval))
+  pval[which(pval$X_enriched_pval<= 0.05), "signX"] <- "*"
+  pval[which(pval$X_enriched_pval<= 0.01), "signX"] <- "**"
+  pval[which(pval$X_enriched_pval<= 0.001), "signX"] <- "***"
+  pval[which(pval$Y_enriched_pval<= 0.05), "signY"] <- "#"
+  pval[which(pval$Y_enriched_pval<= 0.01), "signY"] <- "##"
+  pval[which(pval$Y_enriched_pval<= 0.001), "signY"] <- "###"
+  return(pval)
+}
+
+# 11. Add p-value to df
+AddPval <- function(df, pvalX, pvalY) {
+  df$pval_fisher <- rep("", length(df$perc))
+  for (cells in pvalX$ct) {
+    df[which(df$ct==cells & df$chr=="X"),"pval_fisher"] <- pvalX[which(pvalX$ct==cells), "signX"]
+  }
+  for (cells in pvalY$ct) {
+    df[which(df$ct==cells & df$chr=="Y"),"pval_fisher"] <- pvalY[which(pvalY$ct==cells), "signY"]
+  }
+  return(df)
+}
+
+# 12. Plot the fraction of enriched DEGs per chromosome, including or not the Fisher p-value
+PlotNumChr <- function(main_dir, dis_type, num_chr_genes, pval_file=FALSE) {
+  sexes <- c("F", "M")
+  col_palette <- hue_pal()(3)
+  path <- paste0(main_dir, dis_type,  "/01C_num_chr/")
+  for (sex in sexes) {
+    if (pval_file) {
+      pval <- ExtractPval(main_dir, dis_type, sex)
+      pvalX <- pval[which(pval$X_enriched_pval <= 0.05), ]
+      pvalY <- pval[which(pval$Y_enriched_pval <= 0.05), ]
+    } else {
+      pvalX <- data.frame()
+      pvalX$ct <- vector()
+      pvalY <- data.frame()
+      pvalY$ct <- vector()
+    }
+    df <- read.csv(paste0(path, sex, "_num_chr.csv"))
+    df[,1] <- NULL
+    col_factors <- c("ct", "chr")
+    df[col_factors] <- lapply(df[col_factors], as.factor) 
+    df$perc <- rep(NA, length(df$count))
+    for (chr in levels(df$chr)) {
+      df[which(df$chr==chr), "perc"]  <- df[which(df$chr==chr), "count"] * 100 / num_chr_genes[[chr]]
+    }
+    if (length(pvalX$ct)>0 | length(pvalY$ct)>0) {
+      df <- AddPval(df, pvalX, pvalY)
+    }
+    pdf(paste0(path, sex, "_num_chr.pdf"))
+    print(
+      ggplot(df[which(df$perc>0),], aes(ct, perc, fill=chr)) +
+        geom_bar(stat='identity', position=position_dodge2(width = 0.9, preserve = "single")) +
+        labs(title=sex, x="", y="Enriched DEGs (%)", fill="Chromosomes") +
+        scale_fill_manual(values = c("X" = col_palette[1],
+                                     "Y"= col_palette[3],
+                                     "Autosome"= col_palette[2])) +
+        #{if (length(pvalX$ct)>0) geom_text(size=8, x = pvalX$ct, y = df[which(pvalX$ct %in% df$ct & df$chr=="X"), "perc"] + 0.2, label=pvalX$signX)} +
+        #{if (length(pvalY$ct)>0) geom_text(size=8, x = pvalY$ct, y = df[which(pvalY$ct %in% df$ct & df$chr=="Y"), "perc"] + 0.2, label=pvalY$signY)} + 
+        {if (pval_file) geom_text(aes(x = ct, y = perc, label = pval_fisher, fontface = "bold"), nudge_x = 0.15, nudge_y = 0.1)} +
+        {if (pval_file) annotate("text",x= length(levels(df$ct))/2,y=max(df$perc) + 0.2,label="Significance: *: X-chr, #: Y-chr")} +
+        {if (pval_file) coord_cartesian(clip="off") } +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              axis.line = element_line(colour = "black"),
+              axis.title.x = element_blank(),
+              axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
+              axis.ticks.x=element_blank(),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "bottom", 
+              legend.title = element_text(size=12, face="bold", colour = "black"))
+      
+    )
+    dev.off()
+  }
+}
