@@ -156,8 +156,9 @@ PlotIntDEGs <- function(main, dis, df, num_p) {
   print(ggplot(df, aes(celltypes, counts, fill=sex)) +
           geom_bar(stat="identity", position="dodge") +
           labs(x="", y="Intersected number of DEGs", fill="Sex", main = dis) +
-          annotate("text", x = seq(1,length(levels(df$celltypes))), y = -1, label = num_p) +
-          annotate("text", x = seq(1,length(levels(df$celltypes))), y = df$counts + 10 , label = num_p) +
+          #annotate("text", x = seq(1,length(levels(df$celltypes))), y = -1, label = num_p) +
+          annotate("text", x = seq(1,length(levels(df$celltypes))), y =(df$counts[c(TRUE, FALSE)] + 10) , label = num_p, colour = "blue") +
+          annotate("text", x = length(levels(df$celltypes))*0.75, y =max(df$counts) + 30 , label = "Number of intersected projects", colour = "blue") +
           theme(panel.grid.major = element_blank(), 
                 panel.grid.minor = element_blank(),
                 panel.background = element_blank(), 

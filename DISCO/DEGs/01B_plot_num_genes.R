@@ -1,6 +1,6 @@
 main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/outputs/"
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs/01B_plot_num_genes_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/scripts/DEGs/01B_plot_num_genes_func.R")
 
 ####### MAIN
 
