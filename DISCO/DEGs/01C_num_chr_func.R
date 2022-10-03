@@ -127,7 +127,7 @@ ExtractGenes <- function(chr_list) {
     #chr_mtx[rev(order(rowSums(chr_mtx))), ]
     chr_df <- reshape::melt.matrix(chr_mtx)
     colnames(chr_df) <- c("ct", "gene", "DEG")
-    chr_df$chr_name <- rep(NA, length=chr_df$ct)
+    chr_df$chr_name <- rep(NA, length=nrow(chr_df))
     for (gene in chr_df$gene) {
       chr_df[which(chr_df$gene == gene), "chr_name"] <- mapped_genes[which(mapped_genes$Gene == gene), "chromosome_name"]
     }
@@ -251,6 +251,7 @@ PlotGeneralHeatmap <- function(main_dir, dis_type, chr_sex_list) {
         scale_fill_manual(values = c("y" =  "#F8766D", "n"= "#00BFC4")) +
         scale_color_manual(values = c("y" =  "#F8766D", "n"= "#00BFC4")) +
         labs(x = "Cell types", y = paste0(sex, " DEGs"), fill = "Expressed", main = sex) +
+        facet_wrap(~chr_name, scales = "free") +
         theme(panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
               panel.background = element_blank(), 
@@ -290,7 +291,7 @@ PlotNumChr <- function(main_dir, dis_type, num_chr_genes, pval_file=FALSE) {
     df[,1] <- NULL
     col_factors <- c("ct", "chr")
     df[col_factors] <- lapply(df[col_factors], as.factor) 
-    df$perc <- rep(NA, length(df$count))
+    df$perc <- rep(NA, length = length(df$count))
     for (chr in levels(df$chr)) {
       df[which(df$chr==chr), "perc"]  <- df[which(df$chr==chr), "count"] * 100 / num_chr_genes[[chr]]
     }
