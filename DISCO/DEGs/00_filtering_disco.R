@@ -784,15 +784,21 @@ normal_all_degs <- FindAllMarkers(normal_disco,
             logfc.threshold = 0.25,
             min.pct = 0.1)
 
-ad_all_degs <- FindAllMarkers(normal_disco, 
-                                  logfc.threshold = 0.25,
-                                  min.pct = 0.1)
-
 write.csv(normal_all_degs, file = paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/", 
                                   "/20220817_DEGs/outputs/normal_all_DEGs.csv"),
                                   row.names = TRUE)
 
-ad_remove <- list.dirs("Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/outputs/Alzheimer's disease/01A_only_1_project", recursive=FALSE, full.names = FALSE)
+Idents(ad_disco) <- "ct"
+
+ad_all_degs <- FindAllMarkers(ad_disco, 
+                              logfc.threshold = 0.25,
+                              min.pct = 0.1)
+
+write.csv(ad_all_degs, file = paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/", 
+                                         "/20220817_DEGs/outputs/ad_all_DEGs.csv"),
+          row.names = TRUE)
+
+#ad_remove <- list.dirs("Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/outputs/Alzheimer's disease/01A_only_1_project", recursive=FALSE, full.names = FALSE)
 
 # session info
 sessionInfo()

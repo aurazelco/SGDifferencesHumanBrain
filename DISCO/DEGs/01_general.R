@@ -6,7 +6,6 @@ library(ggplot2)
 
 sub_disease <- list.dirs(main, recursive=FALSE, full.names = FALSE)
 
-
 num_filt <- read.csv("20220817_DEGs/outputs/final_filt.csv")
 num_filt[,1] <- NULL
 
@@ -14,7 +13,7 @@ col_factors <- c("proj", "sex", "disease", "ct", "og", "idents")
 
 num_filt[col_factors] <- lapply(num_filt[col_factors], as.factor)  
 
-
+# Plot number of cells per sex and ct
 for (dis_type in sub_disease) {
   filt_df <- subset(num_filt, disease == dis_type)
   pdf(paste0(main, dis_type, "/num_ct_sex.pdf"))
