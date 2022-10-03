@@ -76,7 +76,7 @@ num_chr_order <- function(df, path, sex) {
 }
 
 # 6. Extract Gene names - X for F-DEGs and Y for for M-DEGs
-ExtractGenes <- function(chr_sex, chr) {
+ExtractSexGenes <- function(chr_sex, chr) {
   sexchr <- lapply(chr_sex, function(x) x[x$chromosome_name == chr,"Gene"])
   genes_names <- unique(unlist(sexchr, use.names = FALSE))
   chr_mtx <- matrix(nrow = length(names(sexchr)), ncol=length(genes_names))
@@ -96,7 +96,49 @@ ExtractGenes <- function(chr_sex, chr) {
   return(chr_df)
 }
 
-# 7. Analyze each ct
+# 7. Extract Gene names for all DEGs
+ExtractGenes <- function(chr_list) {
+  new_chr_list <- list()
+  for (sex in names(chr_list)) {
+    df_sex <- as.data.frame(do.call(rbind, chr_normal[[sex]]))
+    df_sex$ct <- rownames(df_sex)
+    df_sex$ct <- str_remove_all(df_sex$ct, "\\.\\d+")
+    rownames(df_sex) <- NULL
+    df_sex <- df_sex[, -c(3)]
+    df_sex$chromosome_name <- str_replace_all(df_sex$chromosome_name, "\\d+", "Autosome")
+    df_sex$chromosome_name <- str_replace_all(df_sex$chromosome_name, "MT", "Autosome")
+    #col_factors <- c("ct", "Gene", "chromosome_name")
+    #df_sex[col_factors] <- lapply(df_sex[col_factors], as.factor) 
+    mapped_genes <- unique(df_sex[, c("Gene", "chromosome_name")])
+    genes_names <- unique(df_sex$Gene)
+    chr_mtx <- matrix(nrow = length(unique(df_sex$ct)), ncol=length(genes_names))
+    rownames(chr_mtx) <- unique(df_sex$ct)
+    colnames(chr_mtx) <- genes_names
+    for (i in rownames(chr_mtx)) {
+      df_ct <- subset(df_sex, subset = ct == i)
+      for (gene in colnames(chr_mtx)) {
+        if (gene %in% df_ct$Gene) {
+          chr_mtx[i, gene] <- "y"
+        } else {
+          chr_mtx[i, gene] <- "n"
+        }
+      }
+    }
+    #chr_mtx[rev(order(rowSums(chr_mtx))), ]
+    chr_df <- reshape::melt.matrix(chr_mtx)
+    colnames(chr_df) <- c("ct", "gene", "DEG")
+    chr_df$chr_name <- rep(NA, length=chr_df$ct)
+    for (gene in chr_df$gene) {
+      chr_df[which(chr_df$gene == gene), "chr_name"] <- mapped_genes[which(mapped_genes$Gene == gene), "chromosome_name"]
+    }
+    chr_df$chr_name <- as.factor(chr_df$chr_name)
+    new_chr_list <- append(new_chr_list, list(chr_df))
+  }
+  names(new_chr_list) <- names(chr_list)
+  return(new_chr_list)
+}
+
+# 8. Analyze each ct
 ProcessCt <- function(main_dir, dis_type, ext, row_col) {
   path <- paste0(main_dir, dis_type, "/01B_num_DEGs")
   sub_ct <- list.dirs(path, recursive=FALSE, full.names = FALSE)
@@ -133,15 +175,14 @@ ProcessCt <- function(main_dir, dis_type, ext, row_col) {
   output_path <- paste(main_dir, dis_type, "01C_num_chr", sep="/")
   num_chrF <- num_chr_order(chr_F, output_path, "F")
   num_chrM <- num_chr_order(chr_M, output_path, "M")
-  num_chr_list <- list(num_chrF, num_chrM)
-  names(num_chr_list) <- c("F", "M")
-  
+  #num_chr_list <- list(num_chrF, num_chrM)
+  #names(num_chr_list) <- c("F", "M")
   return(list("F" = chr_F, "M" = chr_M))
 }
 
-# 8. Plot heatmap of sex-genes across cts
-PlotHeatmap <- function(main_dir, dis_type, chr_sex, chr, sex) {
-  sexdf <- ExtractGenes(chr_sex, chr)
+# 9. Plot heatmap of sex-genes across cts
+PlotSexHeatmap <- function(main_dir, dis_type, chr_sex, chr, sex) {
+  sexdf <- ExtractSexGenes(chr_sex, chr)
   pdf(paste0(main_dir, dis_type,  "/01C_num_chr/", chr, "genes_heatmap_in_", sex, ".pdf"))
   print(
     ggplot(sexdf, aes(ct, gene)) +
@@ -165,13 +206,13 @@ PlotHeatmap <- function(main_dir, dis_type, chr_sex, chr, sex) {
   dev.off()
 }
 
-# 9. Plots heatmaps
+# 10. Plots heatmaps
 PlotSexHmp <- function(main_dir, dis_type, chr_sex_list) {
-  PlotHeatmap(main_dir, dis_type, chr_sex_list[[1]], "X", "F")
-  PlotHeatmap(main_dir, dis_type, chr_sex_list[[2]], "Y", "M")
+  PlotSexHeatmap(main_dir, dis_type, chr_sex_list[[1]], "X", "F")
+  PlotSexHeatmap(main_dir, dis_type, chr_sex_list[[2]], "Y", "M")
 }
 
-# 10. Retrieve p-values from Fisher's test done in 02A_Fisher
+# 11. Retrieve p-values from Fisher's test done in 02A_Fisher
 ExtractPval <- function(main_dir, dis_type, sex) {
   pval <- read.csv(paste0(main_dir, dis_type, "/02A_Fisher_sex_genes/", sex, "_Fisher_results_v2.csv"))
   names(pval)[names(pval) == 'X.1'] <- 'ct'
@@ -187,7 +228,7 @@ ExtractPval <- function(main_dir, dis_type, sex) {
   return(pval)
 }
 
-# 11. Add p-value to df
+# 12. Add p-value to df
 AddPval <- function(df, pvalX, pvalY) {
   df$pval_fisher <- rep("", length(df$perc))
   for (cells in pvalX$ct) {
@@ -199,7 +240,37 @@ AddPval <- function(df, pvalX, pvalY) {
   return(df)
 }
 
-# 12. Plot the fraction of enriched DEGs per chromosome, including or not the Fisher p-value
+# 13. Plot Heatmap of all DEGs, with heircachy of chromosome origin
+PlotGeneralHeatmap <- function(main_dir, dis_type, chr_sex_list) {
+  df_sex_list <- ExtractGenes(chr_sex_list) 
+  for (sex in names(df_sex_list)) {
+    pdf(paste0(main_dir, dis_type,  "/01C_num_chr/", "all_degs_heatmap_in_", sex, ".pdf"))
+    print(
+      ggplot(df_sex_list[[sex]], aes(ct, gene)) +
+        geom_tile(aes(fill=DEG)) + 
+        scale_fill_manual(values = c("y" =  "#F8766D", "n"= "#00BFC4")) +
+        scale_color_manual(values = c("y" =  "#F8766D", "n"= "#00BFC4")) +
+        labs(x = "Cell types", y = paste0(sex, " DEGs"), fill = "Expressed", main = sex) +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              axis.line = element_line(colour = "black"),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
+              axis.ticks.x=element_blank(),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              axis.text.y = element_blank(),
+              axis.ticks.y=element_blank(),
+              legend.position = "bottom", 
+              legend.title = element_text(size=12, face="bold", colour = "black"))
+      
+    )
+    dev.off()
+  }
+  
+}
+
+# 14. Plot the fraction of enriched DEGs per chromosome, including or not the Fisher p-value
 PlotNumChr <- function(main_dir, dis_type, num_chr_genes, pval_file=FALSE) {
   sexes <- c("F", "M")
   col_palette <- hue_pal()(3)
@@ -254,3 +325,4 @@ PlotNumChr <- function(main_dir, dis_type, num_chr_genes, pval_file=FALSE) {
     dev.off()
   }
 }
+

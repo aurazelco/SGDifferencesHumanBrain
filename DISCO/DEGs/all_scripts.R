@@ -99,13 +99,16 @@ num_chr_genes <- list("X" = X_chr_genes, "Y" = Y_chr_genes, "Autosome" = (tot_ge
 
 # NORMAL
 chr_normal <- ProcessCt(main, sub_disease[3])
-PlotSexHmp(main, sub_disease[3], chr_normal)
-PlotNumChr(main, sub_disease[3], num_chr_genes, T)
+PlotGeneralHeatmap(main, normal, chr_normal)
+PlotSexHmp(main, normal, chr_normal)
+PlotNumChr(main, normal, num_chr_genes, T)
 
 #AD
-chr_ad <- ProcessCt(main, sub_disease[1])
-PlotSexHmp(main, sub_disease[1], chr_ad)
-PlotNumChr(main, sub_disease[1], num_chr_genes, T)
+ad <- sub_disease[1]
+chr_ad <- ProcessCt(main, ad)
+PlotGeneralHeatmap(main, ad, chr_ad)
+PlotSexHmp(main, ad, chr_ad)
+PlotNumChr(main, ad, num_chr_genes, T)
 
 ####### 01D_Xpar1,2.R
 

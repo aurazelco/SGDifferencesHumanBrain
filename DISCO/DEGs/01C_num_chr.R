@@ -1,6 +1,6 @@
 main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/outputs/"
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs/01C_num_chr_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/scripts/DEGs/01C_num_chr_func.R")
 
 ####### MAIN
 
@@ -16,12 +16,16 @@ num_chr_genes <- list("X" = X_chr_genes, "Y" = Y_chr_genes, "Autosome" = (tot_ge
 # NORMAL
 normal <- sub_disease[3]
 chr_normal <- ProcessCt(main, normal)
+PlotGeneralHeatmap(main, normal, chr_normal)
 PlotSexHmp(main, normal, chr_normal)
 PlotNumChr(main, normal, num_chr_genes, T)
+
+
 
 #AD
 ad <- sub_disease[1]
 chr_ad <- ProcessCt(main, ad)
+PlotGeneralHeatmap(main, ad, chr_ad)
 PlotSexHmp(main, ad, chr_ad)
 PlotNumChr(main, ad, num_chr_genes, T)
 
