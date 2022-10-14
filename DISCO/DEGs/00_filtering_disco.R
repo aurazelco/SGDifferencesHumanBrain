@@ -800,5 +800,54 @@ write.csv(ad_all_degs, file = paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/d
 
 #ad_remove <- list.dirs("Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/outputs/Alzheimer's disease/01A_only_1_project", recursive=FALSE, full.names = FALSE)
 
+
+####### INFO FOR SCENIC PIPELINE
+
+disco_filt <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
+
+
+
+num_proj_sex <- as.data.frame(table(disco_filt$proj_sex))
+num_proj_sex <- separate(num_proj_sex, Var1, into = c("proj", "sex"), sep = "_")
+names(num_proj_sex)[names(num_proj_sex) == 'Freq'] <- "count"
+write.csv(num_proj_sex, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/num_proj_sex.csv")
+
+ggplot(num_proj_sex, aes(proj, count, fill=sex)) +
+  geom_bar(stat="identity", position="dodge") +
+  labs(x="Project ID", y='Cell Counts', fill="Sex") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(size=12, face="bold", colour = "black"),
+        axis.text.x = element_text(size=8, colour = "black",angle = 45, vjust = 0.5, hjust=0.5),
+        axis.ticks.x=element_blank(),
+        axis.title.y = element_text(size=12, face="bold", colour = "black"),
+        legend.title = element_text(size=12, face="bold", colour = "black"),
+        legend.position = "bottom")
+ggsave("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/num_proj_sex.pdf")
+
+num_proj_sex_ct <- as.data.frame(table(disco_filt$proj_sex_ct))
+num_proj_sex_ct <- separate(num_proj_sex_ct, Var1, into = c("proj", "sex", "ct"), sep = "_")
+names(num_proj_sex_ct)[names(num_proj_sex_ct) == 'Freq'] <- "count"
+write.csv(num_proj_sex_ct, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/num_proj_sex_ct.csv")
+
+ggplot(num_proj_sex_ct, aes(proj, count, fill=sex)) +
+  geom_bar(stat="identity", position="dodge") +
+  labs(x="Project ID", y='Cell Counts', fill="Sex") +
+  facet_wrap(~ct, scales = "free") +
+  geom_hline(yintercept = 10, linetype=2) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(size=12, face="bold", colour = "black"),
+        axis.text.x = element_text(size=8, colour = "black",angle = 45, vjust = 0.5, hjust=0.5),
+        axis.ticks.x=element_blank(),
+        axis.title.y = element_text(size=12, face="bold", colour = "black"),
+        legend.title = element_text(size=12, face="bold", colour = "black"),
+        legend.position = "bottom")
+ggsave("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/num_proj_sex_ct.pdf",
+       width = 20, units = "cm")
 # session info
 sessionInfo()
