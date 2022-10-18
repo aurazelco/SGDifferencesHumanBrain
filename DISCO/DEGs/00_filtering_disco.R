@@ -6,6 +6,9 @@ library(ggpubr)
 library(tidyr)
 library(data.table)
 library(dplyr)
+library(matrixStats)
+library(stringr)
+`%!in%` <- Negate(`%in%`)
 
 # load the dataset
 disco_brain <- readRDS("brainV1.0.rds")
@@ -805,49 +808,328 @@ write.csv(ad_all_degs, file = paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/d
 
 disco_filt <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
 
-
-
-num_proj_sex <- as.data.frame(table(disco_filt$proj_sex))
-num_proj_sex <- separate(num_proj_sex, Var1, into = c("proj", "sex"), sep = "_")
+num_proj_sex <- as.data.frame(table(disco_filt$proj_sex_disease))
+num_proj_sex <- separate(num_proj_sex, Var1, into = c("proj", "sex", "disease"), sep = "_")
 names(num_proj_sex)[names(num_proj_sex) == 'Freq'] <- "count"
-write.csv(num_proj_sex, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/num_proj_sex.csv")
+write.csv(num_proj_sex, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/num_proj_sex_disease.csv")
 
-ggplot(num_proj_sex, aes(proj, count, fill=sex)) +
-  geom_bar(stat="identity", position="dodge") +
-  labs(x="Project ID", y='Cell Counts', fill="Sex") +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_text(size=12, face="bold", colour = "black"),
-        axis.text.x = element_text(size=8, colour = "black",angle = 45, vjust = 0.5, hjust=0.5),
-        axis.ticks.x=element_blank(),
-        axis.title.y = element_text(size=12, face="bold", colour = "black"),
-        legend.title = element_text(size=12, face="bold", colour = "black"),
-        legend.position = "bottom")
-ggsave("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/num_proj_sex.pdf")
+for (dis_type in unique(num_proj_sex$disease)) {
+  pdf(paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/num_proj_sex_", dis_type,".pdf"))
+  print(
+    ggplot(num_proj_sex[which(num_proj_sex$disease==dis_type), ], aes(proj, count, fill=sex)) +
+      geom_bar(stat="identity", position="dodge") +
+      labs(x="Project ID", y='Cell Counts', fill="Sex", main = dis_type) +
+      theme(panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(),
+            panel.background = element_blank(), 
+            axis.line = element_line(colour = "black"),
+            axis.title.x = element_text(size=12, face="bold", colour = "black"),
+            axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.5, hjust=0.5),
+            axis.ticks.x=element_blank(),
+            axis.title.y = element_text(size=12, face="bold", colour = "black"),
+            legend.title = element_text(size=12, face="bold", colour = "black"),
+            legend.position = "bottom")
+  )
+  dev.off()
+}
 
-num_proj_sex_ct <- as.data.frame(table(disco_filt$proj_sex_ct))
-num_proj_sex_ct <- separate(num_proj_sex_ct, Var1, into = c("proj", "sex", "ct"), sep = "_")
+num_proj_sex_ct <- as.data.frame(table(disco_filt$proj_sex_disease_ct))
+num_proj_sex_ct <- separate(num_proj_sex_ct, Var1, into = c("proj", "sex", "disease", "ct"), sep = "_")
 names(num_proj_sex_ct)[names(num_proj_sex_ct) == 'Freq'] <- "count"
 write.csv(num_proj_sex_ct, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/num_proj_sex_ct.csv")
 
-ggplot(num_proj_sex_ct, aes(proj, count, fill=sex)) +
-  geom_bar(stat="identity", position="dodge") +
-  labs(x="Project ID", y='Cell Counts', fill="Sex") +
-  facet_wrap(~ct, scales = "free") +
-  geom_hline(yintercept = 10, linetype=2) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_text(size=12, face="bold", colour = "black"),
-        axis.text.x = element_text(size=8, colour = "black",angle = 45, vjust = 0.5, hjust=0.5),
-        axis.ticks.x=element_blank(),
-        axis.title.y = element_text(size=12, face="bold", colour = "black"),
-        legend.title = element_text(size=12, face="bold", colour = "black"),
-        legend.position = "bottom")
-ggsave("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/num_proj_sex_ct.pdf",
-       width = 20, units = "cm")
+for (dis_type in unique(num_proj_sex_ct$disease)) {
+  pdf(paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/num_proj_sex_", dis_type,"_ct.pdf"),
+      width = 15, height = 18.75)
+  print(
+      ggplot(num_proj_sex_ct[which(num_proj_sex_ct$disease==dis_type), ], aes(proj, count, fill=sex)) +
+        geom_bar(stat="identity", position="dodge") +
+        labs(x="Project ID", y='Cell Counts', fill="Sex", main = dis_type) +
+        facet_wrap(~ct, scales = "free") +
+        geom_hline(yintercept = 10, linetype=2) +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              axis.line = element_line(colour = "black"),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.5, hjust=0.5),
+              axis.ticks.x=element_blank(),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              legend.title = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "bottom")
+  )
+  dev.off()
+}
+
+######## HIGHEST VARIABLE GENES - TEST 2022.10.17
+
+disco_filt <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
+
+#length(test1$RNA)
+#length(test1$RNA[which(test1$RNA>0),])
+
+Idents(disco_filt) <- "proj_sex_disease_ct"
+
+
+test2 <- AverageExpression(disco_filt, assays="RNA") # calculates average expression for each gene in each ident
+test3 <- as.data.frame(test2$RNA) # creates a df
+
+library(matrixStats)
+test3$SD <- rowSds(as.matrix(test3)) # calculates SD for each row -> variability in the different groups
+test3 <- test3[order(-test3$SD),] # order df in descending order
+test3$Genes <- rownames(test3) # extract gene names as factor
+test3$Genes <- as.factor(test3$Genes)
+
+# displays SD as descending values
+ggplot(test3[1:50,], aes(reorder(Genes, -SD), SD)) +
+  geom_point()
+
+
+# this theoretically retrieves the avg expression of genes within a cluster -> variability among samples
+micro1 <- subset(disco_filt, subset = proj_sex_disease_ct == "GSE174367_F_Normal_microglia")
+
+Idents(micro1) <- "sample_id"
+test1 <- AverageExpression(micro1, assays="RNA")
+test1 <- as.data.frame(test1$RNA) # creates a df
+
+test1$SD <- rowSds(as.matrix(test1)) # calculates SD for each row -> variability in the different groups
+test1 <- test1[order(-test1$SD),] # order df in descending order
+test1$Genes <- rownames(test1) # extract gene names as factor
+test1$Genes <- as.factor(test1$Genes)
+
+# displays SD as descending values
+ggplot(test1[1:50,], aes(reorder(Genes, -SD), SD)) +
+  geom_point()
+
+test2 <- as.data.frame(GetAssayData(micro1[["RNA"]], slot="data"))
+test2$SD <- rowSds(as.matrix(test2))
+test2 <- test2[order(-test2$SD),] # order df in descending order
+test2$Genes <- rownames(test2) # extract gene names as factor
+test2$Genes <- as.factor(test2$Genes)
+
+# displays SD as descending values
+ggplot(test2[1:50,], aes(reorder(Genes, -SD), SD)) +
+  geom_point()
+
+
+# main diff is that AverageExpression is in log-space, GetAssayData is not -> use GetAssayData
+
+sub_test2 <- test2[1:2000,]
+drops <- c("Genes", "SD")
+sub_test2 <- sub_test2[ , !(names(sub_test2) %in% drops)]
+sub_test2 <- cbind("Genes" = rownames(sub_test2), sub_test2)
+rownames(sub_test2) <- NULL
+
+
+sub_test2 <- rbind(colnames(sub_test2), sub_test2)
+
+write.table(sub_test2, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/SCENIC/test_micro.tsv", 
+            sep="\t", col.names = FALSE)
+write.table(sub_test2, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/SCENIC/microglia_test/test_micro.tsv", 
+            sep="\t", col.names = FALSE)
+
+sub_test3 <- as.data.frame(t(sub_test2))
+rownames(sub_test3) <- NULL
+sub_test3[1,1] <- NA
+write.table(sub_test3, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/SCENIC/microglia_test/test_micro.csv", 
+            sep=",", col.names = FALSE, row.names = FALSE)
+
+library(SeuratDisk)
+lfile <- SaveLoom(micro1, 
+        filename = "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/SCENIC/microglia_test/micro_test.loom")
+
+######## HIGHEST VARIABLE GENES - 2022.10.18
+
+disco_filt <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
+
+#disco_filt@meta.data$proj_sex_disease_ct_sample <- paste(disco_filt@meta.data$proj_sex_disease_ct, disco_filt@meta.data$sample_id, sep="_")
+#saveRDS(disco_filt, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
+
+Idents(disco_filt) <- "proj_sex_disease_ct_sample"
+
+expr_mat_all <- GetAssayData(disco_filt[["RNA"]], slot="data")
+
+
+Idents(disco_filt) <- "proj_sex_disease_ct"
+
+cell_info <- data.frame()
+
+for (i in unique(disco_filt@meta.data$proj_sex_disease_ct)) {
+  #print(i)
+  cell_id <- WhichCells(disco_filt, idents = i)
+  og_group <- rep(i, length(cell_id))
+  cell_info <- rbind(cell_info, data.frame(cell_id, og_group))
+}
+
+cell_info <- separate(cell_info, cell_id, into = c("barcode", "sample"), sep = "--", remove = FALSE)
+
+rm(disco_filt)
+
+expr_mat_all <- as.data.frame(as.matrix(expr_mat_all))
+expr_mat_all$SD <- rowSds(as.matrix(expr_mat_all))
+expr_mat_all <- expr_mat_all[which(expr_mat_all$SD > 0), ]
+
+if (nrow(expr_mat_all) * 0.25 > 2000) {
+  expr_mat_all <- expr_mat_all[which(expr_mat_all$SD > quantile(expr_mat_all$SD)[4]), ]
+} else {
+  print(" less than 2k genes above third quantile")
+}
+
+# order df in descending order
+expr_mat_all <- expr_mat_all[order(-expr_mat_all$SD),] 
+expr_mat_all <- expr_mat_all[1:2000, ]
+expr_mat_all <- cbind("Genes" = rownames(expr_mat_all), expr_mat_all)
+rownames(expr_mat_all) <- NULL
+
+expr_sums <- colSums(expr_mat_all[2:ncol(expr_mat_all)])
+if (identical(length(which(expr_sums>0)), length(expr_sums))) {
+  print("all columns express at least one gene")
+} else {
+  expr_mat_all <- expr_mat_all[ , !(names(expr_mat_all) %in% which(expr_sums>0))]
+  print("calculate how many cells have been filtered out")
+}
+
+expr_mat_all <- expr_mat_all %>% 
+          relocate(SD, .after = Genes)
+
+saveRDS(expr_mat_all, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/top_2000_SD_expr_matrix.rds")
+
+##### Extract randomly 2k cells and analyze them in SCENIC to see if it can handle a big dataset
+random_expr <- sample(expr_mat_all[-2], 2000)
+random_expr <- cbind("Genes" = expr_mat_all$Genes, random_expr)
+random_expr <- rbind(colnames(random_expr), random_expr)
+
+write.table(random_expr, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/SCENIC/random_expr_test/random_expr.tsv", 
+            sep="\t", col.names = FALSE)
+
+##### Map the samples back to the groups they belong to
+#cell_info$cell_id <- paste(cell_info$barcode, cell_info$sample, sep = "--")
+#cell_info <- cell_info %>% 
+#  relocate(cell_id, .before = barcode)
+
+group_list <- list()
+group_list_n <- vector()
+for (group_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==group_id), "cell_id"])
+  df_og_group <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  group_list <- append(group_list, list(df_og_group))
+  group_list_n <-  c(group_list_n, group_id)
+}
+names(group_list) <- group_list_n
+
+
+remove_dfs <- function(df_list, threshold) {
+  incomplete_dfs <- vector()
+  for (group_id in names(df_list)) {
+    if (ncol(df_list[[group_id]]) < (threshold + 1)) {
+      incomplete_dfs <- c(incomplete_dfs, group_id)
+    }
+  }
+  add_counterpart <- vector()
+  for (i in incomplete_dfs) {
+    if (grepl("F", i)) {
+      m_id <- str_replace(i, "F", "M")
+      if (m_id %!in% incomplete_dfs) {
+        add_counterpart <- c(add_counterpart, m_id)
+      }
+    } else {
+      f_id <- str_replace(i, "M", "F")
+      if (f_id %!in% incomplete_dfs) {
+        add_counterpart <- c(add_counterpart, f_id)
+      }
+    }
+  }
+  incomplete_dfs <- c(incomplete_dfs, add_counterpart)
+  for (i in incomplete_dfs) {
+    df_list[[i]] <- NULL
+  }
+  return(df_list)
+}
+
+
+if (length(group_list) %% 2 != 0 ) {
+  f_list <- vector()
+  m_list <- vector()
+  for (i in names(group_list)) {
+    if (grepl("F", i)) {
+      gen <- str_remove(i, "F_")
+      f_list <- c(f_list, gen)
+    } else {
+      gen <- str_remove(i, "M_")
+      m_list <- c(m_list, gen)
+    }
+  }
+  if (identical(m_list, f_list) == FALSE) {
+    if (length(m_list) > length(f_list)) {
+      remove_groups <- c(m_list[which(m_list %!in% f_list)], "M")
+    } else {
+      remove_groups <- c(f_list[which(f_list %!in% m_list)], "F")
+    }
+  }
+}
+
+# "PRJNA544731_M_Normal_microglia"
+group_list[["PRJNA544731_M_Normal_microglia"]] <- NULL
+
+for (id in names(group_list)){
+  if (ncol(group_list[[id]]) > 101) {
+    print(ncol(group_list[[id]]))
+    print(ncol(group_list[[id]]) %/% 100 )
+  }
+}
+
+
+ncol(group_list[[1]])
+for (k in 1:(ncol(group_list[[1]]) %/% 100)) {
+  print(k)
+}
+
+hist(sapply(1:length(names(group_list)), function(i) ncol(group_list[[i]])),
+     breaks = 150,
+     xlim=c(0,1000))
+
+
+group_list100 <- group_list
+group_list500 <- group_list
+
+group_list100 <- remove_dfs(group_list100, 100)
+group_list500 <- remove_dfs(group_list500, 500)
+
+
+plot_group_numbers <- function(df_list, thresh) {
+  ids <- as.data.frame(names(df_list))
+  colnames(ids) <- c("groups")
+  ids <- separate(ids, groups, into = c("proj", "sex", "disease", "ct"), sep="_", remove=FALSE)
+  col_factors <- c("proj", "sex", "disease", "ct")
+  ids[col_factors] <- lapply(ids[col_factors], as.factor)  
+  ids$length_groups <- sapply(1:length(names(df_list)), function(i) ncol(df_list[[i]]))
+  pdf(paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/num_filt_", thresh, "_cells.pdf"),
+      height = 12)
+  print(
+  ggplot(ids, aes(ct, length_groups, fill=sex)) +
+    geom_bar(stat="identity", position = "dodge") + 
+    facet_wrap(~proj*disease, nrow = 3, scales = "free") +
+    geom_hline(yintercept = thresh, linetype="dashed", color = "black") +
+    labs(title = paste0("Filter: ", thresh, " cells"), x="cell types", y="# of cells", fill="sex") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          axis.line = element_line(colour = "black"),
+          axis.title.x = element_text(size=12, face="bold", colour = "black"),
+          axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.5, hjust=0.5),
+          axis.ticks.x=element_blank(),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          legend.title = element_text(size=12, face="bold", colour = "black"),
+          legend.position = "bottom",
+          plot.title = element_text(size=12, face="bold", colour = "black"))
+  )
+  dev.off()
+}
+
+plot_group_numbers(group_list, 10)
+plot_group_numbers(group_list100, 100)
+plot_group_numbers(group_list500, 500)
+
+
 # session info
 sessionInfo()
