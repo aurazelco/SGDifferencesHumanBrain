@@ -963,6 +963,9 @@ for (i in unique(disco_filt@meta.data$proj_sex_disease_ct)) {
 
 cell_info <- separate(cell_info, cell_id, into = c("barcode", "sample"), sep = "--", remove = FALSE)
 
+write.csv(cell_info,
+          "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/cell_info.csv")
+
 rm(disco_filt)
 
 expr_mat_all <- as.data.frame(as.matrix(expr_mat_all))
@@ -999,13 +1002,22 @@ random_expr <- sample(expr_mat_all[-2], 2000)
 random_expr <- cbind("Genes" = expr_mat_all$Genes, random_expr)
 random_expr <- rbind(colnames(random_expr), random_expr)
 
-write.table(random_expr, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/SCENIC/random_expr_test/random_expr.tsv", 
-            sep="\t", col.names = FALSE)
+random_expr_tiny <- random_expr[, 1:1000]
+
+write.table(random_expr, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/SCENIC/random_expr_test/random_expr.csv", 
+            sep=",", col.names = FALSE, row.names = FALSE)
+write.table(random_expr_tiny, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/SCENIC/random_expr_test/random_expr_tiny.csv", 
+            sep=",", col.names = FALSE, row.names = FALSE)
+
 
 ##### Map the samples back to the groups they belong to
 #cell_info$cell_id <- paste(cell_info$barcode, cell_info$sample, sep = "--")
 #cell_info <- cell_info %>% 
 #  relocate(cell_id, .before = barcode)
+
+expr_mat_all <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/top_2000_SD_expr_matrix.rds")
+
+
 
 group_list <- list()
 group_list_n <- vector()
@@ -1046,7 +1058,7 @@ remove_dfs <- function(df_list, threshold) {
   return(df_list)
 }
 
-
+remove_groups <- vector()
 if (length(group_list) %% 2 != 0 ) {
   f_list <- vector()
   m_list <- vector()
@@ -1129,6 +1141,125 @@ plot_group_numbers <- function(df_list, thresh) {
 plot_group_numbers(group_list, 10)
 plot_group_numbers(group_list100, 100)
 plot_group_numbers(group_list500, 500)
+
+
+###### Create Randomly sampled dfs
+
+expr_mat_all <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/top_2000_SD_expr_matrix.rds")
+cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/cell_info.csv")
+
+remove_dfs <- function(df_list, threshold) {
+  incomplete_dfs <- vector()
+  for (group_id in names(df_list)) {
+    if (ncol(df_list[[group_id]]) < (threshold + 1)) {
+      incomplete_dfs <- c(incomplete_dfs, group_id)
+    }
+  }
+  add_counterpart <- vector()
+  for (i in incomplete_dfs) {
+    if (grepl("F", i)) {
+      m_id <- str_replace(i, "F", "M")
+      if (m_id %!in% incomplete_dfs) {
+        add_counterpart <- c(add_counterpart, m_id)
+      }
+    } else {
+      f_id <- str_replace(i, "M", "F")
+      if (f_id %!in% incomplete_dfs) {
+        add_counterpart <- c(add_counterpart, f_id)
+      }
+    }
+  }
+  incomplete_dfs <- c(incomplete_dfs, add_counterpart)
+  for (i in incomplete_dfs) {
+    df_list[[i]] <- NULL
+  }
+  return(df_list)
+}
+
+df_list <- list()
+df_list_n <- vector()
+for (df_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==df_id), "cell_id"])
+  df_og_df <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  df_list <- append(df_list, list(df_og_df))
+  df_list_n <-  c(df_list_n, df_id)
+}
+names(df_list) <- df_list_n
+
+df_list100 <- df_list
+df_list100 <- remove_dfs(df_list100, 100)
+
+maindir <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/"
+
+sub_disease <- list.dirs(maindir, recursive=FALSE, full.names = FALSE)
+
+dfs_split <- list("Alzheimer's disease" = vector(), 
+                  "Multiple Sclerosis" = vector(),
+                  "Normal"   = vector())
+
+for (dis_type in sub_disease) {
+  dfs_split[[dis_type]] <- names(df_list100)[which(grepl(dis_type, names(df_list100)))]
+}
+
+
+norm <- df_list100[dfs_split[["Normal"]]]
+ad <- df_list100[dfs_split[["Alzheimer's disease"]]]
+ms <- df_list100[dfs_split[["Multiple Sclerosis"]]]
+
+check_dfs <- function(group_list) {
+  remove_groups <- vector()
+  if (length(group_list) %% 2 != 0 ) {
+    f_list <- vector()
+    m_list <- vector()
+    for (i in names(group_list)) {
+      if (grepl("F", i)) {
+        gen <- str_remove(i, "F_")
+        f_list <- c(f_list, gen)
+      } else {
+        gen <- str_remove(i, "M_")
+        m_list <- c(m_list, gen)
+      }
+    }
+    if (identical(m_list, f_list) == FALSE) {
+      if (length(m_list) > length(f_list)) {
+        remove_groups <- c(m_list[which(m_list %!in% f_list)], "M")
+      } else {
+        remove_groups <- c(f_list[which(f_list %!in% m_list)], "F")
+      }
+    }
+  }
+  return(remove_groups)
+}
+
+check_dfs(norm)
+check_dfs(ad)
+check_dfs(ms)
+
+rand_sample <- function(group_list, num_sampling, num_cells, main, dis_type) {
+  sampled_dfs <-list()
+  sampled_names <- vector()
+  for (id in names(group_list)) {
+    for (k in 1:num_sampling) {
+      sampled <- data.frame()
+      sampled <- sample(group_list[[id]][-1], num_cells)
+      sampled <- cbind("Genes" = group_list[[id]]$Genes, sampled)
+      sampled_dfs <- append(sampled_dfs, list(sampled))
+      sampled_names <- c(sampled_names, paste(id, k, sep="_"))
+    }
+  }
+  names(sampled_dfs) <- lapply(1:length(sampled_names), function(i) str_replace_all(sampled_names[i],
+                                                                                          "/", "_"))
+  dir.create(paste0(main, dis_type, "/sampled_", num_cells, "_cells"), showWarnings = FALSE)
+  lapply(1:length(names(sampled_dfs)), function(i) write.csv(sampled_dfs[[i]], 
+                                                              file = paste0(main, dis_type, "/sampled_", num_cells, "_cells/", names(sampled_dfs)[i], ".csv"),
+                                                              row.names = FALSE))
+  return(sampled_dfs)
+}
+
+
+norm_sampled <- rand_sample(norm, 3, 100, maindir, sub_disease[3])
+ad_sampled <- rand_sample(ad, 3, 100, maindir, sub_disease[1])
+ms_sampled <- rand_sample(ms, 3, 100, maindir, sub_disease[2])
 
 
 # session info
