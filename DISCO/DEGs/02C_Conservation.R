@@ -1,6 +1,6 @@
 main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/outputs/"
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/scripts/DEGs/02C_Conservation_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs/02C_Conservation_func.R")
 
 ####### MAIN
 
@@ -74,16 +74,40 @@ SAGD_df[,1] <- NULL
 #                    summarise(tot_degs = length(cluster)))
 
 
+ct_order <- c(
+  "L2_3 EN",               
+  "L4 EN",   
+  "PLCH1 L4_5 EN", 
+  "TSHZ2 L4_5 EN", 
+  "L5 EN",       
+  "L5_6 EN",       
+  "L5b EN",     
+  "L6 EN",     
+  "pyramidal neuron", 
+  "CXCL14 IN",  
+  "PVALB IN",                    
+  "SST IN",
+  "SV2C IN",               
+  "VIP IN",  
+  "EC", 
+  "fibrous astrocyte",
+  "protoplasmic astrocyte",
+  "OPC", 
+  "oligodendrocyte",           
+  "microglia"
+)
+
+all_genes <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/tot_genes_ct.csv")
+all_genes$X <- NULL
+col_factors <- c("disease", "sex", "ct")
+all_genes[col_factors] <- lapply(all_genes[col_factors], as.factor) 
 
 # NORMAL
-normal_all_deg <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/outputs/normal_all_DEGs.csv")
-ConservedFractions(main, sub_disease[3], conserved, 4, "Primates", normal_all_deg)
-ConservedFractions(main, sub_disease[3], SAGD_df, 4, "SAGD", normal_all_deg)
-
+ConservedFractions(main, sub_disease[3], conserved, 4, "Primates", all_genes, ct_order)
+ConservedFractions(main, sub_disease[3], SAGD_df, 4, "SAGD",  all_genes, ct_order)
 
 #AD
-ad_all_deg <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/outputs/ad_all_DEGs.csv")
-ConservedFractions(main, sub_disease[1], conserved, 4, "Primates", ad_all_deg)
-ConservedFractions(main, sub_disease[1], SAGD_df, 4, "SAGD", ad_all_deg)
+ConservedFractions(main, sub_disease[1], conserved, 4, "Primates",  all_genes, ct_order)
+ConservedFractions(main, sub_disease[1], SAGD_df, 4, "SAGD",  all_genes, ct_order)
 
 

@@ -70,7 +70,7 @@ CellMarkers <- function(main_dir, cm_ct_list) {
 }
 
 # 3. Calculates the percentage of DEGs which are also markers for the cts
-CalcPercMarkers <- function(df_sex, markers, markers_ct_names) {
+CalcPercMarkers <- function(df_sex, markers, markers_ct_names, ct_order) {
   if (length(names(df_sex[[1]])) == length(names(df_sex[[2]]))) {
     df_markers <- as.data.frame(rep(unlist(names(df_sex[[1]])), 2))
     colnames(df_markers) <- c("ct")
@@ -82,24 +82,46 @@ CalcPercMarkers <- function(df_sex, markers, markers_ct_names) {
     df_markers$sex <- c(rep(names(df_sex)[1], length(names(df_sex[[1]]))), rep(names(df_sex)[2], length(names(df_sex[[2]]))))
   }
   df_markers$markers_count <- rep(NA, nrow(df_markers))
+  df_markers$markers_perc <- rep(NA, nrow(df_markers))
   for (sex in names(df_sex)) {
     for (ct_name in names(df_sex[[sex]])) {
-      df_markers[which(df_markers$ct==ct_name & df_markers$sex==sex),"markers_count"] <- length(intersect(df_sex[[sex]][[ct_name]][[sex]], markers[[data_ct[[ct_name]]]]))*100/nrow(df_sex[[sex]][[ct_name]])
+      df_markers[which(df_markers$ct==ct_name & df_markers$sex==sex),"markers_count"] <- length(intersect(df_sex[[sex]][[ct_name]][[sex]], markers[[data_ct[[ct_name]]]]))
+      df_markers[which(df_markers$ct==ct_name & df_markers$sex==sex),"markers_perc"] <- length(intersect(df_sex[[sex]][[ct_name]][[sex]], markers[[data_ct[[ct_name]]]]))*100/length(markers[[data_ct[[ct_name]]]])
     }
   }
   col_factors <- c("ct", "sex")
   df_markers[col_factors] <- lapply(df_markers[col_factors], as.factor)
+  dis_ct_order <- ct_order[which(ct_order %in% levels(df_markers$ct))]
+  df_markers$ct <- factor(df_markers$ct, dis_ct_order)
+  df_markers <- df_markers[order(df_markers$ct), ]
   return(df_markers)
 }
 
 # 4. Plots the results
 PlotMarkers <- function(main_dir, dis_type, df_markers) {
   dir.create(paste0(main_dir, dis_type, "/01E_CellMarker"), showWarnings = FALSE)
-  pdf(paste0(main_dir, dis_type, "/01E_CellMarker/CellMarker_DEGs_percentage.pdf"))
+  pdf(paste0(main_dir, dis_type, "/01E_CellMarker/CellMarker_count.pdf"))
   print(
-  ggplot(df_markers[which(df_markers$markers_count>0), ], aes(ct, markers_count, fill=sex)) +
+    ggplot(df_markers[which(df_markers$markers_count>0), ], aes(ct, markers_count, fill=sex)) +
+      geom_bar(stat='identity', position=position_dodge2(width = 0.9, preserve = "single")) +
+      labs(x="Cell types", y="Abs counts of Markers", fill="Sex") +
+      theme(panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(),
+            panel.background = element_blank(), 
+            axis.line = element_line(colour = "black"),
+            axis.title.x = element_blank(),
+            axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
+            axis.ticks.x=element_blank(),
+            axis.title.y = element_text(size=12, face="bold", colour = "black"),
+            legend.position = "bottom", 
+            legend.title = element_text(size=12, face="bold", colour = "black"))
+  )
+  dev.off()
+  pdf(paste0(main_dir, dis_type, "/01E_CellMarker/CellMarker_percentage.pdf"))
+  print(
+  ggplot(df_markers[which(df_markers$markers_perc>0), ], aes(ct, markers_perc, fill=sex)) +
     geom_bar(stat='identity', position=position_dodge2(width = 0.9, preserve = "single")) +
-    labs(x="Cell types", y="Marker DEGs (%)", fill="Sex") +
+    labs(x="Cell types", y="% Markers", fill="Sex") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(), 
@@ -115,7 +137,7 @@ PlotMarkers <- function(main_dir, dis_type, df_markers) {
 }
 
 # 5. Combines prevoius functions into one
-PlotCMresults <- function(main_dir, dis_type, cm_dir, cm_ct_list, markers_ct_names, row_col) {
+PlotCMresults <- function(main_dir, dis_type, cm_dir, cm_ct_list, markers_ct_names, ct_order, row_col) {
   path <- paste0(main_dir, dis_type, "/01B_num_DEGs")
   sub_ct <- list.dirs(path, recursive=FALSE, full.names = FALSE)
   df_F <- list()
@@ -134,6 +156,6 @@ PlotCMresults <- function(main_dir, dis_type, cm_dir, cm_ct_list, markers_ct_nam
   names(df_M) <- sub_ct
   df_sex <- (list("F" = df_F, "M" = df_M))
   markers <- CellMarkers(cm_dir, cm_ct_list)
-  df_markers <- CalcPercMarkers(df_sex, markers, markers_ct_names)
+  df_markers <- CalcPercMarkers(df_sex, markers, markers_ct_names, ct_order)
   PlotMarkers(main_dir, dis_type, df_markers)
 }

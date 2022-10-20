@@ -67,8 +67,12 @@ CreateDEGdf <- function(deg_list) {
 }
 
 # 4. Plot DEGs before intersection
-PlotDEGs <- function(main, dis, df_count) {
-  pdf(paste0(main, "/", dis,  "/01B_num_DEGs/num_genes_per_ct_before_intersection.pdf"))
+PlotDEGs <- function(main, dis, df_count, ct_ordered) {
+  dis_ct_order <- ct_ordered[which(ct_ordered %in% levels(df_count$ct))]
+  df_count$ct <- factor(df_count$ct, dis_ct_order)
+  df_count <- df_count[order(df_count$ct), ]
+  pdf(paste0(main, dis,  "/01B_num_DEGs/num_genes_per_ct_before_intersection.pdf"),
+      width = 8)
   print(
   ggplot(df_count, aes(ct, deg_count, fill=ct)) +
     geom_bar(stat="identity") +
@@ -89,7 +93,7 @@ PlotDEGs <- function(main, dis, df_count) {
 }
 
 # 5. Extract gene lists and number of common DEGs
-IntersectDEG <- function(main, dis, pval, FC) {
+IntersectDEG <- function(main, dis, pval, FC, ct_ordered) {
   print("The script does not check if a folder has only one project - this may raise errors")
   dir.create(paste(main, dis, "01B_num_DEGs", sep="/"), showWarnings = FALSE)
   path <- (paste(main, dis, "01A_DEGs", sep="/"))
@@ -139,7 +143,7 @@ IntersectDEG <- function(main, dis, pval, FC) {
   }
   names(deg_list) <- sub_ct
   deg_df <- CreateDEGdf(deg_list)
-  PlotDEGs(main, dis, deg_df)
+  PlotDEGs(main, dis, deg_df, ct_ordered)
   if (identical(df$celltypes, ct_qc)) {
     df$counts <- num_genes
     col_factors <- c("celltypes", "sex")
@@ -151,7 +155,10 @@ IntersectDEG <- function(main, dis, pval, FC) {
 }
 
 # 6. Plot number of intersected DEGs
-PlotIntDEGs <- function(main, dis, df, num_p) {
+PlotIntDEGs <- function(main, dis, df, num_p, ct_ordered) {
+  dis_ct_order <- ct_ordered[which(ct_ordered %in% levels(df$celltypes))]
+  df$celltypes <- factor(df$celltypes, dis_ct_order)
+  df <- df[order(df$celltypes), ]
   pdf(paste0(main, "/", dis,  "/01B_num_DEGs/num_genes_per_ct.pdf"))
   print(ggplot(df, aes(celltypes, counts, fill=sex)) +
           geom_bar(stat="identity", position="dodge") +

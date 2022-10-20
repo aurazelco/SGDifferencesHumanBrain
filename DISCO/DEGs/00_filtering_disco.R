@@ -1249,6 +1249,8 @@ rand_sample <- function(group_list, num_sampling, num_cells, main, dis_type) {
   }
   names(sampled_dfs) <- lapply(1:length(sampled_names), function(i) str_replace_all(sampled_names[i],
                                                                                           "/", "_"))
+  names(sampled_dfs) <- lapply(1:length(names(sampled_dfs)), function(i) str_replace_all(names(sampled_dfs)[i],
+                                                                                    " ", "_"))
   dir.create(paste0(main, dis_type, "/sampled_", num_cells, "_cells"), showWarnings = FALSE)
   lapply(1:length(names(sampled_dfs)), function(i) write.csv(sampled_dfs[[i]], 
                                                               file = paste0(main, dis_type, "/sampled_", num_cells, "_cells/", names(sampled_dfs)[i], ".csv"),
@@ -1260,6 +1262,181 @@ rand_sample <- function(group_list, num_sampling, num_cells, main, dis_type) {
 norm_sampled <- rand_sample(norm, 3, 100, maindir, sub_disease[3])
 ad_sampled <- rand_sample(ad, 3, 100, maindir, sub_disease[1])
 ms_sampled <- rand_sample(ms, 3, 100, maindir, sub_disease[2])
+
+############ For 02C_Conservation
+
+disco_filt <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
+
+Idents(disco_filt) <- "proj_sex_disease_ct"
+
+expr_mat_all_cts <- GetAssayData(disco_filt[["RNA"]], slot="data")
+
+rm(disco_filt)
+expr_mat_all_cts <- as.data.frame(as.matrix(expr_mat_all_cts))
+
+cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/cell_info.csv")
+cell_info$X <- NULL
+
+df_list <- list()
+df_list_n <- vector()
+for (df_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==df_id), "cell_id"])
+  df_og_df <- expr_mat_all_cts[ , (names(expr_mat_all_cts) %in% og_cells)]
+  df_list <- append(df_list, list(df_og_df))
+  df_list_n <-  c(df_list_n, df_id)
+}
+names(df_list) <- df_list_n
+#lapply(1:length(df_list_n), function(i) str_replace_all(df_list_n[i], "/", "_"))
+
+dfs_split <- list("Alzheimer'sdisease" = vector(), 
+                  "Multiple Sclerosis" = vector(),
+                  "Normal"   = vector())
+
+sub_disease <- list.dirs("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/outputs/", recursive=FALSE, full.names = FALSE)
+
+for (dis_type in sub_disease) {
+  dfs_split[[dis_type]] <- names(df_list)[which(grepl(dis_type, names(df_list)))]
+}
+
+
+norm <- df_list[dfs_split[["Normal"]]]
+ad <- df_list[dfs_split[["Alzheimer's disease"]]]
+ms <- df_list[dfs_split[["Multiple Sclerosis"]]]
+
+
+FiltDisDf <- function(df_list_dis) {
+  #df_list_dis <- df_list_dis[!sapply(1:length(names(df_list_dis)), function(x) is.null(ncol(df_list_dis[[x]])))]
+  filt_names <- vector()
+  df_dis <- list()
+  for (k in names(df_list_dis)) {
+    if (!is.null(ncol(df_list_dis[[k]]))) {
+      df_dis <- append(df_dis, list(rownames(df_list_dis[[k]][which(rowSums(as.matrix(df_list_dis[[k]]))!=0),])))
+      filt_names <- c(filt_names, k)
+    }
+  }
+  names(df_dis) <- filt_names
+  cts <- vector()
+  genes <- vector()
+  for (id in names(df_dis)) {
+    cts <- c(cts, rep(id, length(df_dis[[id]])))
+    genes <- c(genes, df_dis[[id]])
+  }
+  tot_genes <- data.frame(cts, genes)
+  return(tot_genes)
+}
+
+
+norm_df <- FiltDisDf(norm)
+ad_df <- FiltDisDf(ad)
+ms_df <- FiltDisDf(ms)
+
+tot_df <- rbind(norm_df, ad_df, ms_df)
+
+tot_df <- separate(tot_df, cts, into=c("proj", "sex", "disease", "ct"), sep ="_", remove = FALSE)
+colnames(tot_df)
+names(tot_df)[names(tot_df) == "cts"] <- "og"
+
+col_factors <- c("og", "proj", "sex", "disease", "ct")
+tot_df[col_factors] <- lapply(tot_df[col_factors], as.factor) 
+
+diseases <- vector()
+sexes <- vector()
+cts <- vector()
+genes <- vector()
+for (dis_type in levels(tot_df$disease)) {
+  if (dis_type == "Multiple Sclerosis") {
+    for (sex_id in levels(tot_df$sex)) {
+      for (ct_id in levels(tot_df$ct)) {
+        proj_MS <- unique(tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id), "proj"])
+        common_genes <- tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id & tot_df$proj==proj_MS), "genes"]
+        genes <- c(genes, common_genes)
+        diseases <- c(diseases, rep(dis_type, length(common_genes)))
+        sexes <- c(sexes, rep(sex_id, length(common_genes)))
+        cts <- c(cts, rep(ct_id, length(common_genes)))
+        }
+      }
+    } else {
+    for (sex_id in levels(tot_df$sex)) {
+      for (ct_id in levels(tot_df$ct)) {
+        proj_list <- unique(tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id), "proj"])
+        if (length(proj_list)==3) {
+            common_genes <- intersect(tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id & tot_df$proj==proj_list[1]), "genes"],
+                            intersect(
+                              tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id & tot_df$proj==proj_list[2]), "genes"],
+                              tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id & tot_df$proj==proj_list[3]), "genes"]
+                            ))
+            genes <- c(genes, common_genes)
+            diseases <- c(diseases, rep(dis_type, length(common_genes)))
+            sexes <- c(sexes, rep(sex_id, length(common_genes)))
+            cts <- c(cts, rep(ct_id, length(common_genes)))
+        } else if (length(proj_list)==2) {
+            common_genes <- intersect(tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id & tot_df$proj==proj_list[1]), "genes"],
+                                      tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id & tot_df$proj==proj_list[2]), "genes"])
+            genes <- c(genes, common_genes)
+            diseases <- c(diseases, rep(dis_type, length(common_genes)))
+            sexes <- c(sexes, rep(sex_id, length(common_genes)))
+            cts <- c(cts, rep(ct_id, length(common_genes)))
+        }
+      }
+    }
+  }
+}
+
+tot_genes <- as.data.frame(cbind(diseases, sexes, cts, genes))
+colnames(tot_genes) <- c("disease", "sex", "ct", "genes")
+col_factors <- c("disease", "sex", "ct")
+tot_genes[col_factors] <- lapply(tot_genes[col_factors], as.factor) 
+
+write.csv(tot_genes, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/tot_genes_ct.csv")
+
+ct_order <- c(
+  "L2_3 EN",               
+  "L4 EN",   
+  "PLCH1 L4_5 EN", 
+  "TSHZ2 L4_5 EN", 
+  "L5 EN",       
+  "L5_6 EN",       
+  "L5b EN",     
+  "L6 EN",     
+  "pyramidal neuron", 
+  "CXCL14 IN",  
+  "PVALB IN",                    
+  "SST IN",
+  "SV2C IN",               
+  "VIP IN",  
+  "EC", 
+  "fibrous astrocyte",
+  "protoplasmic astrocyte",
+  "OPC", 
+  "oligodendrocyte",           
+  "microglia"
+)
+
+
+
+MeanGeneCount <- function(df_list_dis) {
+  df_dis <- as.data.frame(names(df_list_dis))
+  colnames(df_dis) <- c("ids")
+  df_dis <- separate(df_dis, ids, into=c("proj", "sex", "disease", "ct"), sep ="_", remove = FALSE)
+  df_dis$mean_gene_count <- sapply(1:length(names(df_list_dis)), function(i) mean(colSums(as.matrix(df_list_dis[[i]]) != 0)))
+  col_factors <- c("ids", "proj", "sex", "disease", "ct")
+  df_dis[col_factors] <- lapply(df_dis[col_factors], as.factor)  
+  return(df_dis)
+}
+
+
+norm_df <- MeanGeneCount(norm)
+ad_df <- MeanGeneCount(ad)
+ms_df <- MeanGeneCount(ms)
+
+mean_ct_count <- vector()
+for (sex in levels(norm_df$sex)) {
+  for (ct in levels(norm_df$ct)) {
+    mean_ct_count <- c(mean_ct_count, 
+                       mean(norm_df[which(norm_df$ct==ct & norm_df$sex==sex), "mean_gene_count"]))
+    
+  }
+}
 
 
 # session info

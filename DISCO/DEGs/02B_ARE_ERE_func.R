@@ -125,12 +125,15 @@ EREdfPerc <- function(main_dir, dis_type, df_ERE, sex) {
 }
 
 # 5. Plot ARE or ERE sites
-PlotAREERE <- function(main_dir, dis_type, df_sex, sex, are_ere) {
+PlotAREERE <- function(main_dir, dis_type, df_sex, sex, are_ere, ct_ordered) {
   if (are_ere=="ARE") {
     col_palette <- c("#39B600", "#9590FF","#D376FF" , "#FD61D1")
   } else if (are_ere=="ERE") {
     col_palette <- c("#39B600", "#9590FF")
   }
+  dis_ct_ordered <- ct_ordered[which(ct_ordered %in% levels(df_sex$ct))]
+  df_sex$ct <- factor(df_sex$ct, dis_ct_ordered)
+  df_sex <- df_sex[order(df_sex$ct), ]
   pdf(paste0(main_dir, "/", dis_type, "/02B_ARE_ERE/", sex, "_", are_ere, "_sites.pdf"))
   print(ggplot(df_sex, aes(ct, percent, fill=sites)) +
           geom_bar(stat="identity", position="stack", color="black") + 
@@ -153,7 +156,7 @@ PlotAREERE <- function(main_dir, dis_type, df_sex, sex, are_ere) {
 
 
 # 7. MAIN
-AnalysisARE_ERE <- function(main_dir, dis_type, ARE_DF, ERE_gene) {
+AnalysisARE_ERE <- function(main_dir, dis_type, ARE_DF, ERE_gene, ct_order) {
   sexes <- c("F", "M")
   for (sex in sexes) {
     df_sex <- ReadRawData2(main_dir, dis_type, sex)
@@ -161,7 +164,7 @@ AnalysisARE_ERE <- function(main_dir, dis_type, ARE_DF, ERE_gene) {
     ARE_sex <- AREdfPerc(main_dir, dis_type, ARE_sex, sex)
     ERE_sex <- EREdf(df_sex, sex, ERE_gene)
     ERE_sex <- EREdfPerc(main_dir, dis_type, ERE_sex, sex)
-    PlotAREERE(main_dir, dis_type, ARE_sex, sex, "ARE")
-    PlotAREERE(main_dir, dis_type, ERE_sex, sex, "ERE")
+    PlotAREERE(main_dir, dis_type, ARE_sex, sex, "ARE", ct_order)
+    PlotAREERE(main_dir, dis_type, ERE_sex, sex, "ERE", ct_order)
   }
 }

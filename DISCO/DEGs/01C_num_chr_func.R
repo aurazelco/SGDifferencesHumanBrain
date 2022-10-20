@@ -93,6 +93,8 @@ ExtractSexGenes <- function(chr_sex, chr) {
   }
   chr_df <- reshape::melt.matrix(chr_mtx)
   colnames(chr_df) <- c("ct", "gene", "DEG")
+  col_factors <- c("ct")
+  chr_df[col_factors] <- lapply(chr_df[col_factors], as.factor) 
   return(chr_df)
 }
 
@@ -181,8 +183,11 @@ ProcessCt <- function(main_dir, dis_type, ext, row_col) {
 }
 
 # 9. Plot heatmap of sex-genes across cts
-PlotSexHeatmap <- function(main_dir, dis_type, chr_sex, chr, sex) {
+PlotSexHeatmap <- function(main_dir, dis_type, chr_sex, chr, sex, ct_ordered) {
   sexdf <- ExtractSexGenes(chr_sex, chr)
+  dis_ct_ordered <- ct_ordered[which(ct_ordered %in% levels(sexdf$ct))]
+  sexdf$ct <- factor(sexdf$ct, dis_ct_ordered)
+  sexdf <- sexdf[order(sexdf$ct), ]
   pdf(paste0(main_dir, dis_type,  "/01C_num_chr/", chr, "genes_heatmap_in_", sex, ".pdf"))
   print(
     ggplot(sexdf, aes(ct, gene)) +
@@ -207,9 +212,9 @@ PlotSexHeatmap <- function(main_dir, dis_type, chr_sex, chr, sex) {
 }
 
 # 10. Plots heatmaps
-PlotSexHmp <- function(main_dir, dis_type, chr_sex_list) {
-  PlotSexHeatmap(main_dir, dis_type, chr_sex_list[[1]], "X", "F")
-  PlotSexHeatmap(main_dir, dis_type, chr_sex_list[[2]], "Y", "M")
+PlotSexHmp <- function(main_dir, dis_type, chr_sex_list, ct_ordered) {
+  PlotSexHeatmap(main_dir, dis_type, chr_sex_list[[1]], "X", "F", ct_ordered)
+  PlotSexHeatmap(main_dir, dis_type, chr_sex_list[[2]], "Y", "M", ct_ordered)
 }
 
 # 11. Retrieve p-values from Fisher's test done in 02A_Fisher
@@ -241,9 +246,12 @@ AddPval <- function(df, pvalX, pvalY) {
 }
 
 # 13. Plot Heatmap of all DEGs, with heircachy of chromosome origin
-PlotGeneralHeatmap <- function(main_dir, dis_type, chr_sex_list) {
+PlotGeneralHeatmap <- function(main_dir, dis_type, chr_sex_list, ct_ordered) {
   df_sex_list <- ExtractGenes(chr_sex_list) 
   for (sex in names(df_sex_list)) {
+    dis_ct_ordered <- ct_ordered[which(ct_ordered %in% levels(df_sex_list[[sex]]$ct))]
+    df_sex_list[[sex]]$ct <- factor(df_sex_list[[sex]]$ct, dis_ct_ordered)
+    df_sex_list[[sex]] <- df_sex_list[[sex]][order(df_sex_list[[sex]]$ct), ]
     pdf(paste0(main_dir, dis_type,  "/01C_num_chr/", "all_degs_heatmap_in_", sex, ".pdf"))
     print(
       ggplot(df_sex_list[[sex]], aes(ct, gene)) +
@@ -272,7 +280,7 @@ PlotGeneralHeatmap <- function(main_dir, dis_type, chr_sex_list) {
 }
 
 # 14. Plot the fraction of enriched DEGs per chromosome, including or not the Fisher p-value
-PlotNumChr <- function(main_dir, dis_type, num_chr_genes, pval_file=FALSE) {
+PlotNumChr <- function(main_dir, dis_type, num_chr_genes, pval_file=FALSE, ct_ordered) {
   sexes <- c("F", "M")
   col_palette <- hue_pal()(3)
   path <- paste0(main_dir, dis_type,  "/01C_num_chr/")
@@ -298,6 +306,9 @@ PlotNumChr <- function(main_dir, dis_type, num_chr_genes, pval_file=FALSE) {
     if (length(pvalX$ct)>0 | length(pvalY$ct)>0) {
       df <- AddPval(df, pvalX, pvalY)
     }
+    dis_ct_ordered <- ct_ordered[which(ct_ordered %in% levels(df$ct))]
+    df$ct <- factor(df$ct, dis_ct_ordered)
+    df <- df[order(df$ct), ]
     pdf(paste0(path, sex, "_num_chr.pdf"))
     print(
       ggplot(df[which(df$perc>0),], aes(ct, perc, fill=chr)) +
@@ -321,7 +332,6 @@ PlotNumChr <- function(main_dir, dis_type, num_chr_genes, pval_file=FALSE) {
               axis.title.y = element_text(size=12, face="bold", colour = "black"),
               legend.position = "bottom", 
               legend.title = element_text(size=12, face="bold", colour = "black"))
-      
     )
     dev.off()
   }

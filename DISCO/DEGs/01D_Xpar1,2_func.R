@@ -79,18 +79,22 @@ SaveXpar <- function(main_dir, dis_type, Xpar_l) {
     }
   }
   df_xpar <- data.frame(df_sex, df_ct, which_xpar, xpar_genes)
-  col_factors <- c("df_sex", "df_ct", "which_xpar"
-  )
+  col_factors <- c("df_sex", "df_ct", "which_xpar")
   df_xpar[col_factors] <- lapply(df_xpar[col_factors], as.factor) 
   write.csv(df_xpar, paste0(main_dir, "/", dis_type, "/01D_Xpars/Xpars_genes.csv"))
   return(df_xpar)
 }
   
 # 5. Plot
-PlotXpar <- function(main_dir, dis_type, df_xpar) {
+PlotXpar <- function(main_dir, dis_type, df_xpar, ct_ordered) {
   plt_xpar <- df_xpar[, -c(4)]
   plt_xpar <- as.data.frame(table(plt_xpar))
   names(plt_xpar)[names(plt_xpar) == 'Freq'] <- "num_xpar"
+  col_factors <- c("df_sex", "df_ct", "which_xpar")
+  plt_xpar[col_factors] <- lapply(plt_xpar[col_factors], as.factor) 
+  dis_ct_ordered <- ct_ordered[which(ct_ordered %in% levels(plt_xpar$df_ct))]
+  plt_xpar$df_ct <- factor(plt_xpar$df_ct, dis_ct_ordered)
+  plt_xpar <- plt_xpar[order(plt_xpar$df_ct), ]
   pdf(paste0(main_dir, dis_type, "/01D_Xpars/", dis_type,"_num_xpar.pdf"))
   print(ggplot(plt_xpar, aes(df_ct, num_xpar, fill=df_sex)) +
     geom_bar(stat="identity", position="dodge") +
@@ -109,11 +113,10 @@ PlotXpar <- function(main_dir, dis_type, df_xpar) {
   )
   dev.off()
   write.csv(plt_xpar, paste0(main_dir, "/", dis_type, "/01D_Xpars/Xpars_genes_table.csv"))
-  return(plt_xpar)
 }
 
 # 6. Analyze ct
-XparCt <- function(main_dir, dis_type, xpar1, xpar2, ext, row_col) {
+XparCt <- function(main_dir, dis_type, xpar1, xpar2, ct_ordered, ext, row_col) {
   path <- paste0(main_dir, dis_type, "/01B_num_DEGs")
   sub_ct <- list.dirs(path, recursive=FALSE, full.names = FALSE)
   df_F <- list()
@@ -136,7 +139,6 @@ XparCt <- function(main_dir, dis_type, xpar1, xpar2, ext, row_col) {
   names(XparAll) <- c("F", "M")
   XparAll <- XparAll[lengths(XparAll)>0L]
   XparAll_df <- SaveXpar(main_dir, dis_type, XparAll)
-  Xparplot <- PlotXpar(main_dir, dis_type, XparAll_df)
-  return(Xparplot)
+  Xparplot <- PlotXpar(main_dir, dis_type, XparAll_df, ct_ordered)
 }
 

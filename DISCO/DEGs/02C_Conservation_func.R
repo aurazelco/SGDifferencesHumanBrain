@@ -52,20 +52,33 @@ ReadRawData <- function(main_dir, dis_type, sex, ext, row_col) {
 }
 
 # 3. Retrieve all DEGs file
-AllDEGs <- function(all_degs, dis_type) {
-  all_degs[, "gene"] <- NULL
-  names(all_degs)[names(all_degs) == 'X'] <- 'gene_name'
-  all_degs$cluster <- str_replace_all(all_degs$cluster, "/", "_")
-  all_degs$cluster <- as.factor(all_degs$cluster)
+#AllDEGs <- function(all_degs, dis_type) {
+#  all_degs[, "gene"] <- NULL
+#  names(all_degs)[names(all_degs) == 'X'] <- 'gene_name'
+#  all_degs$cluster <- str_replace_all(all_degs$cluster, "/", "_")
+#  all_degs$cluster <- as.factor(all_degs$cluster)
+#  if (dis_type == "Normal") {
+#    all_degs <- subset(all_degs, subset = cluster !=  c("T"))
+#  } else if (dis_type == "Alzheimer's disease") {
+#    ad_remove <- list.dirs("Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/outputs/Alzheimer's disease/01A_only_1_project", recursive=FALSE, full.names = FALSE)
+#    `%!in%` <- Negate(`%in%`)
+#    all_degs <- subset(all_degs, subset = cluster %!in% ad_remove)
+#  }
+#  all_degs$cluster <- droplevels(all_degs$cluster)
+#  return(all_degs)
+#}
+
+AllGenes <- function(all_df, dis_type) {
   if (dis_type == "Normal") {
-    all_degs <- subset(all_degs, subset = cluster !=  c("T"))
+    all_df <- subset(all_df, subset = ((disease == dis_type) & (ct !=  c("T"))) )
   } else if (dis_type == "Alzheimer's disease") {
     ad_remove <- list.dirs("Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/outputs/Alzheimer's disease/01A_only_1_project", recursive=FALSE, full.names = FALSE)
     `%!in%` <- Negate(`%in%`)
-    all_degs <- subset(all_degs, subset = cluster %!in% ad_remove)
+    all_df <- subset(all_df, subset = ((disease == dis_type) & (ct %!in% ad_remove)))
   }
-  all_degs$cluster <- droplevels(all_degs$cluster)
-  return(all_degs)
+  all_df$ct <- droplevels(all_df$ct)
+  all_df$disease <- droplevels(all_df$disease)
+  return(all_df)
 }
 
 # 4. Calculate Frction of Sex-biased conserved genes
@@ -76,22 +89,21 @@ SexFrac <- function(cons_filt, df_sex, sex) {
 }
 
 # 5. Calculate Fraction of all DEGs
-AllFrac <- function(cons_filt, all_degs, ct_names) {
+AllFrac <- function(cons_filt, genes_df, ct_names, sex) {
   fr_all <- vector()
   for (ct in ct_names) {
-    ct_deg <- subset(all_degs, subset = cluster == ct)
-    ct_deg$cluster <- droplevels(ct_deg$cluster)
-    fr_all <- c(fr_all, (length(intersect(ct_deg$gene_name, cons_filt$gene_name)) / nrow(ct_deg)))
+    ct_genes <- genes_df[which(genes_df$ct==ct & genes_df$sex==sex), "genes"]
+    fr_all <- c(fr_all, (length(intersect(ct_genes, cons_filt$gene_name)) / length(ct_genes)))
   }
-  print(fr_all)
   return(fr_all)
 }
 
 # 6. Create new Df
-DfFrac <- function(main_dir, dis_type, cons_df, threshold, out_name, all_degs) {
+DfFrac <- function(main_dir, dis_type, cons_df, threshold, out_name, all_df) {
   df_F <- ReadRawData(main_dir, dis_type, "F")
   df_M <- ReadRawData(main_dir, dis_type, "M")
-  all_degs <- AllDEGs(all_degs, dis_type)
+  #all_degs <- AllDEGs(all_degs, dis_type)
+  genes_df <- AllGenes(all_df, dis_type)
   if (out_name == "Primates") {
     cons_filt <- subset(cons_df, rowSums(cons_df[, c(5:10)])>=threshold)
   } else if (out_name == "SAGD") {
@@ -99,12 +111,13 @@ DfFrac <- function(main_dir, dis_type, cons_df, threshold, out_name, all_degs) {
   }
   if (length(names(df_F)) == length(names(df_M))) {
     #fr_all <- rep(nrow(cons_filt) / nrow(cons_df), length.out = length(names(df_F)))
-    fr_all <- AllFrac(cons_filt, all_degs, names(df_F))
+    fr_all_F <- AllFrac(cons_filt, genes_df, names(df_F), "F")
+    fr_all_M <- AllFrac(cons_filt, genes_df, names(df_M), "M")
   }
   fr_F <- SexFrac(cons_filt, df_F, "F")
   fr_M <- SexFrac(cons_filt, df_M, "M")
-  df_frac <- data.frame(names(df_F), fr_all, fr_F, fr_M)
-  colnames(df_frac) <- c("ct", "All", "F", "M")
+  df_frac <- data.frame(names(df_F), fr_all_F, fr_F, fr_all_M, fr_M)
+  colnames(df_frac) <- c("ct", "All_F", "F", "All_M", "M")
   df_frac$ct <- as.factor(df_frac$ct)
   dir.create(paste(main_dir, dis_type, "02C_Conservation", sep="/"), showWarnings = FALSE)
   write.csv(df_frac, paste0(main_dir, "/", dis_type, "/02C_Conservation/", out_name, ".csv"))
@@ -114,13 +127,16 @@ DfFrac <- function(main_dir, dis_type, cons_df, threshold, out_name, all_degs) {
 }
 
 # 7. Plot
-PlotFrac <- function(main_dir, dis_type, df_frac, threshold, out_name) {
+PlotFrac <- function(main_dir, dis_type, df_frac, threshold, out_name, ct_ordered) {
+  dis_ct_ordered <- ct_ordered[which(ct_ordered %in% levels(df_frac$ct))]
+  df_frac$ct <- factor(df_frac$ct, dis_ct_ordered)
+  df_frac <- df_frac[order(df_frac$ct), ]
   pdf(paste0(main_dir, "/", dis_type, "/02C_Conservation/", out_name, "_fraction_in_", threshold,  "_species.pdf"))  
   print(
   ggplot(df_frac, aes(ct, fractions, fill=group)) +
-    geom_bar(stat='identity', position='dodge') + 
+    geom_bar(stat='identity', position='dodge', color="black") + 
     labs(title=paste0(out_name, " - conserved in at least ",threshold, " species"), x="Cell types", y=paste0("Fraction of conserved genes"), fill="Groups") +
-    scale_fill_discrete(labels=c("All", "Female-biased genes", "Male-biased genes")) +
+    scale_fill_discrete(labels=c("All Female Genes", "Female-biased genes", "All Male Genes", "Male-biased genes")) +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(), 
@@ -136,7 +152,7 @@ PlotFrac <- function(main_dir, dis_type, df_frac, threshold, out_name) {
 }
 
 # 8. MAIN
-ConservedFractions <- function(main_dir, dis_type, cons_df, threshold, out_name, all_degs) {
-  df_frac <- DfFrac(main_dir, dis_type, cons_df, threshold, out_name, all_degs)
-  PlotFrac(main_dir, dis_type, df_frac, threshold, out_name)
+ConservedFractions <- function(main_dir, dis_type, cons_df, threshold, out_name, all_df, ct_ordered) {
+  df_frac <- DfFrac(main_dir, dis_type, cons_df, threshold, out_name, all_df)
+  PlotFrac(main_dir, dis_type, df_frac, threshold, out_name, ct_ordered)
 }
