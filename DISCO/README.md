@@ -9,5 +9,6 @@
 * [01E_CellMarker.R](DEGs/01E_CellMarker.R), [01E_CellMarker_func.R](DEGs/01E_CellMarker_func.R) - script to calculate and plot the percentage of DEGs which are also markers (marker list retrieved from [CellMarker](http://bio-bigdata.hrbmu.edu.cn/CellMarker/))
 * [02A_Fisher.R](DEGs/02A_Fisher.R), [02A_Fisher_func.R](DEGs/02A_Fisher_func.R) - script to calculate the enrichment of sex chromosomes compared to autosomial genes - used in 01C to add significance to plot
 * [02B_ARE_ERE.R](DEGs/02B_ARE_ERE.R), [02B_ARE_ERE_func.R](DEGs/02B_ARE_ERE_func.R) - script to calculate and plot the ARE and ERE sites percentages in the cell types, separated F and M
+* [02B_ARE_ERE_proj.R](DEGs/02B_ARE_ERE_proj.R), [02B_ARE_ERE_proj_func.R](DEGs/02B_ARE_ERE_proj_func.R) - script to calculate and plot the ARE and ERE sites percentages in the cell types, separated F and M, but in the individual projects instead of on the intersected DEGs
 * [02C_Conservation.R](DEGs/02C_Conservation.R), [02C_Conservation_func.R](DEGs/02C_Conservation_func.R) - script to plot the conserved fraction of DEGs across mammals and primates
 * [all_scripts.R](DEGs/all_scripts.R) - script containing the previous scripts, 01A-02C
