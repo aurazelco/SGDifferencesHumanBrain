@@ -8,10 +8,11 @@ library(data.table)
 library(dplyr)
 library(matrixStats)
 library(stringr)
+library(purrr)
 `%!in%` <- Negate(`%in%`)
 
 # load the dataset
-disco_brain <- readRDS("brainV1.0.rds")
+disco_brain <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0.rds")
 
 # plot initial metadata
 DimPlot(disco_brain, reduction = "umap")
@@ -949,13 +950,12 @@ Idents(disco_filt) <- "proj_sex_disease_ct_sample"
 
 expr_mat_all <- GetAssayData(disco_filt[["RNA"]], slot="data")
 
-
 Idents(disco_filt) <- "proj_sex_disease_ct"
 
 cell_info <- data.frame()
 
 for (i in unique(disco_filt@meta.data$proj_sex_disease_ct)) {
-  #print(i)
+  print(i)
   cell_id <- WhichCells(disco_filt, idents = i)
   og_group <- rep(i, length(cell_id))
   cell_info <- rbind(cell_info, data.frame(cell_id, og_group))
@@ -1015,9 +1015,7 @@ write.table(random_expr_tiny, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/SCE
 #cell_info <- cell_info %>% 
 #  relocate(cell_id, .before = barcode)
 
-expr_mat_all <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/top_2000_SD_expr_matrix.rds")
-
-
+expr_mat_all <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/top_2000_SD_expr_matrix.rds")
 
 group_list <- list()
 group_list_n <- vector()
@@ -1145,8 +1143,8 @@ plot_group_numbers(group_list500, 500)
 
 ###### Create Randomly sampled dfs
 
-expr_mat_all <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/top_2000_SD_expr_matrix.rds")
-cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/cell_info.csv")
+expr_mat_all <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/top_2000_SD_expr_matrix.rds")
+cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/cell_info.csv")
 
 remove_dfs <- function(df_list, threshold) {
   incomplete_dfs <- vector()
@@ -1263,6 +1261,26 @@ norm_sampled <- rand_sample(norm, 3, 100, maindir, sub_disease[3])
 ad_sampled <- rand_sample(ad, 3, 100, maindir, sub_disease[1])
 ms_sampled <- rand_sample(ms, 3, 100, maindir, sub_disease[2])
 
+rand_sample_merged <- function(group_list, num_sampling, num_cells, main, dis_type) {
+  for (k in 1:num_sampling) {
+    sampled_dfs <-list()
+    sampled_names <- vector()
+    for (id in names(group_list)) {
+      if (id == names(group_list)[1]) {
+        sampled <- data.frame()
+        sampled <- sample(group_list[[id]][-1], num_cells)
+        sampled <- cbind("Genes" = group_list[[id]]$Genes, sampled)
+      } else {
+        sampled <- cbind(sampled, sample(group_list[[id]][-1], num_cells))
+      }
+    }
+    dir.create(paste0(main, dis_type, "/sampled_", num_cells, "_cells_all_cts"), showWarnings = FALSE)
+    write.csv(sampled, paste0(main, dis_type, "/sampled_", num_cells, "_cells_all_cts/", ))
+  }
+  
+  return(sampled_dfs)
+}
+
 ############ For 02C_Conservation
 
 disco_filt <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
@@ -1274,7 +1292,7 @@ expr_mat_all_cts <- GetAssayData(disco_filt[["RNA"]], slot="data")
 rm(disco_filt)
 expr_mat_all_cts <- as.data.frame(as.matrix(expr_mat_all_cts))
 
-cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/cell_info.csv")
+cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/cell_info.csv")
 cell_info$X <- NULL
 
 df_list <- list()
@@ -1438,6 +1456,75 @@ for (sex in levels(norm_df$sex)) {
   }
 }
 
+
+
+######### MERGE SCENIC INDIVIDUAL CSV FILES INTO 1
+
+ImportDE <- function(path, ext, row_col) {
+  if (missing(ext)) {
+    deg_files <- list.files(path = path, pattern = "\\.csv$",full.names = TRUE)
+    if (missing(row_col)) {
+      deg <- lapply(deg_files, read.csv, row.names=1)
+    }
+    else {
+      deg <- lapply(deg_files, read.csv, row.names=row_col)
+    }
+  }
+  else {
+    deg_files <- list.files(path = path, pattern = paste0("\\.",ext,"$"),full.names = TRUE)
+    if (missing(row_col)) {
+      deg <- lapply(deg_files, read.csv, row.names=1)
+    }
+    else {
+      deg <- lapply(deg_files, read.csv, row.names=row_col)
+    }
+  }
+  names_deg <- list.files(path = path, pattern = "\\.csv$",full.names = FALSE)
+  names(deg) <- substr(names_deg, 1, nchar(names_deg)-4)
+  return(deg)
+}
+
+main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/"
+dis_type <- "Normal"
+normal <- ImportDE(paste0(main, dis_type, "/sampled_100_cells/"))
+genes <- rownames(normal[[1]])
+file_names <- as.data.frame(names(normal))
+colnames(file_names) <- c("og")
+file_names$og <- sapply(1:length(file_names$og), function(x) str_replace(file_names[x,"og"], paste0("_M_", dis_type, "_"),  paste0("/M/", dis_type, "/")))
+file_names$og <- sapply(1:length(file_names$og), function(x) str_replace(file_names[x,"og"], paste0("_F_", dis_type, "_"),  paste0("/F/", dis_type, "/")))
+file_names$og <- sapply(1:length(file_names$og), function(x) str_replace_all(file_names[x,"og"], c("_1$"="/1", "_2$"="/2", "_3$"="/3")))
+file_names <- separate(file_names, og, into=c("proj", "sex", "disease", "ct", "version"), sep="/", remove=FALSE)
+col_factors <- c("proj", "sex", "disease", "ct", "version")
+file_names[col_factors] <- lapply(file_names[col_factors], as.factor)
+dir.create(paste0(main, dis_type, "/sampled_100_cells_all_cts/"), showWarnings = FALSE)
+df_list <- list()
+df_names <- vector()
+for (proj in levels(file_names$proj)) {
+  for (sex in levels(file_names$sex)) {
+    for (v in levels(file_names$version)) {
+      sub_names <- file_names[grep(paste0(proj, "/", sex), file_names$og),]
+      sub_names <- sub_names[grep(paste0("/",v,"$"),sub_names$og), "og"]
+      sub_names <- str_replace_all(sub_names, "/", "_")
+      if (length(sub_names)>0) {
+        df_names <- c(df_names, paste(proj, sex, v, sep="_"))
+        df_list <- append(df_list, list(sub_names))
+      }
+    }
+  }
+}
+names(df_list) <- df_names
+sub_list <- normal[df_list[[1]]]
+merged_df <- Reduce(function(x, y) merge(x, y, all=TRUE), sub_list)
+
+
+
+for (ids in names(df_list)) {
+  sub_list <- normal[df_list[[ids]]]
+  merged_df = Reduce(function(...) merge(..., all=T), sub_list)
+}
+
+
+# GSE157827 GSE174367 PRJNA544731
 
 # session info
 sessionInfo()
