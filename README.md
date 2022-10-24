@@ -7,6 +7,8 @@
 * [SOFTWARES/ANALYSES](#softwares/analyses)
   * [Gene Regulatory Network Analysis](#gene-regulatory-network-analysis)
     * [SCENIC](#scenic)
+* [THESIS DRAFT](#thesis-draft)
+
    
 
 ## DATASETS
@@ -32,3 +34,7 @@ This analysis takes all genes expressed by the cells and search for regulatory n
 #### SCENIC
 
 The [SCENIC](SCENIC/) folder contains a bash script to run the two main steps of SCENIC on all files contained in a folder, ran in October 2022. A brief description of the scripts can be found in the respective [README file](SCENIC/README.md). 
+
+## THESIS DRAFT
+
+This [folder](Thesis_draft) contains the scripts to generate the plot for the thesis report **NOT** generated during the analysis. A brief description of the scripts can be found in the respective [README file](Thesis_draft/README.md). 
