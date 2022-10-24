@@ -3,7 +3,7 @@ library(ggpubr)
 `%!in%` <- Negate(`%in%`)
 
 
-pubmed_all <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Thesis_draft/PubMed_Timeline_Results_by_Year.csv", sep=",", row.names = NULL)
+pubmed_all <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Thesis_draft/extra_files/PubMed_Timeline_Results_by_Year.csv", sep=",", row.names = NULL)
 pubmed_all <- pubmed_all[-c(1,2),]
 colnames(pubmed_all) <- c("Year", "Count_all")
 str(pubmed_all)
@@ -11,7 +11,7 @@ pubmed_all$Year <- as.numeric(pubmed_all$Year)
 pubmed_all$Count_all <- as.numeric(pubmed_all$Count_all)
 pubmed_all <- pubmed_all[order(pubmed_all$Year),]
 
-pubmed_dev <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Thesis_draft/PubMed_Timeline_Results_by_Year_development.csv", sep=",", row.names = NULL)
+pubmed_dev <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Thesis_draft/extra_files/PubMed_Timeline_Results_by_Year_development.csv", sep=",", row.names = NULL)
 pubmed_dev <- pubmed_dev[-c(1,2),]
 colnames(pubmed_dev) <- c("Year", "Count_dev")
 str(pubmed_dev)
@@ -73,5 +73,5 @@ perc <- ggplot(pubmed, aes(year, count, fill=age)) +
 
 
 ggarrange(all, perc, nrow = 2, common.legend = T, legend = "bottom")
-ggsave("/Users/aurazelco/Desktop/Lund_MSc/Thesis/thesis_draft/images/publications.pdf")
+ggsave("/Users/aurazelco/Desktop/Lund_MSc/Thesis/thesis_draft/images/publications.png")
 
