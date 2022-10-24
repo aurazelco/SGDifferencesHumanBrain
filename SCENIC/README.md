@@ -3,12 +3,12 @@
 We used SCENIC to run a Gene Regulatory Network (GRN) analysis, followed their pipeline which can be found in the [original paper](https://doi.org/10.1038/s41596-020-0336-2) or on their [GitHub repo](https://github.com/aertslab/SCENICprotocol). 
 
 The scripts below were used to execute the SCENIC pipeline and plot the results:
-* [SCENIC_analysis.sh](SCENIC_analysis.sh) - bash script which reads the .csv files in the input folder, generate GRNBoos2  .tsv results in a second folder and finally combines the original .csv and the .tsv file to predict regulons using cisTarget - more information [here](#scenic_analysis.sh)
-* [SCENIC_merge.sh](SCENIC_merge.sh) - bash script which takes the individual .csv files for each project and sex combination, and merges them, in order to obtain one .csv file per project and sex - more information [here](#scenic_merge.sh)
+* [SCENIC_analysis.sh](SCENIC_analysis.sh) - bash script which reads the .csv files in the input folder, generate GRNBoos2  .tsv results in a second folder and finally combines the original .csv and the .tsv file to predict regulons using cisTarget - more information [here](#scenic_analysis)
+* [SCENIC_merge.sh](SCENIC_merge.sh) - bash script which takes the individual .csv files for each project and sex combination, and merges them, in order to obtain one .csv file per project and sex - more information [here](#scenic_merge)
 * [check_SCENIC_results.R](check_SCENIC_results.R), [check_SCENIC_results_func.R](check_SCENIC_results_func.R) -  R script to check the results from the SCENIC, more specifically to plot the overlap among runs, the overlap with [scGRNom results](https://genomemedicine.biomedcentral.com/articles/10.1186/s13073-021-00908-9), and to plot the expression of the transcription factors (TFs) and targets (TGs) in the cell types. 
 
 
-## SCENIC_analysis.sh
+## SCENIC_analysis
 
 **Arguments of the script**
 
@@ -33,7 +33,7 @@ An example of how to run the script can be found below:
 
 
 
-## SCENIC_merge.sh
+## SCENIC_merge
 
 **Arguments of the script**
 
