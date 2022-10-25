@@ -5,7 +5,7 @@ source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/SCENIC/check_SCENIC_res
 
 ########## Overlap among runs for cts
 ct_lists <- c("microglia", "OPC", "oligodendrocyte")
-top_lists <- c("no", "overlap", 1000, 2000, 5000, 10000, 20000)
+top_lists <- c("no", 1000, 2000, 5000, 10000, 20000)
 
 norm_overlap <- SCENICoverlap(main, sub_disease[3])
 PlotOverlapRuns(main, sub_disease[3], norm_overlap, top_lists, ct_lists)
@@ -18,7 +18,7 @@ scGRNom_sheets <- c("Mic_GRN_with_openchrom",
                     "Oli_GRN_without_openchrom")
 scGRNom <- list()
 for (sheet in scGRNom_sheets) {
-  scGRNom_sub <- as.data.frame(read_xlsx(paste0(main, "scGRNom_suppl_file_2.xlsx"),
+  scGRNom_sub <- as.data.frame(read_xlsx(("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/extra_files/scGRNom_suppl_file_2.xlsx"),
                            sheet = sheet, skip = 1))
   scGRNom <- append(scGRNom, list(scGRNom_sub))
 }
@@ -38,7 +38,7 @@ PlotscGRNomOverlap(main, sub_disease[3], norm_overlap, scGRNom_top, scGRNom_ct, 
 ########## Heatmap expression of SCENIC TFs and TGs 
 
 #expr_mat_all <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/top_2000_SD_expr_matrix.rds")
-cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/cell_info.csv")
+cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/extra_files/cell_info.csv")
 cell_info$X <- NULL
 cell_info <- separate(cell_info, og_group, into=c("proj", "sex", "disease", "ct"), sep="_", remove=F)
 cell_info$ct <- str_replace_all(cell_info$ct, "/", "_")

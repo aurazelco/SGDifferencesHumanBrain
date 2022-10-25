@@ -2,6 +2,7 @@ library(ggplot2)
 library(readxl)
 library(stringr)
 library(tidyr)
+library(reshape2)
 
 SCENICct <- function(main_dir, dis_type) {
   ct_path <- paste0(main_dir, dis_type, "/1_GRN/100_sampled_cells/")
@@ -349,7 +350,7 @@ PlotTfTg <- function(main_dir, dis_type, all_sort, input_dfs, ct_ordered, top_TF
     for (k in top_TF) {
       tf_id <- all_sort[[id]][1:k, "TF"]
       sub_tf <- subset(input_dfs[[id]], Genes %in% tf_id)
-      sub_tf <-  reshape2::melt(sub_tf)
+      sub_tf <-  melt(sub_tf, id.vars = "Genes")
       colnames(sub_tf) <- c("TF", "ct", "value")
       sub_tf$ct <- as.character(sub_tf$ct)
       sub_tf$ct <- str_remove_all(sub_tf$ct, "[.][:digit:]+")
@@ -357,13 +358,16 @@ PlotTfTg <- function(main_dir, dis_type, all_sort, input_dfs, ct_ordered, top_TF
       sub_tf_order <- ct_ordered[which(ct_ordered %in% levels(sub_tf$ct))]
       sub_tf$ct <- factor(sub_tf$ct, sub_tf_order)
       sub_tf <- sub_tf[order(sub_tf$ct), ]
+      sub_tf$log2_value <- log2(sub_tf$value)
       pdf(paste0(main_dir, dis_type, "/3_plots/TFs_hmp_",k, "_top_", id, ".pdf"))
       print(
-        ggplot(sub_tf, aes(ct, TF, fill=value)) +
+        ggplot(sub_tf, aes(ct, TF, fill=log2_value, color="")) +
           geom_tile() + 
           coord_fixed() +
-          scale_fill_gradient(low="blue", high="red") +
-          labs(y="TFs", fill="RNA Expression", title=id) +
+          scale_fill_gradient2(low="blue", high="red", mid = "white", na.value = "#D3D3D3") +
+          scale_colour_manual(values=NA) + 
+          guides(colour=guide_legend("NA", override.aes=list(fill="#D3D3D3"))) +
+          labs(y="TFs", fill="Log2 RNA Expression", title=id) +
           theme(panel.grid.major = element_blank(), 
                 panel.grid.minor = element_blank(),
                 panel.background = element_blank(), 
@@ -373,14 +377,14 @@ PlotTfTg <- function(main_dir, dis_type, all_sort, input_dfs, ct_ordered, top_TF
                 axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
                 axis.ticks.x=element_blank(),
                 axis.title.y = element_text(size=12, face="bold", colour = "black"),
-                legend.position = "bottom", 
+                legend.position = "right", 
                 legend.title = element_text(size=12, face="bold", colour = "black"))
       )
       dev.off()
       tg_id <- all_sort[[id]][1:k, "target"]
       sub_tg <- subset(input_dfs[[id]], Genes %in% tg_id)
       if (nrow(sub_tg) > 0) {
-        sub_tg <-  reshape2::melt(sub_tg)
+        sub_tg <- melt(sub_tg, id.vars = "Genes")
         colnames(sub_tg) <- c("TG", "ct", "value")
         sub_tg$ct <- as.character(sub_tg$ct)
         sub_tg$ct <- str_remove_all(sub_tg$ct, "[.][:digit:]+")
@@ -388,6 +392,7 @@ PlotTfTg <- function(main_dir, dis_type, all_sort, input_dfs, ct_ordered, top_TF
         sub_tg_order <- ct_ordered[which(ct_ordered %in% levels(sub_tg$ct))]
         sub_tg$ct <- factor(sub_tg$ct, sub_tg_order)
         sub_tg <- sub_tg[order(sub_tg$ct), ]
+        sub_tg$log2_value <- log2(sub_tg$value)
         if (k==100) {
           pdf(paste0(main_dir, dis_type, "/3_plots/TGs_hmp_",k, "_top_", id, ".pdf"),
               height=11)
@@ -396,11 +401,13 @@ PlotTfTg <- function(main_dir, dis_type, all_sort, input_dfs, ct_ordered, top_TF
               height=15)
         }
         print(
-          ggplot(sub_tg, aes(ct, TG, fill=value)) +
+          ggplot(sub_tg, aes(ct, TG, fill=log2_value, colour="")) +
             geom_tile() + 
             coord_fixed() +
-            scale_fill_gradient(low="blue", high="red") +
-            labs(y="TGs", fill="RNA Expression", title=id) +
+            scale_fill_gradient2(low="blue", high="red", mid = "white", na.value = "#D3D3D3") +
+            scale_colour_manual(values=NA) + 
+            guides(colour=guide_legend("NA", override.aes=list(fill="#D3D3D3"))) +
+            labs(y="TGs", fill="Log2 RNA Expression", title=id) +
             theme(panel.grid.major = element_blank(), 
                   panel.grid.minor = element_blank(),
                   panel.background = element_blank(), 
@@ -410,7 +417,7 @@ PlotTfTg <- function(main_dir, dis_type, all_sort, input_dfs, ct_ordered, top_TF
                   axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
                   axis.ticks.x=element_blank(),
                   axis.title.y = element_text(size=12, face="bold", colour = "black"),
-                  legend.position = "bottom", 
+                  legend.position = "right", 
                   legend.title = element_text(size=12, face="bold", colour = "black"))
         )
         dev.off()
