@@ -3,6 +3,103 @@ library(readxl)
 library(stringr)
 library(tidyr)
 library(reshape2)
+library(Seurat)
+library(SeuratObject)
+library(ggpubr)
+
+SCENICInputSeurat <- function(main_dir, dis_type) {
+  input_dfs_path <-  paste0(main_dir, dis_type, "/0_input_dfs/sampled_100_cells_all")
+  input_dfs_files <- list.files(path = input_dfs_path, full.names = T)
+  input_dfs <- lapply(input_dfs_files,function(x) {
+    read.table(file = x, 
+               sep = ',', 
+               header = TRUE)
+  })
+  names(input_dfs) <- list.files(path = input_dfs_path, full.names = F)
+  names(input_dfs) <- str_remove_all(names(input_dfs), ".csv")
+  only_1 <- names(input_dfs)[which(grepl("_1", names(input_dfs)))]
+  input_dfs <- input_dfs[only_1]
+  names(input_dfs) <- str_remove_all(names(input_dfs), "_1")
+  for (id in names(input_dfs)) {
+    colnames(input_dfs[[id]]) <- str_replace_all(colnames(input_dfs[[id]]), "[.]", "-")
+    rownames(input_dfs[[id]]) <- input_dfs[[id]]$Genes
+    input_dfs[[id]]$Genes <- NULL
+  #  sub_info <- subset(cell_info_df, cell_id %in% colnames(input_dfs[[id]])[-1])
+  #  ct_info <- sub_info$ct
+  #  colnames(input_dfs[[id]]) <- c("Genes", ct_info)
+  }
+  return(input_dfs)
+}
+
+# runs the Seurat clustering from expression matrix (follows tutorial)
+SCENICSeuratPlots <- function(expr_matrix_list, metadata_id, id) {
+  id_seurat <- CreateSeuratObject(as.matrix(expr_matrix_list[[id]]), project = id,
+                                    assay = "RNA", meta.data = metadata_id)
+  # The [[ operator can add columns to object metadata. This is a great place to stash QC stats
+  id_seurat[["percent.mt"]] <- PercentageFeatureSet(id_seurat, pattern = "^MT-")
+  # Visualize QC metrics as a violin plot
+  #VlnPlot(id_seurat, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+  # FeatureScatter is typically used to visualize feature-feature relationships, but can be used
+  # for anything calculated by the object, i.e. columns in object metadata, PC scores etc.
+  #plot1 <- FeatureScatter(id_seurat, feature1 = "nCount_RNA", feature2 = "percent.mt")
+  #plot2 <- FeatureScatter(id_seurat, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+  #plot1 + plot2
+  #id_seurat <- subset(id_seurat, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+  id_seurat <- subset(id_seurat, subset = percent.mt < 5)
+  id_seurat <- NormalizeData(id_seurat)
+  id_seurat <- FindVariableFeatures(id_seurat, selection.method = "vst", nfeatures = 2000)
+  # Identify the 10 most highly variable genes
+  top10 <- head(VariableFeatures(id_seurat), 10)
+  # plot variable features with and without labels
+  #plot1 <- VariableFeaturePlot(id_seurat)
+  #plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
+  #plot1 + plot2
+  all.genes <- rownames(id_seurat)
+  id_seurat <- ScaleData(id_seurat, features = all.genes)
+  id_seurat <- RunPCA(id_seurat, features = VariableFeatures(object = id_seurat))
+  # Examine and visualize PCA results a few different ways
+  print(id_seurat[["pca"]], dims = 1:5, nfeatures = 5)
+  VizDimLoadings(id_seurat, dims = 1:2, reduction = "pca")
+  #DimPlot(id_seurat, reduction = "pca") 
+  #DimHeatmap(id_seurat, dims = 1, cells = 500, balanced = TRUE)
+  p1 <- DimHeatmap(id_seurat, dims = 1:15, cells = 500, balanced = TRUE)
+  # NOTE: This process can take a long time for big datasets, comment out for expediency. More
+  # approximate techniques such as those implemented in ElbowPlot() can be used to reduce
+  # computation time
+  id_seurat <- JackStraw(id_seurat, num.replicate = 100)
+  id_seurat <- ScoreJackStraw(id_seurat, dims = 1:20)
+  p2 <- JackStrawPlot(id_seurat, dims = 1:15)
+  p3 <- ElbowPlot(id_seurat)
+  plot<- ggarrange(p2, p3, labels = c("JackStrawPlot", "ElbowPlot"), ncol = 2)
+  print(
+    annotate_figure(plot, top = text_grob(id, 
+                                        color = "black", face = "bold"))
+  )
+  return(id_seurat)
+}
+
+# after deciding the number of PCAs to use, plots the final UMAP
+SCENICUmap <- function(main_dir, dis_type, id_seurat, cluster_num, ct_ordered) {
+  dir.create(paste0(main_dir, dis_type, "/3_plots"), showWarnings = F)
+  id_seurat <- FindNeighbors(id_seurat, dims = 1:cluster_num)
+  id_seurat <- FindClusters(id_seurat, resolution = 0.5)
+  # Look at cluster IDs of the first 5 cells
+  #head(Idents(id_seurat), 5)
+  # If you haven't installed UMAP, you can do so via reticulate::py_install(packages =
+  # 'umap-learn')
+  id_seurat <- RunUMAP(id_seurat, dims = 1:cluster_num)
+  # note that you can set `label = TRUE` or use the LabelClusters function to help label
+  # individual clusters
+  umap_id <- DimPlot(id_seurat, reduction = "umap", group.by = "ct")
+  umap_order <- ct_ordered[which(ct_ordered %in% levels(umap_id$data$ct))]
+  umap_id$data$ct <- factor(umap_id$data$ct, umap_order)
+  umap_id$data <- umap_id$data[order(umap_id$data$ct), ]
+  pdf(paste0(main_dir, dis_type, "/3_plots/UMAP_", unique(id_seurat$orig.ident), ".pdf"))
+  print(umap_id  + labs(title = unique(id_seurat$orig.ident)))
+  dev.off()
+}
+
+
 
 SCENICct <- function(main_dir, dis_type) {
   ct_path <- paste0(main_dir, dis_type, "/1_GRN/100_sampled_cells/")
@@ -359,14 +456,16 @@ PlotTfTg <- function(main_dir, dis_type, all_sort, input_dfs, ct_ordered, top_TF
       sub_tf$ct <- factor(sub_tf$ct, sub_tf_order)
       sub_tf <- sub_tf[order(sub_tf$ct), ]
       sub_tf$log2_value <- log2(sub_tf$value)
+      sub_tf[which(sub_tf$log2_value=="-Inf"),"log2_value"] <- 0
       pdf(paste0(main_dir, dis_type, "/3_plots/TFs_hmp_",k, "_top_", id, ".pdf"))
       print(
-        ggplot(sub_tf, aes(ct, TF, fill=log2_value, color="")) +
-          geom_tile() + 
+        #ggplot(sub_tf, aes(ct, TF, fill=log2_value, color="")) +
+        ggplot(sub_tf, aes(ct, TF, fill=log2_value)) +
+          geom_tile(color="#D3D3D3") + 
           coord_fixed() +
           scale_fill_gradient2(low="blue", high="red", mid = "white", na.value = "#D3D3D3") +
-          scale_colour_manual(values=NA) + 
-          guides(colour=guide_legend("NA", override.aes=list(fill="#D3D3D3"))) +
+          #scale_colour_manual(values=NA) + 
+          #guides(colour=guide_legend("NA", override.aes=list(fill="#D3D3D3"))) +
           labs(y="TFs", fill="Log2 RNA Expression", title=id) +
           theme(panel.grid.major = element_blank(), 
                 panel.grid.minor = element_blank(),
@@ -393,6 +492,7 @@ PlotTfTg <- function(main_dir, dis_type, all_sort, input_dfs, ct_ordered, top_TF
         sub_tg$ct <- factor(sub_tg$ct, sub_tg_order)
         sub_tg <- sub_tg[order(sub_tg$ct), ]
         sub_tg$log2_value <- log2(sub_tg$value)
+        sub_tg[which(sub_tg$log2_value=="-Inf"),"log2_value"] <- 0
         if (k==100) {
           pdf(paste0(main_dir, dis_type, "/3_plots/TGs_hmp_",k, "_top_", id, ".pdf"),
               height=11)
@@ -401,12 +501,13 @@ PlotTfTg <- function(main_dir, dis_type, all_sort, input_dfs, ct_ordered, top_TF
               height=15)
         }
         print(
-          ggplot(sub_tg, aes(ct, TG, fill=log2_value, colour="")) +
-            geom_tile() + 
+          #ggplot(sub_tg, aes(ct, TG, fill=log2_value, colour="")) +
+          ggplot(sub_tg, aes(ct, TG, fill=log2_value)) +
+            geom_tile(color="#D3D3D3") + 
             coord_fixed() +
             scale_fill_gradient2(low="blue", high="red", mid = "white", na.value = "#D3D3D3") +
-            scale_colour_manual(values=NA) + 
-            guides(colour=guide_legend("NA", override.aes=list(fill="#D3D3D3"))) +
+            #scale_colour_manual(values=NA) + 
+            #guides(colour=guide_legend("NA", override.aes=list(fill="#D3D3D3"))) +
             labs(y="TGs", fill="Log2 RNA Expression", title=id) +
             theme(panel.grid.major = element_blank(), 
                   panel.grid.minor = element_blank(),
