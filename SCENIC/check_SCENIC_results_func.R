@@ -6,8 +6,9 @@ library(reshape2)
 library(Seurat)
 library(SeuratObject)
 library(ggpubr)
+library(S4Vectors)
 
-SCENICInputSeurat <- function(main_dir, dis_type) {
+SCENICInputSeurat <- function(main_dir, dis_type, run_v) {
   input_dfs_path <-  paste0(main_dir, dis_type, "/0_input_dfs/sampled_100_cells_all")
   input_dfs_files <- list.files(path = input_dfs_path, full.names = T)
   input_dfs <- lapply(input_dfs_files,function(x) {
@@ -17,9 +18,9 @@ SCENICInputSeurat <- function(main_dir, dis_type) {
   })
   names(input_dfs) <- list.files(path = input_dfs_path, full.names = F)
   names(input_dfs) <- str_remove_all(names(input_dfs), ".csv")
-  only_1 <- names(input_dfs)[which(grepl("_1", names(input_dfs)))]
+  only_1 <- names(input_dfs)[which(grepl(run_v, names(input_dfs)))]
   input_dfs <- input_dfs[only_1]
-  names(input_dfs) <- str_remove_all(names(input_dfs), "_1")
+  #names(input_dfs) <- str_remove_all(names(input_dfs), "_1")
   for (id in names(input_dfs)) {
     colnames(input_dfs[[id]]) <- str_replace_all(colnames(input_dfs[[id]]), "[.]", "-")
     rownames(input_dfs[[id]]) <- input_dfs[[id]]$Genes

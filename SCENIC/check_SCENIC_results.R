@@ -37,25 +37,35 @@ ct_order <- c(
 
 ##### Solution 1 - create a Seurat object for each expression matrix
 
-norm_input_seurat <- SCENICInputSeurat(main, sub_disease[3])
+runs <- c( "_1", "_2", "_3")
 
-norm_seurat_list <- list()
-for (norm_id in names(norm_input_seurat)) {
-  metadata_id <- cell_info[which(cell_info$cell_id %in% colnames(norm_input_seurat[[norm_id]])),]
-  rownames(metadata_id) <- metadata_id$cell_id
-  metadata_id$cell_id <- NULL
-  norm_seurat <- SCENICSeuratPlots(norm_input_seurat, metadata_id, norm_id)
-  norm_seurat_list <- append(norm_seurat_list, list(norm_seurat))
+all_norm <- list()
+for (v in runs) {
+  norm_input_seurat <- SCENICInputSeurat(main, sub_disease[3], v)
+  norm_seurat_list <- list()
+  for (norm_id in names(norm_input_seurat)) {
+    metadata_id <- cell_info[which(cell_info$cell_id %in% colnames(norm_input_seurat[[norm_id]])),]
+    rownames(metadata_id) <- metadata_id$cell_id
+    metadata_id$cell_id <- NULL
+    norm_seurat <- SCENICSeuratPlots(norm_input_seurat, metadata_id, norm_id)
+    norm_seurat_list <- append(norm_seurat_list, list(norm_seurat))
+  }
+  names(norm_seurat_list) <- names(norm_input_seurat)
+  all_norm <- append(all_norm, list(norm_seurat_list))
 }
-names(norm_seurat_list) <- names(norm_input_seurat)
+names(all_norm) <- runs
 
-k_clusters <- c("GSE157827_F"=15, "GSE157827_M"=15, "GSE174367_F"=10, "GSE174367_M"=10, "PRJNA544731_F"=10, "PRJNA544731_M"=12)
+k_clusters <- list("_1" = c(15, 15, 10, 10, 10, 12),
+                   "_2" = c(12, 10, 10, 10, 12, 15),
+                   "_3" = c(15, 10, 10, 10, 12, 12))
 
-for (norm_id in names(norm_seurat_list)) {
-  SCENICUmap(main, sub_disease[3], norm_seurat_list[[norm_id]],  k_clusters[[norm_id]], ct_order)
+for (v in runs) { 
+  norm_seurat_list <- all_norm[[v]]
+  names(k_clusters[[v]]) <- names(norm_seurat_list)
+  for (norm_id in names(norm_seurat_list)) {
+    SCENICUmap(main, sub_disease[3], norm_seurat_list[[norm_id]], k_clusters[[v]][[norm_id]], ct_order)
+  }
 }
-
-
 
 ##### Solution 2 - subset from original disco 
 
