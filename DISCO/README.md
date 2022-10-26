@@ -1,6 +1,6 @@
 # Brief description of the DEGs scripts
 
-* [00_filtering_disco.R](DEGs/00_filtering_R) - script to filter the DISCO dataset
+* [00_filtering_disco.R](DEGs/00_filtering_disco.R) - script to filter the DISCO dataset
 * [01_general.R](DEGs/01_general.R) - script to produce first informative plots about number of cells per celltype per sex, divided per project
 * [01A_generate_DEGs.R](DEGs/01A_generate_DEGs.R) - script  to generate all the DEGs, one for F and one for M DEGs in each subtype and project
 * [01B_plot_num_genes.R](DEGs/01B_plot_num_genes.R), [01B_plot_num_genes_func.R](DEGs/01B_plot_num_genes_func.R) - script to extract the common DEGs among F and M DEGs per each subtype, and plot the results
