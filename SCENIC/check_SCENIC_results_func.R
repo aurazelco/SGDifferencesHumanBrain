@@ -1,12 +1,16 @@
 library(ggplot2)
 library(readxl)
 library(stringr)
+library(stringi)
 library(tidyr)
 library(reshape2)
 library(Seurat)
 library(SeuratObject)
 library(ggpubr)
 library(S4Vectors)
+
+
+################################## Check randomly sampled SCENIC inputs
 
 SCENICInputSeurat <- function(main_dir, dis_type, run_v) {
   input_dfs_path <-  paste0(main_dir, dis_type, "/0_input_dfs/sampled_100_cells_all")
@@ -80,8 +84,7 @@ SCENICSeuratPlots <- function(expr_matrix_list, metadata_id, id) {
 }
 
 # after deciding the number of PCAs to use, plots the final UMAP
-SCENICUmap <- function(main_dir, dis_type, id_seurat, cluster_num, ct_ordered) {
-  dir.create(paste0(main_dir, dis_type, "/3_plots"), showWarnings = F)
+SCENICClustering <- function(main_dir, dis_type, id_seurat, cluster_num, ct_ordered, plot_flag = "no") {
   id_seurat <- FindNeighbors(id_seurat, dims = 1:cluster_num)
   id_seurat <- FindClusters(id_seurat, resolution = 0.5)
   # Look at cluster IDs of the first 5 cells
@@ -91,15 +94,193 @@ SCENICUmap <- function(main_dir, dis_type, id_seurat, cluster_num, ct_ordered) {
   id_seurat <- RunUMAP(id_seurat, dims = 1:cluster_num)
   # note that you can set `label = TRUE` or use the LabelClusters function to help label
   # individual clusters
+  if (plot_flag == "yes") {
+    SCENICUmap(main_dir, dis_type, id_seurat, ct_ordered)
+  }
+  return(id_seurat)
+}
+
+SCENICUmap <- function (main_dir, dis_type, id_seurat, ct_ordered) {
+  dir.create(paste0(main_dir, dis_type, "/plots/Seurat"), showWarnings = F)
   umap_id <- DimPlot(id_seurat, reduction = "umap", group.by = "ct")
   umap_order <- ct_ordered[which(ct_ordered %in% levels(umap_id$data$ct))]
   umap_id$data$ct <- factor(umap_id$data$ct, umap_order)
   umap_id$data <- umap_id$data[order(umap_id$data$ct), ]
-  pdf(paste0(main_dir, dis_type, "/3_plots/UMAP_", unique(id_seurat$orig.ident), ".pdf"))
+  pdf(paste0(main_dir, dis_type, "/plots/Seurat/UMAP_", unique(id_seurat$orig.ident), ".pdf"))
   print(umap_id  + labs(title = unique(id_seurat$orig.ident)))
   dev.off()
 }
 
+SCENICMarkers <- function (main_dir, dis_type, id_seurat) {
+  dir.create(paste0(main_dir, dis_type, "/4_Markers"), showWarnings = F)
+  Idents(id_seurat) <- "ct"
+  ct_markers <- FindAllMarkers(id_seurat, 
+                                    logfc.threshold = 0.25,
+                                    min.pct = 0.1)
+  write.csv(ct_markers, file = paste0(main_dir, dis_type, "/4_Markers/", unique(id_seurat$orig.ident), "_markers.csv"),
+            row.names = TRUE)
+}
+
+SCENICInputMarkers <- function(main_dir, dis_type, pval, FC) {
+  input_markers_path <-  paste0(main_dir, dis_type, "/4_Markers")
+  input_markers_files <- list.files(path = input_markers_path, full.names = T)
+  input_markers <- lapply(input_markers_files,function(x) {
+    read.table(file = x, 
+               sep = ',', 
+               header = TRUE)
+  })
+  input_markers <- lapply(1:length(input_markers), function(x) input_markers[[x]] <- subset(input_markers[[x]], select=-c(1)))
+  input_markers <- lapply(1:length(input_markers), function(x) input_markers[[x]] <- Filter_gene(input_markers[[x]], pval, FC))
+  names(input_markers) <- list.files(path = input_markers_path, full.names = F)
+  names(input_markers) <- str_remove_all(names(input_markers), "_markers.csv")
+  for (df in names(input_markers)) {
+    input_markers[[df]]$cluster <- as.factor(input_markers[[df]]$cluster)
+  }
+  runs <- c("_1", "_2", "_3")
+  markers_v <- list()
+  for (v in runs) {
+    v_dfs <- names(input_markers)[which(grepl(v, names(input_markers)))]
+    v_list <- input_markers[v_dfs]
+    names(v_list) <- v_dfs
+    markers_v <- append(markers_v, list(v_list))
+  }
+  names(markers_v) <- runs
+  return(markers_v)
+}
+
+SCENICtop10genes <- function(input_markers) {
+  top10 <- data.frame()
+  for (v in names(input_markers)) {
+    for (df in names(input_markers[[v]])) {
+      for (ct in levels(input_markers[[v]][[df]]$cluster)) {
+        sub_ct <- subset(input_markers[[v]][[df]], cluster==ct)
+        sub_ct <- sub_ct[order(-sub_ct$avg_log2FC),]
+        top10 <- rbind(top10, data.frame(rep(paste(df, ct, sep="_"), 10), sub_ct[1:10, "gene"]))
+      }
+    }
+  }
+  colnames(top10) <- c("og", "genes")
+  for (i in 1:3) {top10$og <- str_replace(top10$og, "_", "/")}
+  top10 <- separate(top10, og, into = c("proj", "sex", "v", "ct"), sep="/", remove=F)
+  top10$files <- paste(top10$proj, top10$sex, top10$v, sep = "_")
+  col_names <- c("proj", "sex", "v", "ct")
+  top10[col_names] <- lapply(top10[col_names], as.factor)
+  return(top10)
+}
+
+
+Filter_gene <- function(order.gene.df, pval, FC) {
+  logFC <- log2(1/FC)
+  gene.sig <- order.gene.df[  order.gene.df[["p_val"]] <= pval
+                              & order.gene.df[["avg_log2FC"]] >= logFC, ]
+  return(gene.sig)
+}
+
+HmpSCENIC <- function(main_dir, dis_type, input_seurat, top10, ct_ordered) {
+  dir.create(paste0(main_dir, dis_type, "/plots/Seurat"), showWarnings = F)
+  for (run_v in names(input_seurat)) {
+    for (file in names(input_seurat[[run_v]])) {
+      topgenes <-(top10[which(top10$files==file),])
+      topgenes_order <- ct_ordered[which(ct_ordered %in% unique(topgenes$ct))]
+      topgenes$ct <- factor(topgenes$ct,topgenes_order)
+      topgenes <- topgenes[order(topgenes$ct), ]
+      hmp_top_order <- ct_ordered[which(ct_ordered %in% unique(topgenes$ct))]
+      Idents(input_seurat[[run_v]][[file]]) <- "ct"
+      levels(input_seurat[[run_v]][[file]]) <- hmp_top_order
+      hmp_top <- DoHeatmap(input_seurat[[run_v]][[file]], features = topgenes$genes, group.by = "ident", angle = 90, size = 3)
+      pdf(paste0(main_dir, dis_type, "/plots/Seurat/hmp_top_10_", file, ".pdf"), height = 15)
+      print(hmp_top  + labs(title = file))
+      dev.off()
+    }
+  }
+  #return(hmp_top)
+}
+
+HmpSCENICAll <- function(main_dir, dis_type, input_seurat, markers, ct_ordered) {
+  dir.create(paste0(main_dir, dis_type, "/plots/Seurat"), showWarnings = F)
+  for (run_v in names(input_seurat)) {
+    for (file in names(input_seurat[[run_v]])) {
+      file_markers <- markers[[run_v]][[file]]
+      file_markers_order <- ct_ordered[which(ct_ordered %in% unique(file_markers$cluster))]
+      file_markers$cluster <- factor(file_markers$cluster,file_markers_order)
+      file_markers <- file_markers[order(file_markers$cluster), ]
+      hmp_top_order <- ct_ordered[which(ct_ordered %in% unique(file_markers$cluster))]
+      Idents(input_seurat[[run_v]][[file]]) <- "ct"
+      levels(input_seurat[[run_v]][[file]]) <- hmp_top_order
+      hmp_top <- DoHeatmap(input_seurat[[run_v]][[file]], features = file_markers$gene, group.by = "ident", angle = 90, size = 3)
+      pdf(paste0(main_dir, dis_type, "/plots/Seurat/hmp_all_", file, ".pdf"), height = 15)
+      print(hmp_top  + labs(title = file))
+      dev.off()
+    }
+  }
+  #return(hmp_top)
+}
+
+SCENICresultsSeurat <- function(main_dir, dis_type, res_folder) {
+  all_path <- paste0(main_dir, dis_type, "/", res_folder, "/100_sampled_cells_all/")
+  if (res_folder == "1_GRN") {
+    all_files <- list.files(path = all_path, pattern = "\\.tsv$",full.names = T)
+    all <- lapply(all_files,function(x) {
+      read.table(file = x, 
+                 sep = '\t', 
+                 header = TRUE)
+    })
+    all <- lapply(1:length(all), function(x) all[[x]][order(-all[[x]]$importance),])
+    names(all) <- list.files(path = all_path, pattern = "\\.tsv$",full.names = F)
+  } else if (res_folder == "3_AUCell") {
+    all_files <- list.files(path = all_path, pattern = "\\.csv$",full.names = T)
+    all <- lapply(all_files,function(x) {
+      read.table(file = x, 
+                 sep = ',', 
+                 header = TRUE)
+    })
+    names(all) <- list.files(path = all_path, pattern = "\\.csv$",full.names = F)
+  }
+  all2 <- list()
+  runs <- c("_1", "_2", "_3")
+  for (run_v in runs) {
+    only_1 <- names(all)[which(grepl(run_v, names(all)))]
+    all_1 <- all[only_1]
+    if (res_folder == "1_GRN") {
+      names(all_1) <- str_remove_all(names(all_1), ".tsv")
+    } else if (res_folder == "3_AUCell") {
+      names(all_1) <- str_remove_all(names(all_1), ".csv")
+    }
+    all2 <- append(all2, list(all_1))
+  }
+  names(all2) <- runs
+  return(all2)
+}
+
+SCENICTfTg <- function(main_dir, dis_type, scenic_all, input_seurat, ct_ordered, cutoff = "no") {
+  dir.create(paste0(main_dir, dis_type, "/plots/Seurat"), showWarnings = F)
+  for (run_v in names(scenic_all)) {
+    for (file in names(scenic_all[[run_v]])) {
+      if (cutoff == "no") {
+        file_markers <- scenic_all[[run_v]][[file]]
+      } else {
+        file_markers <- scenic_all[[run_v]][[file]][1:cutoff, ]
+      }
+      hmp_top_order <- ct_ordered[which(ct_ordered %in% unique(input_seurat[[run_v]][[file]]@meta.data$ct))]
+      Idents(input_seurat[[run_v]][[file]]) <- "ct"
+      levels(input_seurat[[run_v]][[file]]) <- hmp_top_order
+      for (k in c("TF", "target")) {
+        hmp_top <- DoHeatmap(input_seurat[[run_v]][[file]], features = file_markers[, k], group.by = "ident", angle = 90, size = 3)
+        if  (cutoff == "no") {
+          pdf(paste0(main_dir, dis_type, "/plots/Seurat/", k, "_hmp_all_",  file, ".pdf"), height = 15)
+          print(hmp_top  + labs(title = file))
+          dev.off()
+        } else {
+          pdf(paste0(main_dir, dis_type, "/plots/Seurat/", k, "_hmp_top_", cutoff, "_", file, ".pdf"), height = 15)
+          print(hmp_top  + labs(title = file))
+          dev.off()
+        }
+      }
+    }
+  }
+}
+
+################################## Check output from individual cts and all
 
 
 SCENICct <- function(main_dir, dis_type) {
@@ -147,10 +328,9 @@ SCENICoverlap <- function(main_dir, dis_type) {
 }
 
 PlotOverlapRuns <- function(main_dir, dis_type, sort_list, top_list, ct_list) {
-  dir.create(paste0(main_dir, dis_type, "/3_plots"), showWarnings = F)
+  dir.create(paste0(main_dir, dis_type, "/plots/Overlap"), showWarnings = F)
   cts_sort <- sort_list[[1]]
   alls_sort <- sort_list[[2]]
-  dir.create(paste0(main_dir, dis_type, "/3_plots"), showWarnings = F)
   for (k in top_list) {
     print(k)
     if (k!="no") {
@@ -173,7 +353,7 @@ PlotOverlapRuns <- function(main_dir, dis_type, sort_list, top_list, ct_list) {
       colnames(overlap_alls) <- colnames(overlap_ct)
       overlap <- rbind(overlap_alls, overlap_ct)
       overlap$ct <- as.factor(overlap$ct)
-      pdf(paste0(main_dir, dis_type, "/3_plots/overlap_from_GRN_all_", k, "_TF_TG_pairs.pdf"))
+      pdf(paste0(main_dir, dis_type, "/plots/Overlap/overlap_from_GRN_all_", k, "_TF_TG_pairs.pdf"))
       print(
         ggplot(overlap, aes(ct, perc, fill=ct)) +
           geom_bar(stat="identity") +
@@ -211,7 +391,7 @@ PlotOverlapRuns <- function(main_dir, dis_type, sort_list, top_list, ct_list) {
       colnames(overlap_alls) <- colnames(overlap_ct)
       overlap <- rbind(overlap_alls, overlap_ct)
       overlap$ct <- as.factor(overlap$ct)
-      pdf(paste0(main_dir, dis_type, "/3_plots/unsorted_overall_from_GRN_all_TF_TG_pairs.pdf"))
+      pdf(paste0(main_dir, dis_type, "/plots/Overlap/unsorted_overall_from_GRN_all_TF_TG_pairs.pdf"))
       print(
         ggplot(overlap, aes(ct, perc, fill=ct)) +
           geom_bar(stat="identity") +
@@ -233,8 +413,11 @@ PlotOverlapRuns <- function(main_dir, dis_type, sort_list, top_list, ct_list) {
   }
 }
 
+################################## Check overlap with scGRNom
+
+
 PlotscGRNomOverlap <- function(main_dir, dis_type, sort_list, top_scGRNom, ct_scGRNom, flag) {
-  dir.create(paste0(main_dir, dis_type, "/3_plots"), showWarnings = F)
+  dir.create(paste0(main_dir, dis_type, "/plots/scGRNom"), showWarnings = F)
   cts_sort <- sort_list[[1]]
   alls_sort <- sort_list[[2]]
   for (f in flag) {
@@ -264,11 +447,11 @@ PlotscGRNomOverlap <- function(main_dir, dis_type, sort_list, top_scGRNom, ct_sc
       overlap_scGRNom <- separate(overlap_scGRNom, scGRNom_groups, into=c("disco", "run", "GRN_ct", "openchrom"), remove=F, sep="/")
       col_factors <- c("disco", "run", "GRN_ct", "openchrom")
       overlap_scGRNom[col_factors] <- lapply(overlap_scGRNom[col_factors], as.factor)
-      pdf(paste0(main_dir, dis_type, "/3_plots/unsorted_overall_from_GRN_cts_scGRNom.pdf"))
+      pdf(paste0(main_dir, dis_type, "/plots/scGRNom/unsorted_overall_from_GRN_cts_scGRNom.pdf"))
       print(
         ggplot(overlap_scGRNom, aes(run, perc, fill=openchrom)) +
           geom_bar(stat="identity", position="dodge", color="black") +
-          labs(x="Cell types with num cell > 500", y="% Overall among runs and scGRNom analysis", fill="Groups", title="GSE157827_F_Normal") +
+          labs(x="Cell types with num cell > 500", y="% Overall among runs and scGRNom analysis", fill="Groups") +
           theme(panel.grid.major = element_blank(), 
                 panel.grid.minor = element_blank(),
                 panel.background = element_blank(), 
@@ -307,11 +490,11 @@ PlotscGRNomOverlap <- function(main_dir, dis_type, sort_list, top_scGRNom, ct_sc
       overlap_scGRNom <- separate(overlap_scGRNom, scGRNom_groups, into=c("disco", "run", "GRN_ct", "openchrom"), remove=F, sep="/")
       col_factors <- c("disco", "run", "GRN_ct", "openchrom")
       overlap_scGRNom[col_factors] <- lapply(overlap_scGRNom[col_factors], as.factor)
-      pdf(paste0(main_dir, dis_type, "/3_plots/unsorted_overlap_from_GRN_cts_scGRNom.pdf"))
+      pdf(paste0(main_dir, dis_type, "/plots/scGRNom/unsorted_overlap_from_GRN_cts_scGRNom.pdf"))
       print(
         ggplot(overlap_scGRNom, aes(run, perc, fill=openchrom)) +
           geom_bar(stat="identity", position="dodge", color="black") +
-          labs(x="Cell types with num cell > 500", y="% Overlap among runs and scGRNom analysis", fill="Groups", title="GSE157827_F_Normal") +
+          labs(x="Cell types with num cell > 500", y="% Overlap among runs and scGRNom analysis", fill="Groups") +
           theme(panel.grid.major = element_blank(), 
                 panel.grid.minor = element_blank(),
                 panel.background = element_blank(), 
@@ -345,11 +528,11 @@ PlotscGRNomOverlap <- function(main_dir, dis_type, sort_list, top_scGRNom, ct_sc
       col_factors <- c("run", "GRN_ct", "openchrom")
       overlap_alls_scGRNom[col_factors] <- lapply(overlap_alls_scGRNom[col_factors], as.factor)
       overlap_alls_scGRNom$perc <- overlap_alls_scGRNom$common_scGRNom * 100 / overlap_alls_scGRNom$tot_scGRNom
-      pdf(paste0(main_dir, dis_type, "/3_plots/unsorted_overall_from_GRN_alls_scGRNom.pdf"))
+      pdf(paste0(main_dir, dis_type, "/plots/scGRNom/unsorted_overall_from_GRN_alls_scGRNom.pdf"))
       print(
         ggplot(overlap_alls_scGRNom, aes(run, perc, fill=openchrom)) +
           geom_bar(stat="identity", position="dodge", color="black") +
-          labs(x="Cell types with num cell > 500", y="% Overall among runs and scGRNom analysis", fill="Groups", title="GSE157827_F_Normal") +
+          labs(x="Cell types with num cell > 500", y="% Overall among runs and scGRNom analysis", fill="Groups") +
           theme(panel.grid.major = element_blank(), 
                 panel.grid.minor = element_blank(),
                 panel.background = element_blank(), 
@@ -381,11 +564,11 @@ PlotscGRNomOverlap <- function(main_dir, dis_type, sort_list, top_scGRNom, ct_sc
       col_factors <- c("run", "GRN_ct", "openchrom")
       overlap_alls_scGRNom[col_factors] <- lapply(overlap_alls_scGRNom[col_factors], as.factor)
       overlap_alls_scGRNom$perc <- overlap_alls_scGRNom$common_scGRNom * 100 / overlap_alls_scGRNom$tot_scGRNom
-      pdf(paste0(main_dir, dis_type, "/3_plots/unsorted_overlap_from_GRN_alls_scGRNom.pdf"))
+      pdf(paste0(main_dir, dis_type, "/plots/scGRNom/unsorted_overlap_from_GRN_alls_scGRNom.pdf"))
       print(
         ggplot(overlap_alls_scGRNom, aes(run, perc, fill=openchrom)) +
           geom_bar(stat="identity", position="dodge", color="black") +
-          labs(x="Cell types with num cell > 500", y="% Overlap among runs and scGRNom analysis", fill="Groups", title="GSE157827_F_Normal") +
+          labs(x="Cell types with num cell > 500", y="% Overlap among runs and scGRNom analysis", fill="Groups") +
           theme(panel.grid.major = element_blank(), 
                 panel.grid.minor = element_blank(),
                 panel.background = element_blank(), 
@@ -403,8 +586,11 @@ PlotscGRNomOverlap <- function(main_dir, dis_type, sort_list, top_scGRNom, ct_sc
   }
 }
 
+################################## Check expression of TFs and TGs in original data
+
+
 SCENICresults <- function(main_dir, dis_type) {
-  dir.create(paste0(main_dir, dis_type, "/3_plots"), showWarnings = F)
+  dir.create(paste0(main_dir, dis_type, "/plots"), showWarnings = F)
   all_path <- paste0(main_dir, dis_type, "/1_GRN/100_sampled_cells_all/")
   all_files <- list.files(path = all_path, pattern = "\\.tsv$",full.names = T)
   all <- lapply(all_files,function(x) {
@@ -444,6 +630,7 @@ SCENICInput <- function(main_dir, dis_type, cell_info_df) {
 }
 
 PlotTfTg <- function(main_dir, dis_type, all_sort, input_dfs, ct_ordered, top_TF){
+  dir.create(paste0(main_dir, dis_type, "/plots/TF_TG"), showWarnings = F)
   for (id in names(all_sort)) {
     for (k in top_TF) {
       tf_id <- all_sort[[id]][1:k, "TF"]
@@ -458,7 +645,7 @@ PlotTfTg <- function(main_dir, dis_type, all_sort, input_dfs, ct_ordered, top_TF
       sub_tf <- sub_tf[order(sub_tf$ct), ]
       sub_tf$log2_value <- log2(sub_tf$value)
       sub_tf[which(sub_tf$log2_value=="-Inf"),"log2_value"] <- 0
-      pdf(paste0(main_dir, dis_type, "/3_plots/TFs_hmp_",k, "_top_", id, ".pdf"))
+      pdf(paste0(main_dir, dis_type, "/plots/TF_TG/TFs_hmp_",k, "_top_", id, ".pdf"))
       print(
         #ggplot(sub_tf, aes(ct, TF, fill=log2_value, color="")) +
         ggplot(sub_tf, aes(ct, TF, fill=log2_value)) +
@@ -495,10 +682,10 @@ PlotTfTg <- function(main_dir, dis_type, all_sort, input_dfs, ct_ordered, top_TF
         sub_tg$log2_value <- log2(sub_tg$value)
         sub_tg[which(sub_tg$log2_value=="-Inf"),"log2_value"] <- 0
         if (k==100) {
-          pdf(paste0(main_dir, dis_type, "/3_plots/TGs_hmp_",k, "_top_", id, ".pdf"),
+          pdf(paste0(main_dir, dis_type, "/plots/TF_TG/TGs_hmp_",k, "_top_", id, ".pdf"),
               height=11)
         } else {
-          pdf(paste0(main_dir, dis_type, "/3_plots/TGs_hmp_",k, "_top_", id, ".pdf"),
+          pdf(paste0(main_dir, dis_type, "/plots/TF_TG/TGs_hmp_",k, "_top_", id, ".pdf"),
               height=15)
         }
         print(
