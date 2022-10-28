@@ -97,40 +97,40 @@ SCENICTfTg(main, sub_disease[3], norm_scenic, all_norm_final, ct_order, 100)
 
 # AD
 
-all_ad <- list()
-for (v in runs) {
-  ad_input_seurat <- SCENICInputSeurat(main, sub_disease[1], v)
-  ad_seurat_list <- list()
-  for (ad_id in names(ad_input_seurat)) {
-    metadata_id <- cell_info[which(cell_info$cell_id %in% colnames(ad_input_seurat[[ad_id]])),]
-    rownames(metadata_id) <- metadata_id$cell_id
-    metadata_id$cell_id <- NULL
-    ad_seurat <- SCENICSeuratPlots(ad_input_seurat, metadata_id, ad_id)
-    ad_seurat_list <- append(ad_seurat_list, list(ad_seurat))
-  }
-  names(ad_seurat_list) <- names(ad_input_seurat)
-  all_ad <- append(all_ad, list(ad_seurat_list))
-}
-names(all_ad) <- runs
+#all_ad <- list()
+#for (v in runs) {
+#  ad_input_seurat <- SCENICInputSeurat(main, sub_disease[1], v)
+#  ad_seurat_list <- list()
+#  for (ad_id in names(ad_input_seurat)) {
+#    metadata_id <- cell_info[which(cell_info$cell_id %in% colnames(ad_input_seurat[[ad_id]])),]
+#    rownames(metadata_id) <- metadata_id$cell_id
+#    metadata_id$cell_id <- NULL
+#    ad_seurat <- SCENICSeuratPlots(ad_input_seurat, metadata_id, ad_id)
+#    ad_seurat_list <- append(ad_seurat_list, list(ad_seurat))
+#  }
+#  names(ad_seurat_list) <- names(ad_input_seurat)
+#  all_ad <- append(all_ad, list(ad_seurat_list))
+#}
+#names(all_ad) <- runs
 
-k_clusters <- list("_1" = c(13, 13, 10, 12),
-                   "_2" = c(13, 13, 12, 11),
-                   "_3" = c(11, 12, 12, 11))
+#k_clusters <- list("_1" = c(13, 13, 10, 12),
+#                   "_2" = c(13, 13, 12, 11),
+#                   "_3" = c(11, 12, 12, 11))
 
-all_ad_final <- list()
-for (v in runs) { 
-  ad_seurat_list <- all_ad[[v]]
-  names(k_clusters[[v]]) <- names(ad_seurat_list)
-  for (ad_id in names(ad_seurat_list)) {
-    #all_ad_final[[v]][[ad_id]] <- SCENICClustering(main, sub_disease[1], ad_seurat_list[[ad_id]], k_clusters[[v]][[ad_id]], ct_order)
-    # if also need to plot the UMAPs
-    all_ad_final[[v]][[ad_id]] <- SCENICClustering(main, sub_disease[1], ad_seurat_list[[ad_id]], k_clusters[[v]][[ad_id]], ct_order, "yes")
-    SCENICMarkers(main, sub_disease[1], all_ad[[v]][[ad_id]])
-  }
-}
-rm(all_ad)
+#all_ad_final <- list()
+#for (v in runs) { 
+#  ad_seurat_list <- all_ad[[v]]
+#  names(k_clusters[[v]]) <- names(ad_seurat_list)
+#  for (ad_id in names(ad_seurat_list)) {
+#    #all_ad_final[[v]][[ad_id]] <- SCENICClustering(main, sub_disease[1], ad_seurat_list[[ad_id]], k_clusters[[v]][[ad_id]], ct_order)
+#    # if also need to plot the UMAPs
+#    all_ad_final[[v]][[ad_id]] <- SCENICClustering(main, sub_disease[1], ad_seurat_list[[ad_id]], k_clusters[[v]][[ad_id]], ct_order, "yes")
+#    SCENICMarkers(main, sub_disease[1], all_ad[[v]][[ad_id]])
+#  }
+#}
+#rm(all_ad)
 
-saveRDS(all_ad_final, paste0(main, sub_disease[1], "/seurat_files.rds"))
+#saveRDS(all_ad_final, paste0(main, sub_disease[1], "/seurat_files.rds"))
 all_ad_final <- readRDS(paste0(main, sub_disease[1], "/seurat_files.rds"))
 
 ### Calculates Markers in each SeuratObject
@@ -151,40 +151,40 @@ SCENICTfTg(main, sub_disease[1], ad_scenic, all_ad_final, ct_order, 100)
 
 
 # MS
-all_ms <- list()
-for (v in runs) {
-  ms_input_seurat <- SCENICInputSeurat(main, sub_disease[2], v)
-  ms_seurat_list <- list()
-  for (ms_id in names(ms_input_seurat)) {
-    metadata_id <- cell_info[which(cell_info$cell_id %in% colnames(ms_input_seurat[[ms_id]])),]
-    rownames(metadata_id) <- metadata_id$cell_id
-    metadata_id$cell_id <- NULL
-    ms_seurat <- SCENICSeuratPlots(ms_input_seurat, metadata_id, ms_id)
-    ms_seurat_list <- append(ms_seurat_list, list(ms_seurat))
-  }
-  names(ms_seurat_list) <- names(ms_input_seurat)
-  all_ms <- append(all_ms, list(ms_seurat_list))
-}
-names(all_ms) <- runs
+#all_ms <- list()
+#for (v in runs) {
+#  ms_input_seurat <- SCENICInputSeurat(main, sub_disease[2], v)
+#  ms_seurat_list <- list()
+#  for (ms_id in names(ms_input_seurat)) {
+#    metadata_id <- cell_info[which(cell_info$cell_id %in% colnames(ms_input_seurat[[ms_id]])),]
+#    rownames(metadata_id) <- metadata_id$cell_id
+#    metadata_id$cell_id <- NULL
+#    ms_seurat <- SCENICSeuratPlots(ms_input_seurat, metadata_id, ms_id)
+#    ms_seurat_list <- append(ms_seurat_list, list(ms_seurat))
+#  }
+#  names(ms_seurat_list) <- names(ms_input_seurat)
+#  all_ms <- append(all_ms, list(ms_seurat_list))
+#}
+#names(all_ms) <- runs
 
-k_clusters <- list("_1" = c(15, 15, 10, 10, 10, 12),
-                   "_2" = c(12, 10, 10, 10, 12, 15),
-                   "_3" = c(15, 10, 10, 10, 12, 12))
+#k_clusters <- list("_1" = c(15, 15),
+#                   "_2" = c(15, 15),
+#                   "_3" = c(15, 15))
 
-all_ms_final <- list()
-for (v in runs) { 
-  ms_seurat_list <- all_ms[[v]]
-  names(k_clusters[[v]]) <- names(ms_seurat_list)
-  for (ms_id in names(ms_seurat_list)) {
-    #all_ms_final[[v]][[ms_id]] <- SCENICClustering(main, sub_disease[2], ms_seurat_list[[ms_id]], k_clusters[[v]][[ms_id]], ct_order)
-    #if also need to plot the UMAPs
-    all_ms_final[[v]][[ms_id]] <- SCENICClustering(main, sub_disease[2], ms_seurat_list[[ms_id]], k_clusters[[v]][[ms_id]], ct_order, "yes")
-    SCENICMarkers(main, sub_disease[2], all_ms[[v]][[ms_id]])
-  }
-}
-rm(all_ms)
+#all_ms_final <- list()
+#for (v in runs) { 
+#  ms_seurat_list <- all_ms[[v]]
+#  names(k_clusters[[v]]) <- names(ms_seurat_list)
+#  for (ms_id in names(ms_seurat_list)) {
+#    #all_ms_final[[v]][[ms_id]] <- SCENICClustering(main, sub_disease[2], ms_seurat_list[[ms_id]], k_clusters[[v]][[ms_id]], ct_order)
+#    #if also need to plot the UMAPs
+#    all_ms_final[[v]][[ms_id]] <- SCENICClustering(main, sub_disease[2], ms_seurat_list[[ms_id]], k_clusters[[v]][[ms_id]], ct_order, "yes")
+#    SCENICMarkers(main, sub_disease[2], all_ms[[v]][[ms_id]])
+#  }
+#}
+#rm(all_ms)
 
-saveRDS(all_ms_final, paste0(main, sub_disease[2], "/seurat_files.rds"))
+#saveRDS(all_ms_final, paste0(main, sub_disease[2], "/seurat_files.rds"))
 
 all_ms_final <- readRDS(paste0(main, sub_disease[2], "/seurat_files.rds"))
 
