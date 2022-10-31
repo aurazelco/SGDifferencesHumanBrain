@@ -47,6 +47,9 @@ AnalysisARE_ERE(main, sub_disease[3], pval_thresh, FC_thresh, ARE, EREgene, ct_o
 # AD
 AnalysisARE_ERE(main, sub_disease[1], pval_thresh, FC_thresh, ARE, EREgene, ct_order)
 
+# MS
+AnalysisARE_ERE(main, sub_disease[2], pval_thresh, FC_thresh, ARE, EREgene, ct_order)
+
 
 
 

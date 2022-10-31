@@ -11,15 +11,11 @@ Y_chr_genes <- 431
 tot_genes <- 20000
 
 # NORMAL
-normal <- sub_disease[3]
-SexChr(main, normal, tot_genes, X_chr_genes, Y_chr_genes)
-SexChr2(main, normal, tot_genes, X_chr_genes, Y_chr_genes)
+#SexChr(main, sub_disease[3], tot_genes, X_chr_genes, Y_chr_genes)
+SexChr2(main, sub_disease[3], tot_genes, X_chr_genes, Y_chr_genes)
 
+# AD
+SexChr2(main, sub_disease[1], tot_genes, X_chr_genes, Y_chr_genes)
 
-
-
-#AD
-ad <- sub_disease[1]
-#SexChr(main, ad, X_chr_genes, Y_chr_genes)
-SexChr2(main, ad, tot_genes, X_chr_genes, Y_chr_genes)
-
+# MS
+SexChr2(main, sub_disease[2], tot_genes, X_chr_genes, Y_chr_genes)

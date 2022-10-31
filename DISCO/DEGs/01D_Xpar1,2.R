@@ -39,7 +39,8 @@ ct_order <- c(
 # NORMAL
 XparCt(main, sub_disease[3], Xpar1_list, Xpar2_list, ct_order)
 
-
 #AD
 XparCt(main, sub_disease[1], Xpar1_list, Xpar2_list, ct_order)
 
+#MS
+XparCt(main, sub_disease[2], Xpar1_list, Xpar2_list, ct_order)

@@ -43,12 +43,6 @@ PlotIntDEGs(main, sub_disease[3], num_df_normal[[1]], num_df_normal[[2]], ct_ord
 num_df_AD <- IntersectDEG(main, sub_disease[1], pval_thresh, FC_thresh)
 PlotIntDEGs(main, sub_disease[1], num_df_AD[[1]], num_df_AD[[2]], ct_order)
 
-
-                             
-          
-                              
-                         
-           
-                  
-                        
-            
+# MS
+num_df_MS <- IntersectDEG(main, sub_disease[2], pval_thresh, FC_thresh, ct_order)
+PlotIntDEGs(main, sub_disease[2], num_df_MS[[1]], num_df_MS[[2]], ct_order)

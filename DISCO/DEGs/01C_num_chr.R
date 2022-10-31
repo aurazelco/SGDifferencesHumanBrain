@@ -41,12 +41,17 @@ PlotGeneralHeatmap(main, sub_disease[3], chr_normal, ct_order)
 PlotSexHmp(main, sub_disease[3], chr_normal, ct_order)
 PlotNumChr(main, sub_disease[3], num_chr_genes, T, ct_order)
 
-
-
 #AD
 chr_ad <- ProcessCt(main, sub_disease[1])
 PlotGeneralHeatmap(main, sub_disease[1], chr_ad, ct_order)
 PlotSexHmp(main, sub_disease[1], chr_ad, ct_order)
 PlotNumChr(main, sub_disease[1], num_chr_genes, T, ct_order)
+
+#MS
+chr_ms <- ProcessCt(main, sub_disease[2])
+PlotGeneralHeatmap(main, sub_disease[2], chr_ms, ct_order)
+PlotSexHmp(main, sub_disease[2], chr_ms, ct_order)
+PlotNumChr(main, sub_disease[2], num_chr_genes, T, ct_order)
+
 
 

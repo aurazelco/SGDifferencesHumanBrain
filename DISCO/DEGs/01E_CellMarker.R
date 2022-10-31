@@ -91,13 +91,20 @@ ct_order <- c(
   "microglia"
 )
 
+extra_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/extra_files/"
+
 # NORMAL
 PlotCMresults(main, sub_disease[3], 
-              "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/extra_files/", 
+              extra_path, 
               ct_list, data_ct, ct_order)
 
 
 # AD
 PlotCMresults(main, sub_disease[1], 
-              "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/extra_files/", 
+              extra_path, 
+              ct_list, data_ct, ct_order)
+
+# MS
+PlotCMresults(main, sub_disease[2], 
+              extra_path, 
               ct_list, data_ct, ct_order)

@@ -106,8 +106,11 @@ all_genes[col_factors] <- lapply(all_genes[col_factors], as.factor)
 ConservedFractions(main, sub_disease[3], conserved, 4, "Primates", all_genes, ct_order)
 ConservedFractions(main, sub_disease[3], SAGD_df, 4, "SAGD",  all_genes, ct_order)
 
-#AD
+# AD
 ConservedFractions(main, sub_disease[1], conserved, 4, "Primates",  all_genes, ct_order)
 ConservedFractions(main, sub_disease[1], SAGD_df, 4, "SAGD",  all_genes, ct_order)
 
+# MS
+ConservedFractions(main, sub_disease[2], conserved, 4, "Primates",  all_genes, ct_order)
+ConservedFractions(main, sub_disease[2], SAGD_df, 4, "SAGD",  all_genes, ct_order)
 

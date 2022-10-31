@@ -39,5 +39,8 @@ ct_order <- c(
 # NORMAL
 AnalysisARE_ERE(main, sub_disease[3], ARE, EREgene, ct_order)
 
-#AD
+# AD
 AnalysisARE_ERE(main, sub_disease[1], ARE, EREgene, ct_order)
+
+# MS
+AnalysisARE_ERE(main, sub_disease[2], ARE, EREgene, ct_order)

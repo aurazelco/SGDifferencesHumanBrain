@@ -119,27 +119,42 @@ IntersectDEG <- function(main, dis, pval, FC, ct_ordered) {
     }
     ct_list <- list("F" = df_F, "M" = df_M)
     deg_list <- append(deg_list, list(ct_list))
-    dir.create(paste(main, dis, "01B_num_DEGs", sub_ct[ct], sep="/"), showWarnings = FALSE)
-    num_proj <- c(num_proj, length(df_F))
-    if (length(df_F)==3) {
-      int_list <- list(Reduce(intersect, list(rownames(df_F[[1]]), rownames(df_F[[2]]), rownames(df_F[[3]]))),
-            Reduce(intersect, list(rownames(df_M[[1]]), rownames(df_M[[2]]), rownames(df_M[[3]]))))
-      names(int_list) <- c("F", "M")
-      lapply(1:length(int_list), function(i) write.csv(int_list[i], 
+    if (length(df_F)>1) {
+      dir.create(paste(main, dis, "01B_num_DEGs", sub_ct[ct], sep="/"), showWarnings = FALSE)
+      num_proj <- c(num_proj, length(df_F))
+      if (length(df_F)==3) {
+        int_list <- list(Reduce(intersect, list(rownames(df_F[[1]]), rownames(df_F[[2]]), rownames(df_F[[3]]))),
+                         Reduce(intersect, list(rownames(df_M[[1]]), rownames(df_M[[2]]), rownames(df_M[[3]]))))
+        names(int_list) <- c("F", "M")
+        lapply(1:length(int_list), function(i) write.csv(int_list[i], 
                                                          file = paste0(main, "/", dis, "/01B_num_DEGs/", sub_ct[ct], "/", names(int_list[i]), "_intersected_genes.csv"),
                                                          row.names = TRUE))
+      } else {
+        int_list <- list(intersect(rownames(df_F[[1]]), rownames(df_F[[2]]))
+                         ,intersect(rownames(df_M[[1]]), rownames(df_M[[2]])))
+        names(int_list) <- c("F", "M")
+        lapply(1:length(int_list), function(i) write.csv(int_list[i], 
+                                                         file = paste0(main, "/", dis,  "/01B_num_DEGs/", sub_ct[ct],"/", names(int_list[i]), "_intersected_genes.csv"),
+                                                         row.names = TRUE))
+      }
+      num_genes <- c(num_genes, length(int_list[[1]]))
+      num_genes <- c(num_genes, length(int_list[[2]]))
+      ct_qc <- c(ct_qc, sub_ct[ct])
+      ct_qc <- c(ct_qc, sub_ct[ct])
     } else {
-      int_list <- list(intersect(rownames(df_F[[1]]), rownames(df_F[[2]]))
-                  ,intersect(rownames(df_M[[1]]), rownames(df_M[[2]])))
+      dir.create(paste(main, dis, "01B_num_DEGs", sub_ct[ct], sep="/"), showWarnings = FALSE)
+      num_proj <- 1
+      int_list <- list(rownames(df_F[[1]])
+                       ,rownames(df_M[[1]]))
       names(int_list) <- c("F", "M")
       lapply(1:length(int_list), function(i) write.csv(int_list[i], 
                                                        file = paste0(main, "/", dis,  "/01B_num_DEGs/", sub_ct[ct],"/", names(int_list[i]), "_intersected_genes.csv"),
                                                        row.names = TRUE))
+      num_genes <- c(num_genes, nrow(df_F[[1]]))
+      num_genes <- c(num_genes, nrow(df_M[[1]]))
+      ct_qc <- c(ct_qc, sub_ct[ct])
+      ct_qc <- c(ct_qc, sub_ct[ct])
     }
-    num_genes <- c(num_genes, length(int_list[[1]]))
-    num_genes <- c(num_genes, length(int_list[[2]]))
-    ct_qc <- c(ct_qc, sub_ct[ct])
-    ct_qc <- c(ct_qc, sub_ct[ct])
   }
   names(deg_list) <- sub_ct
   deg_df <- CreateDEGdf(deg_list)

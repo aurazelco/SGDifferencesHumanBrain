@@ -108,6 +108,11 @@ PlotIntDEGs(main, sub_disease[3], num_df_normal[[1]], num_df_normal[[2]], ct_ord
 num_df_AD <- IntersectDEG(main, sub_disease[1], pval_thresh, FC_thresh)
 PlotIntDEGs(main, sub_disease[1], num_df_AD[[1]], num_df_AD[[2]], ct_order)
 
+# MS
+num_df_MS <- IntersectDEG(main, sub_disease[2], pval_thresh, FC_thresh, ct_order)
+PlotIntDEGs(main, sub_disease[2], num_df_MS[[1]], num_df_MS[[2]], ct_order)
+
+
 ####### 01C_num_chr.R
 
 source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs/01C_num_chr_func.R")
@@ -125,13 +130,17 @@ PlotGeneralHeatmap(main, sub_disease[3], chr_normal, ct_order)
 PlotSexHmp(main, sub_disease[3], chr_normal, ct_order)
 PlotNumChr(main, sub_disease[3], num_chr_genes, T, ct_order)
 
-
-
-#AD
+# AD
 chr_ad <- ProcessCt(main, sub_disease[1])
 PlotGeneralHeatmap(main, sub_disease[1], chr_ad, ct_order)
 PlotSexHmp(main, sub_disease[1], chr_ad, ct_order)
 PlotNumChr(main, sub_disease[1], num_chr_genes, T, ct_order)
+
+# MS
+chr_ms <- ProcessCt(main, sub_disease[2])
+PlotGeneralHeatmap(main, sub_disease[2], chr_ms, ct_order)
+PlotSexHmp(main, sub_disease[2], chr_ms, ct_order)
+PlotNumChr(main, sub_disease[2], num_chr_genes, T, ct_order)
 
 
 ####### 01D_Xpar1,2.R
@@ -148,9 +157,11 @@ Xpar2_list <- Xpar2$Approved.symbol
 # NORMAL
 XparCt(main, sub_disease[3], Xpar1_list, Xpar2_list, ct_order)
 
-#AD
+# AD
 XparCt(main, sub_disease[1], Xpar1_list, Xpar2_list, ct_order)
 
+# MS
+XparCt(main, sub_disease[2], Xpar1_list, Xpar2_list, ct_order)
 
 ####### 01E_CellMarker.R
 
@@ -218,15 +229,24 @@ data_ct <- c("CXCL14 IN" = "IN",
              "TSHZ2 L4_5 EN" = "EN",  
              "VIP IN" = "IN")
 
+extra_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/extra_files/"
+
 # NORMAL
 PlotCMresults(main, sub_disease[3], 
-              "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/extra_files/", 
+              extra_path, 
               ct_list, data_ct, ct_order)
+
 
 # AD
 PlotCMresults(main, sub_disease[1], 
-              "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/extra_files/", 
+              extra_path, 
               ct_list, data_ct, ct_order)
+
+# MS
+PlotCMresults(main, sub_disease[2], 
+              extra_path, 
+              ct_list, data_ct, ct_order)
+
 
 
 ####### 02A_Fisher.R
@@ -236,8 +256,12 @@ source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/scripts/DEGs/02A
 # NORMAL
 SexChr2(main, sub_disease[3], tot_genes, X_chr_genes, Y_chr_genes)
 
-#AD
+# AD
 SexChr2(main, sub_disease[1], tot_genes, X_chr_genes, Y_chr_genes)
+
+# MS
+SexChr2(main, sub_disease[2], tot_genes, X_chr_genes, Y_chr_genes)
+
 
 ####### 02B_ARE_ERE.R
 
@@ -253,8 +277,12 @@ EREgene <- ERE$`Hs Gene Name`
 # NORMAL
 AnalysisARE_ERE(main, sub_disease[3], ARE, EREgene, ct_order)
 
-#AD
+# AD
 AnalysisARE_ERE(main, sub_disease[1], ARE, EREgene, ct_order)
+
+# MS
+AnalysisARE_ERE(main, sub_disease[2], ARE, EREgene, ct_order)
+
 
 ####### 02B_ARE_ERE_proj.R
 
@@ -270,6 +298,8 @@ AnalysisARE_ERE(main, sub_disease[3], pval_thresh, FC_thresh, ARE, EREgene, ct_o
 # AD
 AnalysisARE_ERE(main, sub_disease[1], pval_thresh, FC_thresh, ARE, EREgene, ct_order)
 
+# MS
+AnalysisARE_ERE(main, sub_disease[2], pval_thresh, FC_thresh, ARE, EREgene, ct_order)
 
 ####### 02C_Conservation.R
 
@@ -353,8 +383,11 @@ all_genes[col_factors] <- lapply(all_genes[col_factors], as.factor)
 ConservedFractions(main, sub_disease[3], conserved, 4, "Primates", all_genes, ct_order)
 ConservedFractions(main, sub_disease[3], SAGD_df, 4, "SAGD",  all_genes, ct_order)
 
-#AD
+# AD
 ConservedFractions(main, sub_disease[1], conserved, 4, "Primates",  all_genes, ct_order)
 ConservedFractions(main, sub_disease[1], SAGD_df, 4, "SAGD",  all_genes, ct_order)
 
+# MS
+ConservedFractions(main, sub_disease[2], conserved, 4, "Primates",  all_genes, ct_order)
+ConservedFractions(main, sub_disease[2], SAGD_df, 4, "SAGD",  all_genes, ct_order)
 

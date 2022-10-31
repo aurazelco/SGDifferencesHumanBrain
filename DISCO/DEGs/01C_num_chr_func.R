@@ -102,7 +102,7 @@ ExtractSexGenes <- function(chr_sex, chr) {
 ExtractGenes <- function(chr_list) {
   new_chr_list <- list()
   for (sex in names(chr_list)) {
-    df_sex <- as.data.frame(do.call(rbind, chr_normal[[sex]]))
+    df_sex <- as.data.frame(do.call(rbind, chr_list[[sex]]))
     df_sex$ct <- rownames(df_sex)
     df_sex$ct <- str_remove_all(df_sex$ct, "\\.\\d+")
     rownames(df_sex) <- NULL
@@ -289,6 +289,9 @@ PlotNumChr <- function(main_dir, dis_type, num_chr_genes, pval_file=FALSE, ct_or
       pval <- ExtractPval(main_dir, dis_type, sex)
       pvalX <- pval[which(pval$X_enriched_pval <= 0.05), ]
       pvalY <- pval[which(pval$Y_enriched_pval <= 0.05), ]
+      if (nrow(pvalX) == 0 & nrow(pvalY) == 0) {
+        pval_file <- FALSE
+      }
     } else {
       pvalX <- data.frame()
       pvalX$ct <- vector()
@@ -322,6 +325,7 @@ PlotNumChr <- function(main_dir, dis_type, num_chr_genes, pval_file=FALSE, ct_or
         {if (pval_file) geom_text(aes(x = ct, y = perc, label = pval_fisher, fontface = "bold"), nudge_x = 0.15, nudge_y = 0.1)} +
         {if (pval_file) annotate("text",x= length(levels(df$ct))/2,y=max(df$perc) + 0.2,label="Significance: *: X-chr, #: Y-chr")} +
         {if (pval_file) coord_cartesian(clip="off") } +
+        {if (pval_file==F) annotate("text", x = length(levels(df$ct))/2, y=max(df$perc), fontface = "bold", label = "NS", colour = "black")} +
         theme(panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
               panel.background = element_blank(), 
