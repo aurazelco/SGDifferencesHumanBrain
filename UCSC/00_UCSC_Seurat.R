@@ -1,16 +1,43 @@
-require(Seurat)
-require(data.table)
+library(Seurat)
+library(SeuratObject)
+library(data.table)
 
-main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/NEMO_fetal/outputs/"
+main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/"
+
+#dir.create(paste0(main, "Bhaduri_neocortex"), showWarnings = F)
+#mat <- Read10X("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/Bhaduri_neocortex/")
+#meta <- read.table("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/meta_Bhaduri_2021_neocortex.tsv", header=T, sep="\t", as.is=T, row.names=1)
+#bhaduri_ctx <- CreateSeuratObject(counts = mat, project = "Bhaduri_2021_neocortex", meta.data=meta)
+
+
+
+
+# Bhaduri_neocortex crashes
+
+
 
 # from this tutorial UCSC CellBrowser https://cellbrowser.readthedocs.io/en/master/load.html
-mat2 <- fread("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/NEMO_fetal/exprMatrix.tsv.gz")
+mat <- fread("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/exprMatrix_Bhaduri_2021_whole_brain.tsv.gz")
 
-mat <- fread("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/NEMO_fetal/counts_exprMatrix.tsv.gz")
+#mat <- fread("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/NEMO_fetal/counts_exprMatrix.tsv.gz")
 meta <- read.table("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/NEMO_fetal/meta.tsv", header=T, sep="\t", as.is=T, row.names=1)
 genes <- mat[,1][[1]]
 genes <- gsub(".+[|]", "", genes)
 mat <- data.frame(mat[,-1], row.names=genes)
+
+# However, we have NAs which cause issues after Normalization -> seems to be a common problem with UCSC datasets 
+# https://github.com/satijalab/seurat/issues/3805
+mat_NA <- which(is.na(as.matrix(mat)))
+i <- 0
+for (na_row in mat_NA) {
+  if (all(is.na(mat[mat_NA[na_row],]))) {
+    i <- i + 1
+  }
+}
+i
+# all rows are completely NAs -> remove them?
+
+
 nemo <- CreateSeuratObject(counts = mat, project = "NEMOfetal", meta.data=meta, assay = "RNA")
 
 # Seurat tutorial https://satijalab.org/seurat/articles/pbmc3k_tutorial.html
