@@ -9,6 +9,9 @@
     * [SCENIC](#scenic)
 * [THESIS DRAFT](#thesis-draft)
 
+## LANGUAGES
+
+The scripts are mainly in R, with some bash scripts and commands. As a general rule, the R script could technically be run from the command line, however we do not recommend it. This is mainly due to the fact that some analysis need some user input, e.g. the number of dimensions to create UMAPs in Seurat. Therefore, we recommend to check and run sections of R inside an IDE of choice (e.g. RStudio) for optimal results. 
    
 
 ## DATASETS

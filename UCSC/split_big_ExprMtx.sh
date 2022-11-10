@@ -29,7 +29,7 @@ for file in $bi_directory"/"*.txt; do
   #indexes=$(cat $file)
   indexes=$(<$file)
   #declare -i $indexes
-  out_name="$out"/"$id".tsv
+  out_name="$out"/"$id".tsv.gz
   echo $out_name
   gunzip -c $input_TSV_file | cut -f$indexes | gzip > $out_name
 done
