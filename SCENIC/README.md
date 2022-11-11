@@ -8,7 +8,7 @@ The scripts below were used to execute the SCENIC pipeline and plot the results:
 * [check_SCENIC_results.R](check_SCENIC_results.R), [check_SCENIC_results_func.R](check_SCENIC_results_func.R) -  R script to check the results from the SCENIC, more specifically to plot the overlap among runs, the overlap with [scGRNom results](https://genomemedicine.biomedcentral.com/articles/10.1186/s13073-021-00908-9), and to plot the expression of the transcription factors (TFs) and targets (TGs) in the cell types. 
 
 
-## SCENIC_analysis
+## SCENIC_analysis.sh
 
 **Arguments of the script**
 
@@ -33,7 +33,7 @@ An example of how to run the script can be found below:
 
 
 
-## SCENIC_merge
+## SCENIC_merge.sh
 
 **Arguments of the script**
 

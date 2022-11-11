@@ -105,6 +105,7 @@ VlnPlot(eze, features = "XIST", group.by = "sex")
 eze@meta.data$sex_age <- paste(eze@meta.data$sex, eze@meta.data$Age, sep="_")
 eze@meta.data$Individual <- str_replace_all(eze@meta.data$Individual, "_", "-")
 eze@meta.data$proj <-  rep("Eze_2021", length(eze@meta.data$Cell))
+eze@meta.data$id_sex_age <- paste(eze@meta.data$Individual, eze@meta.data$sex, eze@meta.data$Age, sep="_")
 
 num_cells <- as.data.frame(table(eze$id_sex_age))
 num_cells <- separate(num_cells, Var1, into=c("id", "sex", "age"), sep="_")
@@ -132,55 +133,55 @@ meta <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downlo
 
 rownames(meta) <- meta$Cell
 
-nova <- CreateSeuratObject(counts = mat, project = "Nowakowski_2017", meta.data=meta, assay = "RNA")
+nowa <- CreateSeuratObject(counts = mat, project = "Nowakowski_2017", meta.data=meta, assay = "RNA")
 
 # Seurat tutorial https://satijalab.org/seurat/articles/pbmc3k_tutorial.html
-nova[["percent.mt"]] <- PercentageFeatureSet(nova, pattern = "^MT-")
+nowa[["percent.mt"]] <- PercentageFeatureSet(nowa, pattern = "^MT-")
 # Visualize QC metrics as a violin plot
-VlnPlot(nova, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(nowa, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
 # FeatureScatter is typically used to visualize feature-feature relationships, but can be used
 # for anything calculated by the object, i.e. columns in object metadata, PC scores etc.
-plot1 <- FeatureScatter(nova, feature1 = "nCount_RNA", feature2 = "percent.mt")
-plot2 <- FeatureScatter(nova, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1 <- FeatureScatter(nowa, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(nowa, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
 plot1 + plot2
-nova <- subset(nova, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
-nova <- NormalizeData(nova)
-nova <- FindVariableFeatures(nova, selection.method = "vst", nfeatures = 2000)
+nowa <- subset(nowa, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+nowa <- NormalizeData(nowa)
+nowa <- FindVariableFeatures(nowa, selection.method = "vst", nfeatures = 2000)
 # Identify the 10 most highly variable genes
-top10 <- head(VariableFeatures(nova), 10)
+top10 <- head(VariableFeatures(nowa), 10)
 # plot variable features with and without labels
-plot1 <- VariableFeaturePlot(nova)
+plot1 <- VariableFeaturePlot(nowa)
 plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
 plot1 + plot2
-all.genes <- rownames(nova)
-nova <- ScaleData(nova, features = all.genes)
-nova <- RunPCA(nova, features = VariableFeatures(object = nova))
+all.genes <- rownames(nowa)
+nowa <- ScaleData(nowa, features = all.genes)
+nowa <- RunPCA(nowa, features = VariableFeatures(object = nowa))
 # Examine and visualize PCA results a few different ways
-print(nova[["pca"]], dims = 1:5, nfeatures = 5)
-VizDimLoadings(nova, dims = 1:2, reduction = "pca")
-DimPlot(nova, reduction = "pca") 
-DimHeatmap(nova, dims = 1, cells = 500, balanced = TRUE)
+print(nowa[["pca"]], dims = 1:5, nfeatures = 5)
+VizDimLoadings(nowa, dims = 1:2, reduction = "pca")
+DimPlot(nowa, reduction = "pca") 
+DimHeatmap(nowa, dims = 1, cells = 500, balanced = TRUE)
 # NOTE: This process can take a long time for big datasets, comment out for expediency. More
 # approximate techniques such as those implemented in ElbowPlot() can be used to reduce
 # computation time
-nova <- JackStraw(nova, num.replicate = 100)
-nova <- ScoreJackStraw(nova, dims = 1:20)
-JackStrawPlot(nova, dims = 1:15)
-ElbowPlot(nova)
-nova <- FindNeighbors(nova, dims = 1:12)
-nova <- FindClusters(nova, resolution = 0.5)
+nowa <- JackStraw(nowa, num.replicate = 100)
+nowa <- ScoreJackStraw(nowa, dims = 1:20)
+JackStrawPlot(nowa, dims = 1:15)
+ElbowPlot(nowa)
+nowa <- FindNeighbors(nowa, dims = 1:12)
+nowa <- FindClusters(nowa, resolution = 0.5)
 # Look at cluster IDs of the first 5 cells
-#head(Idents(nova), 5)
+#head(Idents(nowa), 5)
 # If you haven't installed UMAP, you can do so via reticulate::py_install(packages =
 # 'umap-learn')
-nova <- RunUMAP(nova, dims = 1:12)
-DimPlot(nova, reduction = "umap")
-VlnPlot(nova, features = "XIST", group.by = "Name") + NoLegend()
-ggsave(paste0(main, nova@project.name, "_XIST.pdf"))
+nowa <- RunUMAP(nowa, dims = 1:12)
+DimPlot(nowa, reduction = "umap")
+VlnPlot(nowa, features = "XIST", group.by = "Name") + NoLegend()
+ggsave(paste0(main, nowa@project.name, "_XIST.pdf"))
 
-nova@meta.data$sex <- rep("no_data", nrow(nova@meta.data))
+nowa@meta.data$sex <- rep("no_data", nrow(nowa@meta.data))
 
-nova_sex <- c("Sample10" = "F", 
+nowa_sex <- c("Sample10" = "F", 
               "Sample11"  = "M", 
               "Sample12"   = "M", 
               "Sample13"  = "F", 
@@ -227,20 +228,20 @@ nova_sex <- c("Sample10" = "F",
               "Sample9"   = "M"
 )
 
-for (id in names(nova_sex)) {
-  nova@meta.data[which(nova@meta.data$Name==id), "sex"] <- nova_sex[id]
+for (id in names(nowa_sex)) {
+  nowa@meta.data[which(nowa@meta.data$Name==id), "sex"] <- nowa_sex[id]
 }
 
-VlnPlot(nova, features = "XIST", group.by = "sex")
+VlnPlot(nowa, features = "XIST", group.by = "sex")
 
-nova@meta.data$sex_age <- paste(nova@meta.data$sex, nova@meta.data$Age_in_Weeks, sep="_")
-nova@meta.data$proj <-  rep(nova@project.name, nrow(nova@meta.data))
-nova@meta.data$id_sex_age <- paste(nova@meta.data$Name, nova@meta.data$sex, nova@meta.data$Age_in_Weeks, sep="_")
+nowa@meta.data$sex_age <- paste(nowa@meta.data$sex, nowa@meta.data$Age_in_Weeks, sep="_")
+nowa@meta.data$proj <-  rep(nowa@project.name, nrow(nowa@meta.data))
+nowa@meta.data$id_sex_age <- paste(nowa@meta.data$Name, nowa@meta.data$sex, nowa@meta.data$Age_in_Weeks, sep="_")
 
 
-num_cells3 <- as.data.frame(table(nova$id_sex_age))
+num_cells3 <- as.data.frame(table(nowa$id_sex_age))
 num_cells3 <- separate(num_cells3, Var1, into=c("id", "sex", "age"), sep="_")
-num_cells3 <- cbind("proj" = rep(nova@project.name, nrow(num_cells3)), num_cells3)
+num_cells3 <- cbind("proj" = rep(nowa@project.name, nrow(num_cells3)), num_cells3)
 num_cells3$age <- paste0("GW", num_cells3$age)
 
 num_cells <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/num_cells_per_project.csv")
@@ -248,7 +249,7 @@ num_cells[,1] <- NULL
 num_cells <- rbind(num_cells, num_cells3)
 write.csv(num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/num_cells_per_project.csv")
 
-saveRDS(nova, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", nova@project.name, ".rds"))
+saveRDS(nowa, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", nowa@project.name, ".rds"))
 
 ####################################################################################################
 #
