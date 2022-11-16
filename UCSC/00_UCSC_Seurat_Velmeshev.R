@@ -10,6 +10,32 @@ library(scales)
 
 main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/"
 
+# Clusters annotation using Fig 1B and Fig S1a from paper
+
+ann_clusters <- list("Astrocytes" = c(3),
+                  "Microglia" = c(25),
+                  "OPCs" = c(9),
+                  "Oligodendrocytes" = c(11),
+                  "Excitatory neurons" = c(0,13,4,7,21,12,19,24,6,28,23,10,22,26,15, 30),
+                  "Dorsal progenitors" = c(18),
+                  "Ventral progenitors" = c(5),
+                  "Interneurons" = c(17, 31,32,8,16, 14),
+                  "Vascular cells" = c(20),
+                  "Debris" = c(1,2),
+                  "Unknown" = c(29, 27)
+                  )
+
+Reduce(intersect, ann_clusters)
+
+cts <- vector()
+og_clusters <- vector()
+
+for (ct in names(ann_clusters)) {
+  cts <- c(cts, rep(ct, length(ann_clusters[[ct]])))
+  og_clusters <- c(og_clusters, ann_clusters[[ct]])
+}
+ann_df <- data.frame(cts, og_clusters)
+
 
 # from this tutorial UCSC CellBrowser https://cellbrowser.readthedocs.io/en/master/load.html
 
@@ -177,6 +203,23 @@ velm_num_cells <- cbind("proj" = rep(velm_ad@project.name, nrow(velm_num_cells))
 
 write.csv(velm_num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
 
+################
+
+velm_ad <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_Adult.rds")
+
+velm_ad@meta.data$cluster_final <- rep("no_data", nrow(velm_ad@meta.data))
+present_clusters <- ann_df[which(ann_df$og_clusters %in% velm_ad@meta.data$cluster),]
+for (ct in unique(present_clusters$cts)) {
+  print(ct)
+  for (og_cl in present_clusters[which(present_clusters$cts==ct), "og_clusters"]) {
+    velm_ad@meta.data[which(velm_ad@meta.data$cluster==og_cl), "cluster_final"] <- ct
+  }
+}
+DimPlot(velm_ad, reduction = "umap", group.by = "cluster_final")
+
+saveRDS(velm_ad, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_ad@project.name, ".rds"))
+
+
 ####################################################################################################
 #
 # 2ND TRIMESTER
@@ -268,6 +311,24 @@ velm_num_cells <- cbind("proj" = rep(velm_ad@project.name, nrow(velm_num_cells))
 
 write.csv(velm_num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
 
+
+################
+
+velm_3rd_trim <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_3rd_trimester.rds")
+
+velm_3rd_trim@meta.data$cluster_final <- rep("no_data", nrow(velm_3rd_trim@meta.data))
+present_clusters <- ann_df[which(ann_df$og_clusters %in% velm_3rd_trim@meta.data$cluster),]
+for (ct in unique(present_clusters$cts)) {
+  print(ct)
+  for (og_cl in present_clusters[which(present_clusters$cts==ct), "og_clusters"]) {
+    velm_3rd_trim@meta.data[which(velm_3rd_trim@meta.data$cluster==og_cl), "cluster_final"] <- ct
+  }
+}
+DimPlot(velm_3rd_trim, reduction = "umap", group.by = "cluster_final")
+
+saveRDS(velm_3rd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_3rd_trim@project.name, ".rds"))
+
+
 ####################################################################################################
 #
 # 3RD TRIMESTER
@@ -296,7 +357,6 @@ colnames(mat_3rd_trim) <- rownames(meta_3rd_trim)
 velm_3rd_trim <- CreateSeuratObject(counts = mat_3rd_trim, project = "Velmeshev_2022_3rd_trimester", meta.data=meta_3rd_trim, assay = "RNA")
 
 saveRDS(velm_3rd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_3rd_trim@project.name, ".rds"))
-
 
 rm(meta_3rd_trim, mat_3rd_trim)
 
@@ -335,7 +395,7 @@ velm_3rd_trim <- JackStraw(velm_3rd_trim, num.replicate = 100)
 velm_3rd_trim <- ScoreJackStraw(velm_3rd_trim, dims = 1:20)
 JackStrawPlot(velm_3rd_trim, dims = 1:15)
 ElbowPlot(velm_3rd_trim)
-saveRDS(velm_3rd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_3rd_trim@project.name, ".rds"))
+#saveRDS(velm_3rd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_3rd_trim@project.name, ".rds"))
 # based on rprevious plots, decide the number of dimensions
 velm_3rd_trim <- FindNeighbors(velm_3rd_trim, dims = 1:12)
 velm_3rd_trim <- FindClusters(velm_3rd_trim, resolution = 0.5)
@@ -365,6 +425,25 @@ velm_num_cells <- cbind("proj" = rep(velm_3rd_trim@project.name, nrow(velm_num_c
 num_cells <- rbind(num_cells, velm_num_cells)
 
 write.csv(num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
+
+
+
+################
+
+velm_3rd_trim <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_3rd_trimester.rds")
+
+velm_3rd_trim@meta.data$cluster_final <- rep("no_data", nrow(velm_3rd_trim@meta.data))
+present_clusters <- ann_df[which(ann_df$og_clusters %in% velm_3rd_trim@meta.data$cluster),]
+for (ct in unique(present_clusters$cts)) {
+  print(ct)
+  for (og_cl in present_clusters[which(present_clusters$cts==ct), "og_clusters"]) {
+    velm_3rd_trim@meta.data[which(velm_3rd_trim@meta.data$cluster==og_cl), "cluster_final"] <- ct
+  }
+}
+DimPlot(velm_3rd_trim, reduction = "umap", group.by = "cluster_final")
+
+saveRDS(velm_3rd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_3rd_trim@project.name, ".rds"))
+
 
 ####################################################################################################
 #
@@ -460,6 +539,24 @@ num_cells <- rbind(num_cells, velm_num_cells)
 
 write.csv(num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
 
+################
+
+
+velm_1st_year <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_0_1_years.rds")
+
+velm_1st_year@meta.data$cluster_final <- rep("no_data", nrow(velm_1st_year@meta.data))
+present_clusters <- ann_df[which(ann_df$og_clusters %in% velm_1st_year@meta.data$cluster),]
+for (ct in unique(present_clusters$cts)) {
+  print(ct)
+  for (og_cl in present_clusters[which(present_clusters$cts==ct), "og_clusters"]) {
+    velm_1st_year@meta.data[which(velm_1st_year@meta.data$cluster==og_cl), "cluster_final"] <- ct
+  }
+}
+DimPlot(velm_1st_year, reduction = "umap", group.by = "cluster_final")
+
+saveRDS(velm_1st_year, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_1st_year@project.name, ".rds"))
+
+
 ####################################################################################################
 #
 # 1-2- YEARS
@@ -547,6 +644,23 @@ num_cells <- rbind(num_cells, velm_num_cells)
 
 write.csv(num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
 
+################
+
+velm_2nd_year <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_1_2_years.rds")
+
+velm_2nd_year@meta.data$cluster_final <- rep("no_data", nrow(velm_2nd_year@meta.data))
+present_clusters <- ann_df[which(ann_df$og_clusters %in% velm_2nd_year@meta.data$cluster),]
+for (ct in unique(present_clusters$cts)) {
+  print(ct)
+  for (og_cl in present_clusters[which(present_clusters$cts==ct), "og_clusters"]) {
+    velm_2nd_year@meta.data[which(velm_2nd_year@meta.data$cluster==og_cl), "cluster_final"] <- ct
+  }
+}
+DimPlot(velm_2nd_year, reduction = "umap", group.by = "cluster_final")
+
+saveRDS(velm_2nd_year, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_2nd_year@project.name, ".rds"))
+
+
 ####################################################################################################
 #
 # 2-4 YEARS
@@ -632,6 +746,23 @@ velm_num_cells <- cbind("proj" = rep(velm_2_4_years@project.name, nrow(velm_num_
 num_cells <- rbind(num_cells, velm_num_cells)
 
 write.csv(num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
+
+################
+
+velm_2_4_years <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_2_4_years.rds")
+
+velm_2_4_years@meta.data$cluster_final <- rep("no_data", nrow(velm_2_4_years@meta.data))
+present_clusters <- ann_df[which(ann_df$og_clusters %in% velm_2_4_years@meta.data$cluster),]
+for (ct in unique(present_clusters$cts)) {
+  print(ct)
+  for (og_cl in present_clusters[which(present_clusters$cts==ct), "og_clusters"]) {
+    velm_2_4_years@meta.data[which(velm_2_4_years@meta.data$cluster==og_cl), "cluster_final"] <- ct
+  }
+}
+DimPlot(velm_2_4_years, reduction = "umap", group.by = "cluster_final")
+
+saveRDS(velm_2_4_years, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_2_4_years@project.name, ".rds"))
+
 
 ####################################################################################################
 #
@@ -720,6 +851,8 @@ num_cells <- rbind(num_cells, velm_num_cells)
 
 write.csv(num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
 
+#### no more analysis because has inly 1 F
+
 ####################################################################################################
 #
 # 10-20 YEARS
@@ -806,6 +939,23 @@ velm_num_cells <- cbind("proj" = rep(velm_10_20_years@project.name, nrow(velm_nu
 num_cells <- rbind(num_cells, velm_num_cells)
 
 write.csv(num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
+
+################
+
+velm_3rd_trim <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_3rd_trimester.rds")
+
+velm_3rd_trim@meta.data$cluster_final <- rep("no_data", nrow(velm_3rd_trim@meta.data))
+present_clusters <- ann_df[which(ann_df$og_clusters %in% velm_3rd_trim@meta.data$cluster),]
+for (ct in unique(present_clusters$cts)) {
+  print(ct)
+  for (og_cl in present_clusters[which(present_clusters$cts==ct), "og_clusters"]) {
+    velm_3rd_trim@meta.data[which(velm_3rd_trim@meta.data$cluster==og_cl), "cluster_final"] <- ct
+  }
+}
+DimPlot(velm_3rd_trim, reduction = "umap", group.by = "cluster_final")
+
+saveRDS(velm_3rd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_3rd_trim@project.name, ".rds"))
+
 
 
 ####################################################################################################

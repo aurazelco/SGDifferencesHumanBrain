@@ -9,6 +9,8 @@ library(tidyr)
 library(dplyr)
 library(scales)
 library(readxl)
+library(matrixStats)
+
 
 main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/"
 
@@ -356,11 +358,294 @@ for (nowa_ct in names(cluster_match)) {
   rds.combined@meta.data[which(rds.combined@meta.data$WGCNAcluster==nowa_ct), "cluster_final"] <- cluster_match[[nowa_ct]]
 }
 
+rds.combined@meta.data[which(rds.combined@meta.data$cluster_final=="Nowakowski"), "cluster_final"] <- "Unknown"
+
 DimPlot(rds.combined, reduction = "umap", group.by = "cluster_final")
 
 saveRDS(rds.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
 
 
+########################
+
+rds.combined <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
+DimPlot(rds.combined, reduction = "umap", group.by = "cluster_final")
+
+other_cl <- subset(rds.combined, cluster_final == "Other")
+
+DefaultAssay(other_cl) <- "integrated"
+DimHeatmap(other_cl, dims = 1:15, cells = 500, balanced = TRUE)
+other_cl <- JackStraw(other_cl, num.replicate = 100)
+other_cl <- ScoreJackStraw(other_cl, dims = 1:20)
+JackStrawPlot(other_cl, dims = 1:15)
+ElbowPlot(other_cl)
+other_cl <- FindNeighbors(other_cl, dims = 1:8)
+other_cl <- FindClusters(other_cl, resolution = 0.5)
+DimPlot(other_cl, reduction = "umap", group.by = "WGCNAcluster")
+
+
+extra_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/extra_files/"
+
+cm1 <- read.csv(paste0(extra_path, "CellMarker.csv"))
+cm2 <- read.csv(paste0(extra_path, "CellMarker-2.csv"))
+cm3 <- read.csv(paste0(extra_path, "CellMarker-3.csv"))
+cm_df <- rbind(cm1, cm2, cm3)
+rm(cm1, cm2, cm3)
+cm_df <- cm_df[, -c(6:8)]
+col_factors <- c("Species",
+                 "Tissue",
+                 "Cell.Type",
+                 "Cancer")
+cm_df[col_factors] <- lapply(cm_df[col_factors], as.factor) 
+cm_df <- subset(cm_df, subset = (Cancer == "Normal"))
+cm_df <- subset(cm_df, subset = (Tissue == c("Brain") | Tissue == c("Dorsolateral prefrontal cortex")))
+cm_df$Cancer <- droplevels(cm_df$Cancer)
+cm_df$Tissue <- droplevels(cm_df$Tissue)
+cm_df$Cell.Type <- droplevels(cm_df$Cell.Type)
+
+ct_list <- c(
+  "Astrocyte" ="astrocyte",
+  "B cell" = "B",                         
+  "Endothelial cell" = "EC",             
+  "Glial cell" = "Glia" ,                    
+  "Glutamatergic neuron" = "EN",         
+  "Interstitial cell" = "IC",              
+  "Lake et al.Science.Ex1" = "EN",              
+  "Lake et al.Science.Ex2" = "EN",             
+  "Lake et al.Science.Ex3" = "EN",              
+  "Lake et al.Science.Ex4" = "EN",             
+  "Lake et al.Science.Ex5" = "EN",              
+  "Lake et al.Science.Ex6" = "EN",             
+  "Lake et al.Science.Ex7" = "EN",              
+  "Lake et al.Science.Ex8" = "EN",            
+  "Lake et al.Science.In1" = "IN",              
+  "Lake et al.Science.In2" = "IN",        
+  "Lake et al.Science.In3" = "IN",         
+  "Lake et al.Science.In4" = "IN",        
+  "Lake et al.Science.In5" = "IN",         
+  "Lake et al.Science.In6" = "IN",        
+  "Lake et al.Science.In7" = "IN",         
+  "Lake et al.Science.In8" = "IN",        
+  "M1 macrophage" = "Macrophage",                  
+  "M2 macrophage" = "Macrophage",                 
+  "Macrophage"= "Macrophage",                      
+  "Microglial cell" = "Microglia",                
+  "Neural progenitor cell" = "NPC",          
+  "Neural stem cell" = "NSC",                
+  "Neuron" = "Neuron",                          
+  "Neutrophil" = "Neutrophil",                    
+  "Oligodendrocyte" = "Oligodendrocyte",                
+  "Oligodendrocyte precursor cell" = "Oligodendrocyte",
+  "Oligodendrocyte progenitor cell" = "Oligodendrocyte",
+  "Pericyte"  = "Pericyte",                   
+  "Purkinje cell" = "Neuron",                  
+  "Stem cell" =    "Stem cell",                 
+  "T cell"  = "T",                         
+  "T helper2 (Th2) cell" = "T"
+)
+
+cm_df$ct <- rep(NA, nrow(cm_df))
+
+for (ct in levels(cm_df$Cell.Type)) {
+  cm_df[which(cm_df$Cell.Type==ct), "ct"] <- ct_list[[ct]]
+}
+cm_df$ct <- as.factor(cm_df$ct)
+markers <- list()
+for (i in levels(cm_df$ct)) {
+  markers <- append(markers, list((cm_df[which(cm_df$ct==i),"Cell.Marker"])))
+}
+names(markers) <- levels(cm_df$ct)
+for (ct in names(markers)) {
+  gene_list <- vector()
+  for (i in 1:length(markers[[ct]])) {
+    gene_list <- c(gene_list, str_split(markers[[ct]][i], ", "))
+  }
+  markers[[ct]] <- unique(unlist(gene_list))
+}
+
+markers <- markers[c("astrocyte",       "B",               "EC",                       "Glia",            "IC",                     "Macrophage",     
+                     "Microglia",              "Neutrophil",        "Oligodendrocyte", "Pericyte",        "Stem cell",      
+                    "T" )]
+
+for (ct in names(markers)) {
+  DoHeatmap(other_cl,markers[[ct]])
+}
+
+DoHeatmap(other_cl,markers[[1]]) # -> 1,3? "astrocyte"
+DoHeatmap(other_cl,markers[[2]]) # no features  "B"      
+DoHeatmap(other_cl,markers[[3]]) # -> 8? "EC"
+DoHeatmap(other_cl,markers[[4]]) # -> 7? "Glia"  
+DoHeatmap(other_cl,markers[[5]]) # no features "IC" 
+DoHeatmap(other_cl,markers[[6]]) # -> 1? "Macrophage" 
+DoHeatmap(other_cl,markers[[7]]) # -> 8 "Microglia" 
+DoHeatmap(other_cl,markers[[8]]) # no features "Neutrophil" 
+DoHeatmap(other_cl,markers[[9]]) # -> all? "Oligodendrocyte"
+DoHeatmap(other_cl,markers[[10]]) # no features "Pericyte" 
+DoHeatmap(other_cl,markers[[11]]) # -> none?  "Stem cell" 
+DoHeatmap(other_cl,markers[[12]]) # no features  "T"  
+
+# it seems that only 8 can be annotated as microglia 
+
+other_cl@meta.data$other_ann <- rep("no_data", nrow(other_cl@meta.data))
+other_cl@meta.data[which(other_cl@meta.data$seurat_clusters==8), "other_ann"] <- "Microglia"
+
+nowa_markers <- read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/meta_Nowakowski_2017_suppl.xlsx",
+                         sheet = 5)
+
+nowa_sub <- unique(other_cl$WGCNAcluster)
+nowa_sub <- nowa_sub[2:length(nowa_sub)]
+
+nowa_markers <- subset(nowa_markers, cluster %in% nowa_sub)
+
+DoHeatmap(other_cl, unique(nowa_markers$gene)) + RotatedAxis()
+
+
+saveRDS(rds.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
+
+#####################
+
+rds.combined <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
+DimPlot(rds.combined, reduction = "umap", group.by = "cluster_final")
+
+other_cl <- subset(rds.combined, cluster_final == "Other")
+
+DefaultAssay(other_cl) <- "integrated"
+DimHeatmap(other_cl, dims = 1:15, cells = 500, balanced = TRUE)
+other_cl <- JackStraw(other_cl, num.replicate = 100)
+other_cl <- ScoreJackStraw(other_cl, dims = 1:20)
+JackStrawPlot(other_cl, dims = 1:15)
+ElbowPlot(other_cl)
+other_cl <- FindNeighbors(other_cl, dims = 1:8)
+other_cl <- FindClusters(other_cl, resolution = 0.5)
+DimPlot(other_cl, reduction = "umap", group.by = "WGCNAcluster")
+
+
+expr_mat_all <- GetAssayData(other_cl[["RNA"]], slot="data")
+
+other_cl@meta.data[which(is.na(other_cl@meta.data$WGCNAcluster)), "WGCNAcluster"] <- "Eze"
+
+other_cl@meta.data$seurat_cluster_combo <- paste(other_cl@meta.data$seurat_clusters, other_cl@meta.data$WGCNAcluster, sep = "_")
+
+Idents(other_cl) <- "seurat_cluster_combo"
+
+cell_info <- data.frame()
+for (i in unique(other_cl@meta.data$seurat_cluster_combo)) {
+  print(i)
+  cell_id <- WhichCells(other_cl, idents = i)
+  og_group <- rep(i, length(cell_id))
+  cell_info <- rbind(cell_info, data.frame(cell_id, og_group))
+}
+cell_info <- separate(cell_info, og_group, into = c("seurat_cluster", "WGCNAcluster"), remove = F, sep = "_")
+
+expr_mat_all <- as.data.frame(as.matrix(expr_mat_all))
+expr_mat_all$SD <- rowSds(as.matrix(expr_mat_all))
+expr_mat_all <- expr_mat_all[which(expr_mat_all$SD > 0), ]
+
+if (nrow(expr_mat_all) * 0.25 > 2000) {
+  expr_mat_all <- expr_mat_all[which(expr_mat_all$SD > quantile(expr_mat_all$SD)[4]), ]
+} else {
+  print(" less than 2k genes above third quantile")
+}
+
+# order df in descending order
+expr_mat_all <- expr_mat_all[order(-expr_mat_all$SD),] 
+expr_mat_all <- expr_mat_all[1:2000, ]
+expr_mat_all <- cbind("Genes" = rownames(expr_mat_all), expr_mat_all)
+rownames(expr_mat_all) <- NULL
+
+expr_sums <- colSums(expr_mat_all[2:ncol(expr_mat_all)])
+if (identical(length(which(expr_sums>0)), length(expr_sums))) {
+  print("all columns express at least one gene")
+} else {
+  expr_mat_all <- expr_mat_all[ , !(names(expr_mat_all) %in% which(expr_sums>0))]
+  print("calculate how many cells have been filtered out")
+}
+
+expr_mat_all <- expr_mat_all %>% 
+  relocate(SD, .after = Genes)
+ 
+#saveRDS(expr_mat_all, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/top_2000_SD_expr_matrix.rds")
+
+
+avg_expr <- data.frame(expr_mat_all[,1])
+col_names <- vector()
+
+for (cl_seu in unique(cell_info$seurat_cluster)) {
+  seu_cells <- cell_info[which(cell_info$seurat_cluster==cl_seu), "cell_id"]
+  avg_expr <- cbind(avg_expr, rowMeans(expr_mat_all[,seu_cells]))
+  col_names <- c(col_names, paste0("seurat_", cl_seu))
+}
+for (cl_WGCNA in unique(cell_info$WGCNAcluster)) {
+  WGCNA_cells <- cell_info[which(cell_info$WGCNAcluster==cl_WGCNA), "cell_id"]
+  avg_expr <- cbind(avg_expr, rowMeans(expr_mat_all[,WGCNA_cells]))
+  col_names <- c(col_names, cl_WGCNA)
+}
+colnames(avg_expr) <- c("Genes", col_names)
+rownames(avg_expr) <- avg_expr$Genes
+avg_expr[,1] <- NULL
+
+
+cor_pearson <- cor(avg_expr, method = "pearson")
+p.mat <- cor_pmat(avg_expr)
+
+library(ggcorrplot)
+ggcorrplot(cor_spearman, p.mat = p.mat, type = "lower", lab = T)
+ggsave(paste0(main, "Eze_Nowakowski_integrated/other_cluster_correlation_mtx.pdf"))
+
+# the only somewhat stronger correlation is between Seurat_8 and microglia, which is what we had observed previously
+
+other_cl@meta.data$other_ann <- rep(NA, nrow(other_cl@meta.data))
+other_cl@meta.data[which(other_cl@meta.data$seurat_clusters==8), "other_ann"] <- "Microglia"
+
+other_cl@meta.data$other_ann <- coalesce(other_cl@meta.data$other_ann, other_cl@meta.data$WGCNAcluster)
+
+DimPlot(other_cl, reduction = "umap",  group.by = "other_ann")
+
+Idents(other_cl) <- "other_ann"
+microglia_cells <- WhichCells(other_cl, idents = "Microglia")
+
+rds.combined@meta.data[which(rds.combined@meta.data$Cell %in% microglia_cells), "cluster_final"] <- "Microglia"
+
+
+saveRDS(rds.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
+
+rds.combined@meta.data$id_sex_age_cluster <- paste(rds.combined@meta.data$id_sex_age, rds.combined@meta.data$cluster_final, sep="_")
+rds.combined@meta.data$proj_id_sex_age_cluster <- paste(rds.combined@meta.data$proj, rds.combined@meta.data$id_sex_age_cluster, sep="_")
+
+rds.combined@meta.data$id_sex_trim_cluster <- paste(rds.combined@meta.data$id_sex_age_trimester, rds.combined@meta.data$cluster_final, sep="_")
+rds.combined@meta.data$proj_id_sex_trim_cluster <- paste(rds.combined@meta.data$proj, rds.combined@meta.data$id_sex_trim_cluster, sep="_")
+
+
+num_cells <- as.data.frame(table(rds.combined$proj_id_sex_trim_cluster))
+num_cells <- separate(num_cells, Var1, into=c("proj","year", "id", "sex", "age", "trim", "cluster"), sep="_")
+num_cells$proj <- paste(num_cells$proj, num_cells$year, sep="_")
+num_cells$year <- NULL
+num_cells$age <- as.numeric(num_cells$age) 
+
+num_cells_sex_ct <- ggplot(num_cells, aes(cluster, Freq, fill=sex)) +
+  geom_bar(stat="identity", position="dodge") +
+  labs(x="Cell types", y="Number of cells/sample", fill="Sex") +
+  facet_wrap(~trim, scales = "free") +
+  geom_hline(yintercept = 500, linetype="dashed") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(size=12, face="bold", colour = "black"),
+        axis.text.x = element_text(size=10, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
+        axis.ticks.x=element_blank(),
+        axis.title.y = element_text(size=12, face="bold", colour = "black"),
+        axis.text.y = element_text(size=10, colour = "black",angle = 0, vjust = 0.7, hjust=0.5),
+        legend.position = "bottom", 
+        legend.title = element_text(size=12, face="bold", colour = "black"),
+        strip.text = element_text(size=12, face="bold", colour = "black"))
+
+pdf(paste0(main, "Eze_Nowakowski_integrated/num_cells_ct_trim_sex.pdf"))
+print(num_cells_sex_ct)
+dev.off()
+
+
+
+
 ###############################################################################################
 ###############################################################################################
 ###############################################################################################
@@ -373,6 +658,83 @@ saveRDS(rds.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat
 ###############################################################################################
 ###############################################################################################
 ###############################################################################################
+
+
+# Modified tutorial from https://satijalab.org/seurat/articles/integration_introduction.html
+input_rds_path <-  "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC"
+input_rds_files <- list.files(path = input_rds_path, pattern = ".rds", full.names = T)[c(3,8)]
+input_rds <- lapply(input_rds_files,function(x) {
+  readRDS(file = x)
+})
+names(input_rds) <- list.files(path = input_rds_path, pattern = ".rds", full.names = F)[c(3,8)]
+names(input_rds) <- str_remove_all(names(input_rds), ".rds")
+
+# normalize and identify variable features for each dataset independently
+input_rds <- lapply(X = input_rds, FUN = function(x) {
+  x <- NormalizeData(x)
+  x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+# select features that are repeatedly variable across datasets for integration
+features <- SelectIntegrationFeatures(object.list = input_rds)
+common.anchors <- FindIntegrationAnchors(object.list = input_rds, anchor.features = features)
+
+# this command creates an 'integrated' data assay
+rds2.combined <- IntegrateData(anchorset = common.anchors)
+
+# specify that we will perform downstream analysis on the corrected data note that the
+# original unmodified data still resides in the 'RNA' assay
+DefaultAssay(rds2.combined) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+rds2.combined <- ScaleData(rds2.combined, verbose = FALSE)
+rds2.combined <- RunPCA(rds2.combined, npcs = 30, verbose = FALSE)
+
+DimHeatmap(rds2.combined, dims = 1:15, cells = 500, balanced = TRUE)
+
+rds2.combined <- RunUMAP(rds2.combined, reduction = "pca", dims = 1:15)
+rds2.combined <- FindNeighbors(rds2.combined, reduction = "pca", dims = 1:15)
+rds2.combined <- FindClusters(rds2.combined, resolution = 0.5)
+
+rds2.combined@project.name <- "Nowakowski_Velmeshev_integrated"
+
+# Visualization
+DimPlot(rds2.combined, reduction = "umap")
+DimPlot(rds2.combined, reduction = "umap", group.by = "proj")
+ggsave(paste0(main, rds2.combined@project.name, "_proj.pdf"))
+
+rds2.combined@meta.data$age_final <- coalesce(as.character(rds2.combined@meta.data$Age_in_Weeks), rds2.combined@meta.data$age)
+
+rds2.combined@meta.data$trimester <- rep("3rd", nrow(rds2.combined@meta.data))
+
+rds2.combined@meta.data[which(0 < rds2.combined@meta.data$Age_in_Weeks & rds2.combined@meta.data$Age_in_Weeks < 13), "trimester"] <- "1st"
+rds2.combined@meta.data[which(12 < rds2.combined@meta.data$Age_in_Weeks & rds2.combined@meta.data$Age_in_Weeks < 27), "trimester"] <- "2nd"
+rds2.combined@meta.data[which(26 < rds2.combined@meta.data$Age_in_Weeks & rds2.combined@meta.data$Age_in_Weeks < 41), "trimester"] <- "3rd"
+
+DimPlot(rds2.combined, reduction = "umap", group.by = "trimester", split.by = "proj")
+ggsave(paste0(main, rds2.combined@project.name, "_trimester_per_proj.pdf"))
+
+DimPlot(rds2.combined, reduction = "umap", group.by = "WGCNAcluster", split.by = "trimester")
+ggsave(paste0(main, rds2.combined@project.name, "_trimester_WGCNAcluster.pdf"))
+
+
+saveRDS(rds2.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Nowakowski_Velmeshev_3rd_trimester_integrated.rds")
+#rm(input_rds, input_rds_files, input_rds_path)
+
+###############################################################################################
+###############################################################################################
+###############################################################################################
+###############################################################################################
+###############################################################################################
+###############################################################################################
+###############################################################################################
+###############################################################################################
+###############################################################################################
+###############################################################################################
+###############################################################################################
+###############################################################################################
+
+
 
 # Their tutorial - https://satijalab.org/seurat/articles/integration_introduction.html
 # install dataset
