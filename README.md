@@ -40,7 +40,7 @@ This [folder](DISCO/DEGs) contains the analysis done on the DEGs between F and M
 The [UCSC](UCSC/) folder contains all scripts used on the datasets retrieved from the [UCSC Cell Browser](https://cells-test.gi.ucsc.edu). Among all datasets presetn, we selected the following three:
 1. Nowakowski et al. 2017 - Spatiotemporal Gene Expression Trajectories Reveal Developmental Hierarchies of the Human Cortex ([paper](https://www.science.org/doi/epdf/10.1126/science.aap8809), [UCSC dataset](https://cells-test.gi.ucsc.edu/?ds=cortex-dev))
 2. Eze et al. 2021 - Heterogeneity of Human Neuroepithelial Cells and Early Radial Glia ([paper](https://www.nature.com/articles/s41593-020-00794-1), [UCSC dataset](https://cells-test.gi.ucsc.edu/?ds=early-brain))
-3. Velmeshev et al. 2022 (bioRXiv) - ([paper](https://www.biorxiv.org/content/10.1101/2022.10.24.513555v1.full.pdf), [UCSC dataset](https://cells-test.gi.ucsc.edu/?ds=cortical-dev+all))
+3. Velmeshev et al. 2022 (bioRXiv) - Single-cell analysis of prenatal and postnatal human cortical development ([paper](https://www.biorxiv.org/content/10.1101/2022.10.24.513555v1.full.pdf), [UCSC dataset](https://cells-test.gi.ucsc.edu/?ds=cortical-dev+all))
 
 #### Eze - Nowakowski
 
