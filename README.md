@@ -1,13 +1,22 @@
 # Repo of all main scripts generated during the MSc thesis
 
 ## Table of contents
+* [BACKGROUND](#background)
+* [PROGRAMMING LANGUAGES](#programming-languages)
 * [DATASETS](#datasets)
   * [DISCO](#disco)
     * [DEGs analysis on DISCO dataset - F vs M](#degs-analysis-on-disco-dataset---f-vs-m)
+  * [UCSC](#ucsc)
+    * [Eze - Nowakowski](#eze---nowakowski)
+    * [Velmeshev](#velmeshev)
 * [SOFTWARES/ANALYSES](#softwares/analyses)
   * [Gene Regulatory Network Analysis](#gene-regulatory-network-analysis)
     * [SCENIC](#scenic)
 * [THESIS DRAFT](#thesis-draft)
+
+----------------------------------------------------------------------------------------------------------
+
+## BACKGROUND
 
 ## LANGUAGES
 
@@ -25,6 +34,21 @@ The [DISCO](DISCO/) folder contains all scripts used on the DISCO dataset brain 
 #### DEGs analysis on DISCO dataset - F vs M
 
 This [folder](DISCO/DEGs) contains the analysis done on the DEGs between F and M started in August 2022. A brief description of the scripts can be found in the respective [README file](DISCO/DEGs/README.md). 
+
+### UCSC
+
+The [UCSC](UCSC/) folder contains all scripts used on the datasets retrieved from the [UCSC Cell Browser](https://cells-test.gi.ucsc.edu). Among all datasets presetn, we selected the following three:
+1. Nowakowski et al. 2017 - Spatiotemporal Gene Expression Trajectories Reveal Developmental Hierarchies of the Human Cortex ([paper](https://www.science.org/doi/epdf/10.1126/science.aap8809), [UCSC dataset](https://cells-test.gi.ucsc.edu/?ds=cortex-dev))
+2. Eze et al. 2021 - Heterogeneity of Human Neuroepithelial Cells and Early Radial Glia ([paper](https://www.nature.com/articles/s41593-020-00794-1), [UCSC dataset](https://cells-test.gi.ucsc.edu/?ds=early-brain))
+3. Velmeshev et al. 2022 (bioRXiv) - ([paper](https://www.biorxiv.org/content/10.1101/2022.10.24.513555v1.full.pdf), [UCSC dataset](https://cells-test.gi.ucsc.edu/?ds=cortical-dev+all))
+
+#### Eze - Nowakowski
+
+These datasets all contained fetal samples, with both female and male samples. However, since the studies were likely not designed with a sex comparison in mind, we could find little number of age-matching samples between females and males within the same dataset. Therefore, we decided to integrate the two datasets and group the samples according to the gestational trimester, instead of by gestational week. This strategy also allowed for better comparison with the results from the Velmeshev analysis. 
+
+#### Velmeshev
+
+This dataset contained not only fetal samples from the second and third trimester, but also data from the first years of life all the way into adulthood (individuals older than 20 years old). 
 
 ## SOFTWARES/ANALYSES
 
