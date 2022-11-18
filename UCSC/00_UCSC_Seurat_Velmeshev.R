@@ -4,11 +4,9 @@ library(data.table)
 library(stringr)
 library(stringi)
 library(tidyr)
-library(ggplot2)
-library(ggpubr)
-library(scales)
 
-main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/"
+
+main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev/"
 
 # Clusters annotation using Fig 1B and Fig S1a from paper
 
@@ -219,114 +217,19 @@ DimPlot(velm_ad, reduction = "umap", group.by = "cluster_final")
 
 saveRDS(velm_ad, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_ad@project.name, ".rds"))
 
-
-####################################################################################################
-#
-# 2ND TRIMESTER
-#
-####################################################################################################
-
-
-#meta <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/new_meta_Velmeshev_2022.csv", header=T, sep=",", as.is=T, row.names=1)
-#rownames(meta) <- meta$cell
-
-meta_2nd_trim <- subset(meta, age=="2nd trimester")
-
-mat_2nd_trim_1 <- fread("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/Velmeshev_outs/2nd_trimester_1.tsv.gz")
-mat_2nd_trim_2 <- fread("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/Velmeshev_outs/2nd_trimester_2.tsv.gz")
-mat_2nd_trim_2[,1] <- NULL
-colnames(mat_2nd_trim_1) <- c("gene", (seq(1,(ncol(mat_2nd_trim_1)-1))))
-colnames(mat_2nd_trim_2) <- c("gene", (seq(ncol(mat_2nd_trim_1), (ncol(mat_2nd_trim_1) + ncol(mat_2nd_trim_2) - 2))))
-mat_2nd_trim <- merge(mat_2nd_trim_1, mat_2nd_trim_2, by="gene")
-rm(mat_2nd_trim_1, mat_2nd_trim_2)
-
-genes <- mat_2nd_trim[,1][[1]]
-genes <- gsub(".+[|]", "", genes)
-mat_2nd_trim <- data.frame(mat_2nd_trim[,-1], row.names=genes)
-colnames(mat_2nd_trim) <- rownames(meta_2nd_trim)
-
-velm_2nd_trim <- CreateSeuratObject(counts = mat_2nd_trim, project = "Velmeshev_2022_2nd_trimester", meta.data=meta_2nd_trim, assay = "RNA")
-rm(meta_2nd_trim, mat_2nd_trim)
-
-saveRDS(velm_2nd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_2nd_trim@project.name, ".rds"))
-
-velm_2nd_trim <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_2nd_trimester.rds")
-
-# Seurat tutorial https://satijalab.org/seurat/articles/pbmc3k_tutorial.html
-velm_2nd_trim[["percent.mt"]] <- PercentageFeatureSet(velm_2nd_trim, pattern = "^MT-")
-# Visualize QC metrics as a violin plot
-VlnPlot(velm_2nd_trim, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
-# FeatureScatter is typically used to visualize feature-feature relationships, but can be used
-# for anything calculated by the object, i.e. columns in object metadata, PC scores etc.
-plot1 <- FeatureScatter(velm_2nd_trim, feature1 = "nCount_RNA", feature2 = "percent.mt")
-plot2 <- FeatureScatter(velm_2nd_trim, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
-plot1 + plot2
-velm_2nd_trim <- subset(velm_2nd_trim, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
-velm_2nd_trim <- NormalizeData(velm_2nd_trim)
-velm_2nd_trim <- FindVariableFeatures(velm_2nd_trim, selection.method = "vst", nfeatures = 2000)
-saveRDS(velm_2nd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_2nd_trim@project.name, ".rds"))
-# Identify the 10 most highly variable genes
-top10 <- head(VariableFeatures(velm_2nd_trim), 10)
-# plot variable features with and without labels
-plot1 <- VariableFeaturePlot(velm_2nd_trim)
-plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
-plot1 + plot2
-all.genes <- rownames(velm_2nd_trim)
-velm_2nd_trim <- ScaleData(velm_2nd_trim, features = all.genes)
-velm_2nd_trim <- RunPCA(velm_2nd_trim, features = VariableFeatures(object = velm_2nd_trim))
-# Examine and visualize PCA results a few different ways
-print(velm_2nd_trim[["pca"]], dims = 1:5, nfeatures = 5)
-VizDimLoadings(velm_2nd_trim, dims = 1:2, reduction = "pca")
-DimPlot(velm_2nd_trim, reduction = "pca") 
-DimHeatmap(velm_2nd_trim, dims = 1, cells = 500, balanced = TRUE)
-# NOTE: This process can take a long time for big datasets, comment out for expediency. More
-# approximate techniques such as those implemented in ElbowPlot() can be used to reduce
-# computation time
-velm_2nd_trim <- JackStraw(velm_2nd_trim, num.replicate = 100)
-velm_2nd_trim <- ScoreJackStraw(velm_2nd_trim, dims = 1:20)
-JackStrawPlot(velm_2nd_trim, dims = 1:15)
-ElbowPlot(velm_2nd_trim)
-# based on rprevious plots, decide the number of dimensions
-velm_2nd_trim <- FindNeighbors(velm_2nd_trim, dims = 1:12)
-velm_2nd_trim <- FindClusters(velm_2nd_trim, resolution = 0.5)
-# Look at cluster IDs of the first 5 cells
-#head(Idents(velm_2nd_trim), 5)
-# If you haven't installed UMAP, you can do so via reticulate::py_install(packages =
-# 'umap-learn')
-velm_2nd_trim <- RunUMAP(velm_2nd_trim, dims = 1:12)
-DimPlot(velm_2nd_trim, reduction = "umap")
-
-velm_2nd_trim@meta.data$sex_age <- paste(velm_2nd_trim@meta.data$sex, velm_2nd_trim@meta.data$age, sep="_")
-velm_2nd_trim@meta.data$proj <-  rep(velm_2nd_trim@project.name, nrow(velm_2nd_trim@meta.data))
-velm_2nd_trim@meta.data$id_sex_age <- paste(velm_2nd_trim@meta.data$samples, velm_2nd_trim@meta.data$sex, velm_2nd_trim@meta.data$age, sep="_")
-
-VlnPlot(velm_2nd_trim, features = "XIST", group.by = "id_sex_age") + NoLegend()
-ggsave(paste0(main, velm_2nd_trim@project.name, "_XIST.pdf"))
-
-saveRDS(velm_2nd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_2nd_trim@project.name, ".rds"))
-
-velm_num_cells <- as.data.frame(table(velm_2nd_trim$id_sex_age))
-velm_num_cells <- separate(velm_num_cells, Var1, into=c("id", "sex", "age"), sep="_")
-velm_num_cells <- cbind("proj" = rep(velm_ad@project.name, nrow(velm_num_cells)), velm_num_cells)
-
-write.csv(velm_num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
-
-
 ################
 
-velm_3rd_trim <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_3rd_trimester.rds")
+velm_ad <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_Adult.rds")
 
-velm_3rd_trim@meta.data$cluster_final <- rep("no_data", nrow(velm_3rd_trim@meta.data))
-present_clusters <- ann_df[which(ann_df$og_clusters %in% velm_3rd_trim@meta.data$cluster),]
-for (ct in unique(present_clusters$cts)) {
-  print(ct)
-  for (og_cl in present_clusters[which(present_clusters$cts==ct), "og_clusters"]) {
-    velm_3rd_trim@meta.data[which(velm_3rd_trim@meta.data$cluster==og_cl), "cluster_final"] <- ct
-  }
-}
-DimPlot(velm_3rd_trim, reduction = "umap", group.by = "cluster_final")
+velm_ad@meta.data$sex_ct <- paste(velm_ad@meta.data$sex, velm_ad@meta.data$cluster_final, sep="_")
 
-saveRDS(velm_3rd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_3rd_trim@project.name, ".rds"))
+velm_num_sex_ct <- as.data.frame(table(velm_ad$sex_ct))
+velm_num_sex_ct <- separate(velm_num_sex_ct, Var1, into=c("sex", "ct"), sep="_")
+velm_num_sex_ct <- cbind("proj" = rep(velm_ad@project.name, nrow(velm_num_sex_ct)), velm_num_sex_ct)
+
+write.csv(velm_num_sex_ct, paste0(main, "Velmeshev_num_sex_ct_per_age.csv"))
+
+saveRDS(velm_ad, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_ad@project.name, ".rds"))
 
 
 ####################################################################################################
@@ -444,6 +347,21 @@ DimPlot(velm_3rd_trim, reduction = "umap", group.by = "cluster_final")
 
 saveRDS(velm_3rd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_3rd_trim@project.name, ".rds"))
 
+################
+
+velm_3rd_trim <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_3rd_trimester.rds")
+
+velm_3rd_trim@meta.data$sex_ct <- paste(velm_3rd_trim@meta.data$sex, velm_3rd_trim@meta.data$cluster_final, sep="_")
+
+velm_num_sex_ct <- as.data.frame(table(velm_3rd_trim$sex_ct))
+velm_num_sex_ct <- separate(velm_num_sex_ct, Var1, into=c("sex", "ct"), sep="_")
+velm_num_sex_ct <- cbind("proj" = rep(velm_3rd_trim@project.name, nrow(velm_num_sex_ct)), velm_num_sex_ct)
+
+velm_num_sex_ct_all <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev/Velmeshev_num_sex_ct_per_age.csv")
+velm_num_sex_ct_all[,1] <- NULL
+velm_num_sex_ct_all <- rbind(velm_num_sex_ct_all, velm_num_sex_ct)
+
+write.csv(velm_num_sex_ct_all, paste0(main, "Velmeshev_num_sex_ct_per_age.csv"))
 
 ####################################################################################################
 #
@@ -556,6 +474,23 @@ DimPlot(velm_1st_year, reduction = "umap", group.by = "cluster_final")
 
 saveRDS(velm_1st_year, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_1st_year@project.name, ".rds"))
 
+################
+
+velm_1st_year <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_0_1_years.rds")
+
+velm_1st_year@meta.data$sex_ct <- paste(velm_1st_year@meta.data$sex, velm_1st_year@meta.data$cluster_final, sep="_")
+
+velm_num_sex_ct <- as.data.frame(table(velm_1st_year$sex_ct))
+velm_num_sex_ct <- separate(velm_num_sex_ct, Var1, into=c("sex", "ct"), sep="_")
+velm_num_sex_ct <- cbind("proj" = rep(velm_1st_year@project.name, nrow(velm_num_sex_ct)), velm_num_sex_ct)
+
+velm_num_sex_ct_all <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev/Velmeshev_num_sex_ct_per_age.csv")
+velm_num_sex_ct_all[,1] <- NULL
+velm_num_sex_ct_all <- rbind(velm_num_sex_ct_all, velm_num_sex_ct)
+
+write.csv(velm_num_sex_ct_all, paste0(main, "Velmeshev_num_sex_ct_per_age.csv"))
+
+
 
 ####################################################################################################
 #
@@ -660,6 +595,22 @@ DimPlot(velm_2nd_year, reduction = "umap", group.by = "cluster_final")
 
 saveRDS(velm_2nd_year, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_2nd_year@project.name, ".rds"))
 
+################
+
+velm_2nd_year <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_1_2_years.rds")
+
+velm_2nd_year@meta.data$sex_ct <- paste(velm_2nd_year@meta.data$sex, velm_2nd_year@meta.data$cluster_final, sep="_")
+
+velm_num_sex_ct <- as.data.frame(table(velm_2nd_year$sex_ct))
+velm_num_sex_ct <- separate(velm_num_sex_ct, Var1, into=c("sex", "ct"), sep="_")
+velm_num_sex_ct <- cbind("proj" = rep(velm_2nd_year@project.name, nrow(velm_num_sex_ct)), velm_num_sex_ct)
+
+velm_num_sex_ct_all <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev/Velmeshev_num_sex_ct_per_age.csv")
+velm_num_sex_ct_all[,1] <- NULL
+velm_num_sex_ct_all <- rbind(velm_num_sex_ct_all, velm_num_sex_ct)
+
+write.csv(velm_num_sex_ct_all, paste0(main, "Velmeshev_num_sex_ct_per_age.csv"))
+
 
 ####################################################################################################
 #
@@ -763,6 +714,22 @@ DimPlot(velm_2_4_years, reduction = "umap", group.by = "cluster_final")
 
 saveRDS(velm_2_4_years, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_2_4_years@project.name, ".rds"))
 
+################
+
+velm_2_4_years <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_2_4_years.rds")
+
+velm_2_4_years@meta.data$sex_ct <- paste(velm_2_4_years@meta.data$sex, velm_2_4_years@meta.data$cluster_final, sep="_")
+
+velm_num_sex_ct <- as.data.frame(table(velm_2_4_years$sex_ct))
+velm_num_sex_ct <- separate(velm_num_sex_ct, Var1, into=c("sex", "ct"), sep="_")
+velm_num_sex_ct <- cbind("proj" = rep(velm_2_4_years@project.name, nrow(velm_num_sex_ct)), velm_num_sex_ct)
+
+velm_num_sex_ct_all <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev/Velmeshev_num_sex_ct_per_age.csv")
+velm_num_sex_ct_all[,1] <- NULL
+velm_num_sex_ct_all <- rbind(velm_num_sex_ct_all, velm_num_sex_ct)
+
+write.csv(velm_num_sex_ct_all, paste0(main, "Velmeshev_num_sex_ct_per_age.csv"))
+
 
 ####################################################################################################
 #
@@ -851,168 +818,5 @@ num_cells <- rbind(num_cells, velm_num_cells)
 
 write.csv(num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
 
-#### no more analysis because has inly 1 F
+#### no more analysis on this dataset because it has only 1F! 
 
-####################################################################################################
-#
-# 10-20 YEARS
-#
-####################################################################################################
-
-
-meta <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/new_meta_Velmeshev_2022.csv", header=T, sep=",", as.is=T, row.names=1)
-rownames(meta) <- meta$cell
-
-meta_10_20_years <- subset(meta, age=="10-20 years")
-
-mat_10_20_years <- fread("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/Velmeshev_outs/10_20_years.tsv.gz")
-genes <- mat_10_20_years[,1][[1]]
-genes <- gsub(".+[|]", "", genes)
-mat_10_20_years <- data.frame(mat_10_20_years[,-1], row.names=genes)
-colnames(mat_10_20_years) <- rownames(meta_10_20_years)
-
-velm_10_20_years <- CreateSeuratObject(counts = mat_10_20_years, project = "Velmeshev_2022_10_20_years", meta.data=meta_10_20_years, assay = "RNA")
-
-rm(meta_10_20_years, mat_10_20_years, meta, genes)
-
-#saveRDS(velm_10_20_years, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_10_20_years@project.name, ".rds"))
-
-# Seurat tutorial https://satijalab.org/seurat/articles/pbmc3k_tutorial.html
-velm_10_20_years[["percent.mt"]] <- PercentageFeatureSet(velm_10_20_years, pattern = "^MT-")
-# Visualize QC metrics as a violin plot
-VlnPlot(velm_10_20_years, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
-# FeatureScatter is typically used to visualize feature-feature relationships, but can be used
-# for anything calculated by the object, i.e. columns in object metadata, PC scores etc.
-plot1 <- FeatureScatter(velm_10_20_years, feature1 = "nCount_RNA", feature2 = "percent.mt")
-plot2 <- FeatureScatter(velm_10_20_years, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
-plot1 + plot2
-velm_10_20_years <- subset(velm_10_20_years, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
-velm_10_20_years <- NormalizeData(velm_10_20_years)
-velm_10_20_years <- FindVariableFeatures(velm_10_20_years, selection.method = "vst", nfeatures = 2000)
-# Identify the 10 most highly variable genes
-top10 <- head(VariableFeatures(velm_10_20_years), 10)
-# plot variable features with and without labels
-plot1 <- VariableFeaturePlot(velm_10_20_years)
-plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
-plot1 + plot2
-all.genes <- rownames(velm_10_20_years)
-velm_10_20_years <- ScaleData(velm_10_20_years, features = all.genes)
-velm_10_20_years <- RunPCA(velm_10_20_years, features = VariableFeatures(object = velm_10_20_years))
-# Examine and visualize PCA results a few different ways
-print(velm_10_20_years[["pca"]], dims = 1:5, nfeatures = 5)
-VizDimLoadings(velm_10_20_years, dims = 1:2, reduction = "pca")
-DimPlot(velm_10_20_years, reduction = "pca") 
-DimHeatmap(velm_10_20_years, dims = 1, cells = 500, balanced = TRUE)
-# NOTE: This process can take a long time for big datasets, comment out for expediency. More
-# approximate techniques such as those implemented in ElbowPlot() can be used to reduce
-# computation time
-velm_10_20_years <- JackStraw(velm_10_20_years, num.replicate = 100)
-velm_10_20_years <- ScoreJackStraw(velm_10_20_years, dims = 1:20)
-JackStrawPlot(velm_10_20_years, dims = 1:15)
-ElbowPlot(velm_10_20_years)
-# based on rprevious plots, decide the number of dimensions
-velm_10_20_years <- FindNeighbors(velm_10_20_years, dims = 1:12)
-velm_10_20_years <- FindClusters(velm_10_20_years, resolution = 0.5)
-# Look at cluster IDs of the first 5 cells
-#head(Idents(velm_10_20_years), 5)
-# If you haven't installed UMAP, you can do so via reticulate::py_install(packages =
-# 'umap-learn')
-velm_10_20_years <- RunUMAP(velm_10_20_years, dims = 1:12)
-DimPlot(velm_10_20_years, reduction = "umap")
-
-velm_10_20_years@meta.data$sex_age <- paste(velm_10_20_years@meta.data$sex, velm_10_20_years@meta.data$age, sep="_")
-velm_10_20_years@meta.data$proj <-  rep(velm_10_20_years@project.name, nrow(velm_10_20_years@meta.data))
-velm_10_20_years@meta.data$id_sex_age <- paste(velm_10_20_years@meta.data$samples, velm_10_20_years@meta.data$sex, velm_10_20_years@meta.data$age, sep="_")
-
-VlnPlot(velm_10_20_years, features = "XIST", group.by = "id_sex_age") + NoLegend()
-ggsave(paste0(main, velm_10_20_years@project.name, "_XIST.pdf"))
-
-saveRDS(velm_10_20_years, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_10_20_years@project.name, ".rds"))
-
-num_cells <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
-num_cells[,1] <- NULL
-
-velm_num_cells <- as.data.frame(table(velm_10_20_years$id_sex_age))
-velm_num_cells <- separate(velm_num_cells, Var1, into=c("id", "sex", "age"), sep="_")
-velm_num_cells <- cbind("proj" = rep(velm_10_20_years@project.name, nrow(velm_num_cells)), velm_num_cells)
-
-num_cells <- rbind(num_cells, velm_num_cells)
-
-write.csv(num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
-
-################
-
-velm_3rd_trim <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_3rd_trimester.rds")
-
-velm_3rd_trim@meta.data$cluster_final <- rep("no_data", nrow(velm_3rd_trim@meta.data))
-present_clusters <- ann_df[which(ann_df$og_clusters %in% velm_3rd_trim@meta.data$cluster),]
-for (ct in unique(present_clusters$cts)) {
-  print(ct)
-  for (og_cl in present_clusters[which(present_clusters$cts==ct), "og_clusters"]) {
-    velm_3rd_trim@meta.data[which(velm_3rd_trim@meta.data$cluster==og_cl), "cluster_final"] <- ct
-  }
-}
-DimPlot(velm_3rd_trim, reduction = "umap", group.by = "cluster_final")
-
-saveRDS(velm_3rd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_3rd_trim@project.name, ".rds"))
-
-
-
-####################################################################################################
-#
-# PLOTS
-#
-####################################################################################################
-
-num_cells <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
-num_cells[,1] <- NULL
-num_cells$age <- factor(num_cells$age, c(
-     "3rd trimester","0-1 years","1-2 years","2-4 years","4-10 years","Adult")
-     )
-
-num_cells[which(num_cells$id=="1-1547-BA24"), "sex"] <- "Female"
-
-p1 <- ggplot(num_cells, aes(age, fill=sex)) +
-  geom_bar(position = "dodge") +
-  scale_y_continuous(breaks= seq(0, nrow(num_cells),by=1)) +
-  labs(x="Age", y="Number of samples", fill="Sex") +
-  #facet_wrap(~proj, scales = "free", nrow=1, drop = TRUE) +
-  geom_hline(yintercept = 3, linetype=2) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_text(size=12, face="bold", colour = "black"),
-        axis.text.x = element_text(size=10, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
-        axis.ticks.x=element_blank(),
-        axis.title.y = element_text(size=12, face="bold", colour = "black"),
-        axis.text.y = element_text(size=10, colour = "black",angle = 0, vjust = 0.7, hjust=0.5),
-        legend.position = "bottom", 
-        legend.title = element_text(size=12, face="bold", colour = "black"),
-        strip.text = element_text(size=12, face="bold", colour = "black"))
-
-p2 <- ggplot(num_cells, aes(id, Freq, fill=sex)) +
-  geom_bar(stat="identity", position="dodge") +
-  #scale_y_continuous(breaks= seq(0, nrow(num_cells),by=1)) +
-  labs(x="Age", y="Number of cells/sample", fill="Sex") +
-  facet_wrap(~age, scales = "free", nrow=1) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_text(size=12, face="bold", colour = "black"),
-        axis.text.x = element_text(size=10, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
-        axis.ticks.x=element_blank(),
-        axis.title.y = element_text(size=12, face="bold", colour = "black"),
-        axis.text.y = element_text(size=10, colour = "black",angle = 0, vjust = 0.7, hjust=0.5),
-        legend.position = "bottom", 
-        legend.title = element_text(size=12, face="bold", colour = "black"),
-        strip.text = element_text(size=12, face="bold", colour = "black"))
-
-num_cells_proj <- ggarrange(p1, p2, common.legend = T, legend = "bottom", nrow = 2)
-
-pdf(paste0(main, "Velmeshev_num_samples_and_cells_per_age.pdf"), width = 10)
-print(num_cells_proj)
-dev.off()
-
-write.csv(num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
