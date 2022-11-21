@@ -369,6 +369,8 @@ saveRDS(rds.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat
 
 rds.combined <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
 DimPlot(rds.combined, reduction = "umap", group.by = "cluster_final")
+DimPlot(rds.combined, reduction = "umap", group.by = "cluster_final", split.by = "sex")
+ggsave(paste0(main, "clusters_by_sex.pdf"))
 
 other_cl <- subset(rds.combined, cluster_final == "Other")
 

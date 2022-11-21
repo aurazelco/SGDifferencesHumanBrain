@@ -588,8 +588,6 @@ ggsave("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/number_analyses_disease.jp
 disco_filt@meta.data$proj_sex_disease_ct <- paste(disco_filt@meta.data$proj_sex_disease, disco_filt@meta.data$ct, sep="_")
 
 
-
-
 # DEG analysis -> only normal samples
 
 Idents(disco_filt) <- "proj_sex_disease_ct"

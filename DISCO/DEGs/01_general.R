@@ -1,10 +1,8 @@
-main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/outputs/"
+main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs/outputs/"
 
 library(ggplot2)
 
 ####### MAIN
-
-sub_disease <- list.dirs(main, recursive=FALSE, full.names = FALSE)
 
 num_filt <- read.csv(paste0(main, "final_filt.csv"))
 num_filt[,1] <- NULL
@@ -36,6 +34,11 @@ num_filt$ct <- factor(num_filt$ct, levels=c(
   "T"
   ))
 
+for (dis_type in levels(num_filt$disease)) {
+  dir.create(paste0(main, dis_type), showWarnings = F)
+}
+
+sub_disease <- list.dirs(main, recursive=FALSE, full.names = FALSE)
 
 # Plot number of cells per sex and ct
 for (dis_type in sub_disease) {

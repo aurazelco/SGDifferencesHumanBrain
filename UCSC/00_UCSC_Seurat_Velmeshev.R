@@ -215,6 +215,11 @@ for (ct in unique(present_clusters$cts)) {
 }
 DimPlot(velm_ad, reduction = "umap", group.by = "cluster_final")
 
+pdf(paste0(main, velm_ad@project.name,  "_cluster_final.pdf"))
+print(DimPlot(velm_ad, reduction = "umap", group.by = "cluster_final"))
+dev.off()
+
+
 saveRDS(velm_ad, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_ad@project.name, ".rds"))
 
 ################
@@ -345,6 +350,11 @@ for (ct in unique(present_clusters$cts)) {
 }
 DimPlot(velm_3rd_trim, reduction = "umap", group.by = "cluster_final")
 
+pdf(paste0(main, velm_3rd_trim@project.name,  "_cluster_final.pdf"))
+print(DimPlot(velm_3rd_trim, reduction = "umap", group.by = "cluster_final"))
+dev.off()
+
+
 saveRDS(velm_3rd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_3rd_trim@project.name, ".rds"))
 
 ################
@@ -472,6 +482,10 @@ for (ct in unique(present_clusters$cts)) {
 }
 DimPlot(velm_1st_year, reduction = "umap", group.by = "cluster_final")
 
+pdf(paste0(main, velm_1st_year@project.name,  "_cluster_final.pdf"))
+print(DimPlot(velm_1st_year, reduction = "umap", group.by = "cluster_final"))
+dev.off()
+
 saveRDS(velm_1st_year, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_1st_year@project.name, ".rds"))
 
 ################
@@ -593,6 +607,10 @@ for (ct in unique(present_clusters$cts)) {
 }
 DimPlot(velm_2nd_year, reduction = "umap", group.by = "cluster_final")
 
+pdf(paste0(main, velm_2nd_year@project.name,  "_cluster_final.pdf"))
+print(DimPlot(velm_2nd_year, reduction = "umap", group.by = "cluster_final"))
+dev.off()
+
 saveRDS(velm_2nd_year, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_2nd_year@project.name, ".rds"))
 
 ################
@@ -711,6 +729,10 @@ for (ct in unique(present_clusters$cts)) {
   }
 }
 DimPlot(velm_2_4_years, reduction = "umap", group.by = "cluster_final")
+
+pdf(paste0(main, velm_2_4_years@project.name,  "_cluster_final.pdf"))
+print(DimPlot(velm_2_4_years, reduction = "umap", group.by = "cluster_final"))
+dev.off()
 
 saveRDS(velm_2_4_years, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_2_4_years@project.name, ".rds"))
 
