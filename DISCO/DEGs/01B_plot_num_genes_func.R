@@ -94,7 +94,7 @@ PlotDEGs <- function(main, dis, df_count, ct_ordered) {
 
 # 5. Extract gene lists and number of common DEGs
 IntersectDEG <- function(main, dis, pval, FC, ct_ordered) {
-  print("The script does not check if a folder has only one project - this may raise errors")
+  #print("The script does not check if a folder has only one project - this may raise errors")
   dir.create(paste(main, dis, "01B_num_DEGs", sep="/"), showWarnings = FALSE)
   path <- (paste(main, dis, "01A_DEGs", sep="/"))
   sub_ct <- list.dirs(path, recursive=FALSE, full.names = FALSE)

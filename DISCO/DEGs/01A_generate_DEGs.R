@@ -35,56 +35,54 @@ for (disease_type in levels(final_groups$disease)) {
   dir.create(path, showWarnings = FALSE)
   final_filt_disease <- subset(final_groups, disease==disease_type)
   for (ct_type in unique(final_filt_disease$ct)) {
-    for (ct_type in unique(final_filt_disease$ct)) {
-      if ((disease_type!="Multiple Sclerosis") & (length(unique(final_filt_disease[which(final_filt_disease$ct==ct_type), "proj"])) > 1)) {
-        for (id in unique(final_filt_disease$proj)) {
-          id1 <- paste(id, sexes[1], disease_type, ct_type, sep="_")
-          id2 <- paste(id, sexes[2], disease_type, ct_type, sep="_")
-          if ((id1 %in% levels(final_groups$idents)) & (id2 %in% levels(final_groups$idents))) {
-            path_ct <- paste0(path, "/", unique(final_filt_disease[which(final_filt_disease$ct==ct_type), "name_subfolders"]))
-            dir.create(path_ct, showWarnings = FALSE)
-            deg1 <- FindMarkers(disco_filt, 
+    if ((disease_type!="Multiple Sclerosis") & (length(unique(final_filt_disease[which(final_filt_disease$ct==ct_type), "proj"])) > 1)) {
+      for (id in unique(final_filt_disease$proj)) {
+        id1 <- paste(id, sexes[1], disease_type, ct_type, sep="_")
+        id2 <- paste(id, sexes[2], disease_type, ct_type, sep="_")
+        if ((id1 %in% levels(final_groups$idents)) & (id2 %in% levels(final_groups$idents))) {
+          path_ct <- paste0(path, "/", unique(final_filt_disease[which(final_filt_disease$ct==ct_type), "name_subfolders"]))
+          dir.create(path_ct, showWarnings = FALSE)
+          deg1 <- FindMarkers(disco_filt, 
                                 ident.1 = id1, 
                                 ident.2 = id2,
                                 logfc.threshold = 0.25,
                                 min.pct = 0.1,
                                 only.pos = TRUE)
-            write.csv(deg1, paste0(path_ct, "/", id, "_", sexes[1], ".csv"))
-            deg2 <- FindMarkers(disco_filt, 
+          write.csv(deg1, paste0(path_ct, "/", id, "_", sexes[1], ".csv"))
+          deg2 <- FindMarkers(disco_filt, 
                                 ident.1 = id2, 
                                 ident.2 = id1,
                                 logfc.threshold = 0.25,
                                 min.pct = 0.1,
                                 only.pos = TRUE)
-            write.csv(deg2, paste0(path_ct, "/", id, "_", sexes[2],".csv"))
-          } 
-        }
-      } else if (disease_type=="Multiple Sclerosis") {
-        for (id in unique(final_filt_disease$proj)) {
-          id1 <- paste(id, sexes[1], disease_type, ct_type, sep="_")
-          id2 <- paste(id, sexes[2], disease_type, ct_type, sep="_")
-          if ((id1 %in% levels(final_groups$idents)) & (id2 %in% levels(final_groups$idents))) {
-            path_ct <- paste0(path, "/", unique(final_filt_disease[which(final_filt_disease$ct==ct_type), "name_subfolders"]))
-            dir.create(path_ct, showWarnings = FALSE)
-            deg1 <- FindMarkers(disco_filt, 
-                                ident.1 = id1, 
-                                ident.2 = id2,
-                                logfc.threshold = 0.25,
-                                min.pct = 0.1,
-                                only.pos = TRUE)
-            write.csv(deg1, paste0(path_ct, "/", id, "_", sexes[1], ".csv"))
-            deg2 <- FindMarkers(disco_filt, 
-                                ident.1 = id2, 
-                                ident.2 = id1,
-                                logfc.threshold = 0.25,
-                                min.pct = 0.1,
-                                only.pos = TRUE)
-            write.csv(deg2, paste0(path_ct, "/", id, "_", sexes[2],".csv"))
-          } 
-        }
-      } else {
-        print(paste(disease_type, ct_type, " has only one project with > 100 cells when there should be at least 2"))
+          write.csv(deg2, paste0(path_ct, "/", id, "_", sexes[2],".csv"))
+        } 
       }
+    } else if (disease_type=="Multiple Sclerosis") {
+      for (id in unique(final_filt_disease$proj)) {
+        id1 <- paste(id, sexes[1], disease_type, ct_type, sep="_")
+        id2 <- paste(id, sexes[2], disease_type, ct_type, sep="_")
+        if ((id1 %in% levels(final_groups$idents)) & (id2 %in% levels(final_groups$idents))) {
+          path_ct <- paste0(path, "/", unique(final_filt_disease[which(final_filt_disease$ct==ct_type), "name_subfolders"]))
+          dir.create(path_ct, showWarnings = FALSE)
+          deg1 <- FindMarkers(disco_filt, 
+                                ident.1 = id1, 
+                                ident.2 = id2,
+                                logfc.threshold = 0.25,
+                                min.pct = 0.1,
+                                only.pos = TRUE)
+          write.csv(deg1, paste0(path_ct, "/", id, "_", sexes[1], ".csv"))
+          deg2 <- FindMarkers(disco_filt, 
+                                ident.1 = id2, 
+                                ident.2 = id1,
+                                logfc.threshold = 0.25,
+                                min.pct = 0.1,
+                                only.pos = TRUE)
+          write.csv(deg2, paste0(path_ct, "/", id, "_", sexes[2],".csv"))
+        } 
+      }
+    } else {
+      print(paste(disease_type, ct_type, " has only one project with > 100 cells when there should be at least 2"))
     }
   }
 }
