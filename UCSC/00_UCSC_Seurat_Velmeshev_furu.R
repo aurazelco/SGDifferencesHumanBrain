@@ -41,6 +41,11 @@ rm(ann_clusters)
 #
 ####################################################################################################
 
+output_2nd_trim <- paste0(out_path, "/outputs/Velmeshev_2nd_trimester/")
+rds_path <- paste0(out_path, "/Seurat_UCSC/Velmeshev/")
+dir.create(output_2nd_trim, recursive=T, showWarnings = F)
+dir.create(rds_path, recursive=T, showWarnings = F)
+
 meta <- read.csv(paste0(out_path, "/UCSC_downloads/new_meta_Velmeshev_2022.csv"), header=T, sep=",", as.is=T, row.names=1)
 rownames(meta) <- meta$cell
 
@@ -119,12 +124,12 @@ velm_2nd_trim@meta.data$id_sex_age <- paste(velm_2nd_trim@meta.data$samples, vel
 #dev.off()
 # XIST and other Ygenes from 00_filterin_disco not present -> we have to trust the metadata
 
-saveRDS(velm_2nd_trim, paste0(out_path, "/Seurat_UCSC/", velm_2nd_trim@project.name, ".rds"))
+saveRDS(velm_2nd_trim, paste0(rds_path, velm_2nd_trim@project.name, ".rds"))
 
 velm_num_cells <- as.data.frame(table(velm_2nd_trim$id_sex_age))
 velm_num_cells <- separate(velm_num_cells, Var1, into=c("id", "sex", "age"), sep="_")
 velm_num_cells <- cbind("proj" = rep(velm_2nd_trim@project.name, nrow(velm_num_cells)), velm_num_cells)
-write.csv(velm_num_cells, paste0(out_path, "/outputs/", velm_2nd_trim@project.name, "_num_cells.csv"))
+write.csv(velm_num_cells, paste0(output_2nd_trim, velm_2nd_trim@project.name, "_num_cells.csv"))
 
 ################
 
@@ -137,19 +142,15 @@ for (ct in unique(present_clusters$cts)) {
   }
 }
 
-pdf(paste0(out_path, "/outputs/", velm_2nd_trim@project.name,  "_cluster_final.pdf"))
+pdf(paste0(output_2nd_trim, velm_2nd_trim@project.name,  "_cluster_final.pdf"))
 print(DimPlot(velm_2nd_trim, reduction = "umap", group.by = "cluster_final"))
 dev.off()
 
-saveRDS(velm_2nd_trim, paste0(out_path, "/Seurat_UCSC/", velm_2nd_trim@project.name, ".rds"))
-
-
-#velm_2nd_trim <- readRDS("/Home/ii/auraz/data/UCSC/Seurat_UCSC/Velmeshev_2022_2nd_trimester.rds")
-
+saveRDS(velm_2nd_trim, paste0(rds_path, velm_2nd_trim@project.name, ".rds"))
 
 ################
 
-velm_2nd_trim <- readRDS("/Home/ii/auraz/data/UCSC/Seurat_UCSC/Velmeshev_2022_2nd_trimester.rds")
+velm_2nd_trim <- readRDS(paste0(rds_path, "Velmeshev_2022_2nd_trimester.rds"))
 
 velm_2nd_trim@meta.data$sex_ct <- paste(velm_2nd_trim@meta.data$sex, velm_2nd_trim@meta.data$cluster_final, sep="_")
 
@@ -157,7 +158,7 @@ velm_num_sex_ct <- as.data.frame(table(velm_2nd_trim$sex_ct))
 velm_num_sex_ct <- separate(velm_num_sex_ct, Var1, into=c("sex", "ct"), sep="_")
 velm_num_sex_ct <- cbind("proj" = rep(velm_2nd_trim@project.name, nrow(velm_num_sex_ct)), velm_num_sex_ct)
 
-write.csv(velm_num_sex_ct, paste0(out_path, "/outputs/", velm_2nd_trim@project.name, "_num_sex_ct_per_age.csv"))
+write.csv(velm_num_sex_ct, paste0(output_2nd_trim, velm_2nd_trim@project.name, "_num_sex_ct_per_age.csv"))
 
 
 ####################################################################################################
@@ -165,6 +166,11 @@ write.csv(velm_num_sex_ct, paste0(out_path, "/outputs/", velm_2nd_trim@project.n
 # 10-20 YEARS
 #
 ####################################################################################################
+
+output_10_20_yo <- paste0(out_path, "/outputs/Velmeshev_10_20_years")
+rds_path <- paste0(out_path, "/Seurat_UCSC/Velmeshev")
+dir.create(output_10_20_yo, recursive=T, showWarnings = F)
+dir.create(rds_path, recursive=T, showWarnings = F)
 
 meta_10_20_years <- subset(meta, age=="10-20 years")
 
@@ -225,7 +231,7 @@ velm_10_20_years@meta.data$sex_age <- paste(velm_10_20_years@meta.data$sex, velm
 velm_10_20_years@meta.data$proj <-  rep(velm_10_20_years@project.name, nrow(velm_10_20_years@meta.data))
 velm_10_20_years@meta.data$id_sex_age <- paste(velm_10_20_years@meta.data$samples, velm_10_20_years@meta.data$sex, velm_10_20_years@meta.data$age, sep="_")
 
-pdf(paste0(out_path, "/outputs/", velm_10_20_years@project.name,  "_XIST.pdf"))
+pdf(paste0(output_10_20_yo, velm_10_20_years@project.name,  "_XIST.pdf"))
 print(VlnPlot(velm_10_20_years, features = "XIST", group.by = "id_sex_age") + NoLegend())
 dev.off()
 
@@ -234,7 +240,7 @@ dev.off()
 velm_num_cells <- as.data.frame(table(velm_10_20_years$id_sex_age))
 velm_num_cells <- separate(velm_num_cells, Var1, into=c("id", "sex", "age"), sep="_")
 velm_num_cells <- cbind("proj" = rep(velm_10_20_years@project.name, nrow(velm_num_cells)), velm_num_cells)
-write.csv(velm_num_cells, paste0(out_path, "/outputs/", velm_10_20_years@project.name, "_num_cells.csv"))
+write.csv(velm_num_cells, paste0(output_10_20_yo, velm_10_20_years@project.name, "_num_cells.csv"))
 
 
 ################
@@ -248,20 +254,15 @@ for (ct in unique(present_clusters$cts)) {
   }
 }
 
-pdf(paste0(out_path, "/outputs/", velm_10_20_years@project.name,  "_cluster_final.pdf"))
+pdf(paste0(output_10_20_yo, velm_10_20_years@project.name,  "_cluster_final.pdf"))
 print(DimPlot(velm_10_20_years, reduction = "umap", group.by = "cluster_final"))
 dev.off()
 
-
-saveRDS(velm_10_20_years, paste0(out_path, "/Seurat_UCSC/", velm_10_20_years@project.name, ".rds"))
-
-
-#velm_10_20_years <- readRDS("/Home/ii/auraz/data/UCSC/Seurat_UCSC/Velmeshev_2022_10_20_years.rds")
+saveRDS(velm_10_20_years, paste0(rds_path, velm_10_20_years@project.name, ".rds"))
 
 ################
 
-
-velm_10_20_years <- readRDS("/Home/ii/auraz/data/UCSC/Seurat_UCSC/Velmeshev_2022_10_20_years.rds")
+velm_10_20_years <- readRDS(paste0(rds_path, "Velmeshev_2022_10_20_years.rds"))
 
 velm_10_20_years@meta.data$sex_ct <- paste(velm_10_20_years@meta.data$sex, velm_10_20_years@meta.data$cluster_final, sep="_")
 
@@ -269,4 +270,4 @@ velm_num_sex_ct <- as.data.frame(table(velm_10_20_years$sex_ct))
 velm_num_sex_ct <- separate(velm_num_sex_ct, Var1, into=c("sex", "ct"), sep="_")
 velm_num_sex_ct <- cbind("proj" = rep(velm_10_20_years@project.name, nrow(velm_num_sex_ct)), velm_num_sex_ct)
 
-write.csv(velm_num_sex_ct, paste0(out_path, "/outputs/", velm_10_20_years@project.name, "_num_sex_ct_per_age.csv"))
+write.csv(velm_num_sex_ct, paste0(output_10_20_yo, velm_10_20_years@project.name, "_num_sex_ct_per_age.csv"))

@@ -96,9 +96,11 @@ AREdfPerc <- function(main_dir, dis_type, df_ARE, sex) {
   df_ARE <- transform(df_ARE, no_overlap_perc = no_overlap * 100 / bg)
   dir.create(paste(main_dir, dis_type, "02B_ARE_ERE_proj", sep="/"), showWarnings = FALSE)
   write.csv(df_ARE, paste0(main_dir, "/", dis_type, "/02B_ARE_ERE_proj/", sex, "_ARE_sites_proj.csv"))
-  df_ARE_perc <- df_ARE[, c(2:3, 9:12)]
-  df_ARE_perc <- melt(df_ARE_perc, id.vars = c("ct", "proj"), variable_name = "sites")
+  df_ARE_perc <- df_ARE[, c(1, 9:12)]
+  df_ARE_perc <- melt(df_ARE_perc, id.vars = "og")
   names(df_ARE_perc)[names(df_ARE_perc) == 'value'] <- 'percent'
+  names(df_ARE_perc)[names(df_ARE_perc) == 'variable'] <- 'sites'
+  df_ARE_perc <- separate(df_ARE_perc, og, into = c("ct", "proj"), remove = F, sep = "/")
   col_factors <- c("ct", "proj")
   df_ARE_perc[col_factors] <- lapply(df_ARE_perc[col_factors], as.factor) 
   levels(df_ARE_perc$sites) <- c('Full', 'Half', 'Half-Full', 'None')
@@ -127,9 +129,11 @@ EREdfPerc <- function(main_dir, dis_type, df_ERE, sex) {
   df_ERE <- transform(df_ERE, no_overlap_perc = no_overlap * 100 / bg)
   dir.create(paste(main_dir, dis_type, "02B_ARE_ERE_proj", sep="/"), showWarnings = FALSE)
   write.csv(df_ERE, paste0(main_dir, "/", dis_type, "/02B_ARE_ERE_proj/", sex, "_ERE_sites_proj.csv"))
-  df_ERE_perc <- df_ERE[, c(2:3, 7:8)]
-  df_ERE_perc <- melt(df_ERE_perc, id.vars = c("ct", "proj"), variable_name = "sites")
+  df_ERE_perc <- df_ERE[, c(1, 7:8)]
+  df_ERE_perc <- melt(df_ERE_perc, id.vars = "og")
   names(df_ERE_perc)[names(df_ERE_perc) == 'value'] <- 'percent'
+  names(df_ERE_perc)[names(df_ERE_perc) == 'variable'] <- 'sites'
+  df_ERE_perc <- separate(df_ERE_perc, og, into = c("ct", "proj"), remove = F, sep = "/")
   col_factors <- c("ct", "proj")
   df_ERE_perc[col_factors] <- lapply(df_ERE_perc[col_factors], as.factor) 
   levels(df_ERE_perc$sites) <- c("ERE", "None")

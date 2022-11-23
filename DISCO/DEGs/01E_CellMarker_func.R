@@ -76,10 +76,13 @@ CalcPercMarkers <- function(df_sex, markers, markers_ct_names, ct_order) {
     colnames(df_markers) <- c("ct")
     df_markers$sex <- rep(names(df_sex), each = length(names(df_sex[[1]])))
   } else {
-    ct_names <- unlist(names(df_sex[[1]]), names(df_sex[[2]])) 
+    ct_names <- c(unlist(names(df_sex[[1]])), unlist(names(df_sex[[2]])))
     df_markers <- as.data.frame(ct_names)
     colnames(df_markers) <- c("ct")
-    df_markers$sex <- c(rep(names(df_sex)[1], length(names(df_sex[[1]]))), rep(names(df_sex)[2], length(names(df_sex[[2]]))))
+    print(df_markers)
+    df_markers$sex <- c(rep(names(df_sex)[1], length(df_sex[[1]])), 
+                        rep(names(df_sex)[2], length(df_sex[[2]]))
+                        )
   }
   df_markers$markers_count <- rep(NA, nrow(df_markers))
   df_markers$markers_perc <- rep(NA, nrow(df_markers))
@@ -142,18 +145,22 @@ PlotCMresults <- function(main_dir, dis_type, cm_dir, cm_ct_list, markers_ct_nam
   sub_ct <- list.dirs(path, recursive=FALSE, full.names = FALSE)
   df_F <- list()
   df_M <- list()
+  names_F <- vector()
+  names_M <- vector()
   for (ct in 1:length(sub_ct)) {
     deg <- ImportSignDE(paste(path, sub_ct[ct], sep="/"))
     for (i in names(deg)) {
       if (grepl("F", i, fixed=TRUE)){
         df_F <- append(df_F, list(deg[[i]]))
+        names_F <- c(names_F, sub_ct[ct])
       } else {
         df_M <- append(df_M, list(deg[[i]]))
+        names_M <- c(names_M, sub_ct[ct])
       }
     }
   }
-  names(df_F) <- sub_ct
-  names(df_M) <- sub_ct
+  names(df_F) <- names_F
+  names(df_M) <- names_M
   df_sex <- (list("F" = df_F, "M" = df_M))
   markers <- CellMarkers(cm_dir, cm_ct_list)
   df_markers <- CalcPercMarkers(df_sex, markers, markers_ct_names, ct_order)

@@ -282,20 +282,10 @@ names(num_proj_sex_disease_ct)[names(num_proj_sex_disease_ct) == 'Freq'] <- "cou
 FiltDF <- function(df, disease, min_num_cells) {
   `%!in%` <- Negate(`%in%`)
   df <- droplevels(df)
-  incomplete_ct <- vector()
-  for (type in levels(df$ct)) {
-    if ((nrow(subset(df, subset = ct == type))%%2!=0) | (any(subset(df, subset = ct == type)[,5]< min_num_cells))) {
-      incomplete_ct <- c(incomplete_ct, type)
-    } else if ((nrow(subset(df, subset = ct == type))==2) & (disease!="MS")) {
-      incomplete_ct <- c(incomplete_ct, type)
-    }
-  }
-  incomplete_df <- df[df$ct %in% incomplete_ct,]
-  incomplete_df <- droplevels(incomplete_df)
   incomplete_proj <- vector()
-  for (type in levels(incomplete_df$ct)) {
-    for (id in levels(incomplete_df$proj)) {
-      if ((nrow(subset(df, subset = (ct==type & proj==id)))%%2!=0) | (any(subset(df, subset = (ct==type & proj==id))[,5]< min_num_cells))) {
+  for (type in levels(df$ct)) {
+    for (id in levels(df$proj)) {
+      if ((nrow(subset(df, subset = (ct==type & proj==id)))%%2!=0) | (any(subset(df, subset = (ct==type & proj==id))[,5] < min_num_cells))) {
         incomplete_proj <- c(incomplete_proj, (paste(id, type, sep="_")))
       }
     }
@@ -306,38 +296,43 @@ FiltDF <- function(df, disease, min_num_cells) {
 }
 
 num_normal <- subset(num_proj_sex_disease_ct, disease == "Normal")
-num_normal_filt <- FiltDF(num_normal, "Normal", 100)
-
 num_AD <- subset(num_proj_sex_disease_ct, disease == "Alzheimer's disease")
-num_AD_filt <- FiltDF(num_AD, "AD", 100)
-
 num_MS <- subset(num_proj_sex_disease_ct, disease == "Multiple Sclerosis")
-num_MS_filt <- FiltDF(num_MS, "MS", 100)
 
-num_filt <- rbind(num_normal_filt, num_AD_filt, num_MS_filt)
-num_filt$idents <- paste(num_filt$proj, num_filt$sex, num_filt$disease, num_filt$ct, sep="_")
+min_num_cells <- c(10,50,100)
 
-write.csv(num_filt, file = paste0(disco_path, 
-                                  "DEGs/outputs/final_filt.csv"),
-          row.names = TRUE)
+for (min_cells in min_num_cells) {
+  num_normal_filt <- FiltDF(num_normal, "Normal", min_cells)
+  num_AD_filt <- FiltDF(num_AD, "AD", min_cells)
+  num_MS_filt <- FiltDF(num_MS, "MS", min_cells)
+  num_filt <- rbind(num_normal_filt, num_AD_filt, num_MS_filt)
+  num_filt$idents <- paste(num_filt$proj, num_filt$sex, num_filt$disease, num_filt$ct, sep="_")
+  num_filt$name_subfolders <- str_replace_all(num_filt$ct, "/", "_")
+  #print(nrow(num_filt))
+  write.csv(num_filt, file = paste0(disco_path, 
+                                        "DEGs/outputs/final_filt_", min_cells, ".csv"),
+            row.names = F)
+}
 
-for (id in levels(num_filt$proj)) {
-  pdf(paste0(disco_path, "DEGs/outputs/", id, "_filt_counts.pdf"), 10, 15)
-  print(ggplot(num_filt[which(num_filt$proj==id),], aes(disease, count, fill=sex)) +
-          geom_bar(stat="identity", position = "dodge") + 
-          labs(x="", y="Nuclei count", fill="Sex") +
-          facet_wrap(~ct, scales = "free") +
-          geom_hline(yintercept = 100, linetype="dashed") +
-          theme(panel.grid.major = element_blank(), 
-                panel.grid.minor = element_blank(),
-                panel.background = element_blank(), 
-                axis.line = element_line(colour = "black"),
-                axis.title.x = element_text(size=12, face="bold", colour = "black"),
-                axis.text.x = element_text(size=8, colour = "black",angle = 45, vjust = 0.5, hjust=0.5),
-                axis.ticks.x=element_blank(),
-                axis.title.y = element_text(size=12, face="bold", colour = "black"),
-                legend.position = "bottom"))
-  dev.off()
+for (min_cells in min_num_cells) {
+  for (id in levels(num_proj_sex_disease_ct$proj)) {
+    pdf(paste0(disco_path, "DEGs/outputs/", id, "_filt_counts_", min_cells, ".pdf"), 10, 15)
+    print(ggplot(num_proj_sex_disease_ct[which(num_proj_sex_disease_ct$proj==id),], aes(disease, count, fill=sex)) +
+            geom_bar(stat="identity", position = "dodge") + 
+            labs(x="", y="Nuclei count", fill="Sex") +
+            facet_wrap(~ct, scales = "free") +
+            geom_hline(yintercept = min_cells, linetype="dashed") +
+            theme(panel.grid.major = element_blank(), 
+                  panel.grid.minor = element_blank(),
+                  panel.background = element_blank(), 
+                  axis.line = element_line(colour = "black"),
+                  axis.title.x = element_text(size=12, face="bold", colour = "black"),
+                  axis.text.x = element_text(size=8, colour = "black",angle = 45, vjust = 0.5, hjust=0.5),
+                  axis.ticks.x=element_blank(),
+                  axis.title.y = element_text(size=12, face="bold", colour = "black"),
+                  legend.position = "bottom"))
+    dev.off()
+  }
 }
 
 saveRDS(disco_filt, paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
@@ -788,7 +783,6 @@ FiltDisDf <- function(df_list_dis) {
   tot_genes <- data.frame(cts, genes)
   return(tot_genes)
 }
-
 
 norm_df <- FiltDisDf(norm)
 ad_df <- FiltDisDf(ad)

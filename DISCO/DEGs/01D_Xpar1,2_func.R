@@ -121,24 +121,37 @@ XparCt <- function(main_dir, dis_type, xpar1, xpar2, ct_ordered, ext, row_col) {
   sub_ct <- list.dirs(path, recursive=FALSE, full.names = FALSE)
   df_F <- list()
   df_M <- list()
+  names_F <- vector()
+  names_M <- vector()
   for (ct in 1:length(sub_ct)) {
     deg <- ImportSignDE(paste(path, sub_ct[ct], sep="/"))
     for (i in names(deg)) {
       if (grepl("F", i, fixed=TRUE)){
         df_F <- append(df_F, list(deg[[i]]))
+        names_F <- c(names_F, sub_ct[ct])
       } else {
         df_M <- append(df_M, list(deg[[i]]))
+        names_M <- c(names_M, sub_ct[ct])
       }
     }
   }
-  names(df_F) <- sub_ct
-  names(df_M) <- sub_ct
+  names(df_F) <- names_F
+  names(df_M) <- names_M
   XparF <- CalcXpar(df_F, xpar1, xpar2, "F")
   XparM <- CalcXpar(df_M, xpar1, xpar2, "M")
   XparAll <- list(XparF, XparM)
   names(XparAll) <- c("F", "M")
-  XparAll <- XparAll[lengths(XparAll)>0L]
-  XparAll_df <- SaveXpar(main_dir, dis_type, XparAll)
-  Xparplot <- PlotXpar(main_dir, dis_type, XparAll_df, ct_ordered)
+  for (sex in names(XparAll)) {
+    if (length(XparAll[[sex]]) == 0) {
+      print(paste0("No genes belonging to Xpar1 or Xpar2 in the ", sex, " whole DEG list"))
+    }
+  }
+  if (all(lengths(XparAll)!=0L)) {
+    XparAll <- XparAll[lengths(XparAll)>0L]
+    XparAll_df <- SaveXpar(main_dir, dis_type, XparAll)
+    Xparplot <- PlotXpar(main_dir, dis_type, XparAll_df, ct_ordered)
+  } else {
+    print("No genes on Xpar1 or Xpar2 in both females and males, all cell types")
+  }
 }
 

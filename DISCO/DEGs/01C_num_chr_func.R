@@ -146,21 +146,26 @@ ProcessCt <- function(main_dir, dis_type, ext, row_col) {
   sub_ct <- list.dirs(path, recursive=FALSE, full.names = FALSE)
   df_F <- list()
   df_M <- list()
+  names_F <- vector()
+  names_M <- vector()
   for (ct in 1:length(sub_ct)) {
     deg <- ImportIntersectDE(paste(path, sub_ct[ct], sep="/"))
-    colnames(deg[[1]]) <- c("Gene")
-    colnames(deg[[2]]) <- c("Gene")
+    for (k in 1:length(deg)) {
+      colnames(deg[[k]]) <- c("Gene")
+    }
     names(deg) <- lapply(1:length(names(deg)), function(i) str_replace(names(deg)[i], "_intersected_genes", ""))
     for (i in names(deg)) {
       if (grepl("F", i, fixed=TRUE)){
         df_F <- append(df_F, list(deg[[i]]))
+        names_F <- c(names_F, sub_ct[ct])
       } else {
         df_M <- append(df_M, list(deg[[i]]))
+        names_M <- c(names_M, sub_ct[ct])
       }
     }
   }
-  names(df_F) <- sub_ct
-  names(df_M) <- sub_ct
+  names(df_F) <- names_F
+  names(df_M) <- names_M
   Annot_F <- lapply(df_F, function(x) Annot.chr.name(x$Gene))
   Annot_M <- lapply(df_M, function(x) Annot.chr.name(x$Gene))
   chr_F <- list()
@@ -280,7 +285,7 @@ PlotGeneralHeatmap <- function(main_dir, dis_type, chr_sex_list, ct_ordered) {
 }
 
 # 14. Plot the fraction of enriched DEGs per chromosome, including or not the Fisher p-value
-PlotNumChr <- function(main_dir, dis_type, num_chr_genes, pval_file=FALSE, ct_ordered) {
+PlotNumChr <- function(main_dir, dis_type, num_chr_genes, ct_ordered, pval_file=FALSE) {
   sexes <- c("F", "M")
   col_palette <- hue_pal()(3)
   path <- paste0(main_dir, dis_type,  "/01C_num_chr/")

@@ -472,8 +472,6 @@ colnames(df1) <- c("analysis", "dataset", "sex", "count")
 df1$dataset <- as.factor(df1$dataset)
 df1$sex <- as.factor(df1$sex)
 
-
-
 ggplot(df1, aes(analysis, count, fill=sex)) +
   geom_bar(stat="identity", position = "dodge") + 
   labs(x="Groups", y="Nuclei count", fill="Sex") +

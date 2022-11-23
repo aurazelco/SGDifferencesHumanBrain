@@ -90,8 +90,9 @@ AREdfPerc <- function(main_dir, dis_type, df_ARE, sex) {
   dir.create(paste(main_dir, dis_type, "02B_ARE_ERE", sep="/"), showWarnings = FALSE)
   write.csv(df_ARE, paste0(main_dir, "/", dis_type, "/02B_ARE_ERE/", sex, "_ARE_sites.csv"))
   df_ARE_perc <- df_ARE[, c(1, 7:10)]
-  df_ARE_perc <- melt(df_ARE_perc, id.vars = "ct", variable_name = "sites")
+  df_ARE_perc <- melt(df_ARE_perc, id.vars = "ct")
   names(df_ARE_perc)[names(df_ARE_perc) == 'value'] <- 'percent'
+  names(df_ARE_perc)[names(df_ARE_perc) == 'variable'] <- 'sites'
   col_factors <- c("ct")
   df_ARE_perc[col_factors] <- lapply(df_ARE_perc[col_factors], as.factor) 
   levels(df_ARE_perc$sites) <- c('Full', 'Half', 'Half-Full', 'None')
@@ -116,8 +117,9 @@ EREdfPerc <- function(main_dir, dis_type, df_ERE, sex) {
   dir.create(paste(main_dir, dis_type, "02B_ARE_ERE", sep="/"), showWarnings = FALSE)
   write.csv(df_ERE, paste0(main_dir, "/", dis_type, "/02B_ARE_ERE/", sex, "_ERE_sites.csv"))
   df_ERE_perc <- df_ERE[, c(1, 5:6)]
-  df_ERE_perc <- melt(df_ERE_perc, id.vars = "ct", variable_name = "sites")
+  df_ERE_perc <- melt(df_ERE_perc, id.vars = "ct")
   names(df_ERE_perc)[names(df_ERE_perc) == 'value'] <- 'percent'
+  names(df_ERE_perc)[names(df_ERE_perc) == 'variable'] <- 'sites'
   col_factors <- c("ct")
   df_ERE_perc[col_factors] <- lapply(df_ERE_perc[col_factors], as.factor) 
   levels(df_ERE_perc$sites) <- c("ERE", "None")

@@ -51,32 +51,12 @@ ReadRawData <- function(main_dir, dis_type, sex, ext, row_col) {
   return(df_sex)
 }
 
-# 3. Retrieve all DEGs file
-#AllDEGs <- function(all_degs, dis_type) {
-#  all_degs[, "gene"] <- NULL
-#  names(all_degs)[names(all_degs) == 'X'] <- 'gene_name'
-#  all_degs$cluster <- str_replace_all(all_degs$cluster, "/", "_")
-#  all_degs$cluster <- as.factor(all_degs$cluster)
-#  if (dis_type == "Normal") {
-#    all_degs <- subset(all_degs, subset = cluster !=  c("T"))
-#  } else if (dis_type == "Alzheimer's disease") {
-#    ad_remove <- list.dirs("Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/outputs/Alzheimer's disease/01A_only_1_project", recursive=FALSE, full.names = FALSE)
-#    `%!in%` <- Negate(`%in%`)
-#    all_degs <- subset(all_degs, subset = cluster %!in% ad_remove)
-#  }
-#  all_degs$cluster <- droplevels(all_degs$cluster)
-#  return(all_degs)
-#}
 
+# 3. Retrieve all genes expressed in the cell types in a specific disease - from DISCO
 AllGenes <- function(all_df, dis_type) {
-  if (dis_type == "Normal") {
-    all_df <- subset(all_df, subset = ((disease == dis_type) & (ct !=  c("T"))) )
-  } else if (dis_type == "Alzheimer's disease") {
-    ad_remove <- list.dirs("Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/outputs/Alzheimer's disease/01A_only_1_project", recursive=FALSE, full.names = FALSE)
-    `%!in%` <- Negate(`%in%`)
-    all_df <- subset(all_df, subset = ((disease == dis_type) & (ct %!in% ad_remove)))
-  }
+  all_df <- subset(all_df, subset = disease == dis_type)
   all_df$ct <- droplevels(all_df$ct)
+  all_df$ct <- str_replace_all(all_df$ct, "/", "_")
   all_df$disease <- droplevels(all_df$disease)
   return(all_df)
 }
@@ -102,27 +82,29 @@ AllFrac <- function(cons_filt, genes_df, ct_names, sex) {
 DfFrac <- function(main_dir, dis_type, cons_df, threshold, out_name, all_df) {
   df_F <- ReadRawData(main_dir, dis_type, "F")
   df_M <- ReadRawData(main_dir, dis_type, "M")
-  #all_degs <- AllDEGs(all_degs, dis_type)
   genes_df <- AllGenes(all_df, dis_type)
   if (out_name == "Primates") {
     cons_filt <- subset(cons_df, rowSums(cons_df[, c(5:10)])>=threshold)
   } else if (out_name == "SAGD") {
     cons_filt <- subset(cons_df, rowSums(cons_df[, c(2:22)])>=threshold)
   }
-  if (length(names(df_F)) == length(names(df_M))) {
-    #fr_all <- rep(nrow(cons_filt) / nrow(cons_df), length.out = length(names(df_F)))
-    fr_all_F <- AllFrac(cons_filt, genes_df, names(df_F), "F")
-    fr_all_M <- AllFrac(cons_filt, genes_df, names(df_M), "M")
-  }
+  fr_all_F <- AllFrac(cons_filt, genes_df, names(df_F), "F")
+  fr_all_M <- AllFrac(cons_filt, genes_df, names(df_M), "M")
   fr_F <- SexFrac(cons_filt, df_F, "F")
   fr_M <- SexFrac(cons_filt, df_M, "M")
-  df_frac <- data.frame(names(df_F), fr_all_F, fr_F, fr_all_M, fr_M)
-  colnames(df_frac) <- c("ct", "All_F", "F", "All_M", "M")
+  df_frac <- data.frame(c(rep("F", length(names(df_F))), rep("M", length(names(df_M)))),
+                          c(names(df_F), names(df_M)), 
+                          c(fr_all_F, fr_all_M),
+                          c(fr_F, fr_M)
+                          )
+  colnames(df_frac) <- c("sex", "ct", "All", "DEG_fraction")
   df_frac$ct <- as.factor(df_frac$ct)
   dir.create(paste(main_dir, dis_type, "02C_Conservation", sep="/"), showWarnings = FALSE)
-  write.csv(df_frac, paste0(main_dir, "/", dis_type, "/02C_Conservation/", out_name, ".csv"))
-  df_frac <- melt(df_frac, variable_name = "group")
+  write.csv(df_frac, paste0(main_dir, "/", dis_type, "/02C_Conservation/", out_name, ".csv"), row.names = F)
+  df_frac <- melt(df_frac)
+  names(df_frac)[names(df_frac) == 'variable'] <- 'group'
   names(df_frac)[names(df_frac) == 'value'] <- 'fractions'
+  df_frac$group <- paste(df_frac$sex, df_frac$group, sep="_")
   return(df_frac)
 }
 

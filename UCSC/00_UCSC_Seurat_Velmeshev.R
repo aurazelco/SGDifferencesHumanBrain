@@ -842,3 +842,20 @@ write.csv(num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs
 
 #### no more analysis on this dataset because it has only 1F! 
 
+velm_4_10_years <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/excluded/Velmeshev_2022_4_10_years.rds")
+
+velm_4_10_years@meta.data$cluster_final <- rep("no_data", nrow(velm_4_10_years@meta.data))
+present_clusters <- ann_df[which(ann_df$og_clusters %in% velm_4_10_years@meta.data$cluster),]
+for (ct in unique(present_clusters$cts)) {
+  print(ct)
+  for (og_cl in present_clusters[which(present_clusters$cts==ct), "og_clusters"]) {
+    velm_4_10_years@meta.data[which(velm_4_10_years@meta.data$cluster==og_cl), "cluster_final"] <- ct
+  }
+}
+DimPlot(velm_4_10_years, reduction = "umap", group.by = "cluster_final")
+
+pdf(paste0(main, velm_4_10_years@project.name,  "_cluster_final.pdf"))
+print(DimPlot(velm_4_10_years, reduction = "umap", group.by = "cluster_final"))
+dev.off()
+
+saveRDS(velm_4_10_years, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/excluded/", velm_4_10_years@project.name, ".rds"))

@@ -31,8 +31,8 @@ final_groups[col_factors] <- lapply(final_groups[col_factors], as.factor)
 sexes <- levels(final_groups$sex)
 
 for (disease_type in levels(final_groups$disease)) {
-  path <- paste0(main, disease_type)
-  dir.create(path, showWarnings = FALSE)
+  path <- paste0(main, disease_type, "01A_DEGs")
+  dir.create(path, showWarnings = FALSE, recursive = T)
   final_filt_disease <- subset(final_groups, disease==disease_type)
   for (ct_type in unique(final_filt_disease$ct)) {
     if ((disease_type!="Multiple Sclerosis") & (length(unique(final_filt_disease[which(final_filt_disease$ct==ct_type), "proj"])) > 1)) {

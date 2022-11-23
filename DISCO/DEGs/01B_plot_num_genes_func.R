@@ -105,6 +105,7 @@ IntersectDEG <- function(main, dis, pval, FC, ct_ordered) {
   ct_qc <- vector()
   deg_list <- list()
   num_proj <- vector()
+  num_proj_names <- vector()
   for (ct in 1:length(sub_ct)) {
     all_DEGs <- ImportDE(paste(path, sub_ct[ct], sep="/"))
     filt_DEGs <- lapply(all_DEGs, function(x) Filter_gene(x, pval, FC))
@@ -122,10 +123,16 @@ IntersectDEG <- function(main, dis, pval, FC, ct_ordered) {
     if (length(df_F)>1) {
       dir.create(paste(main, dis, "01B_num_DEGs", sub_ct[ct], sep="/"), showWarnings = FALSE)
       num_proj <- c(num_proj, length(df_F))
+      num_proj_names <- c(num_proj_names, sub_ct[ct])
       if (length(df_F)==3) {
         int_list <- list(Reduce(intersect, list(rownames(df_F[[1]]), rownames(df_F[[2]]), rownames(df_F[[3]]))),
                          Reduce(intersect, list(rownames(df_M[[1]]), rownames(df_M[[2]]), rownames(df_M[[3]]))))
         names(int_list) <- c("F", "M")
+        for (i in 1:length(int_list)) {
+          num_genes <- c(num_genes, length(int_list[[i]]))
+          ct_qc <- c(ct_qc, sub_ct[ct])
+        }
+        int_list <- int_list[lengths(int_list) > 0L]
         lapply(1:length(int_list), function(i) write.csv(int_list[i], 
                                                          file = paste0(main, "/", dis, "/01B_num_DEGs/", sub_ct[ct], "/", names(int_list[i]), "_intersected_genes.csv"),
                                                          row.names = TRUE))
@@ -133,27 +140,30 @@ IntersectDEG <- function(main, dis, pval, FC, ct_ordered) {
         int_list <- list(intersect(rownames(df_F[[1]]), rownames(df_F[[2]]))
                          ,intersect(rownames(df_M[[1]]), rownames(df_M[[2]])))
         names(int_list) <- c("F", "M")
+        for (i in 1:length(int_list)) {
+          num_genes <- c(num_genes, length(int_list[[i]]))
+          ct_qc <- c(ct_qc, sub_ct[ct])
+        }
+        int_list <- int_list[lengths(int_list) > 0L]
         lapply(1:length(int_list), function(i) write.csv(int_list[i], 
                                                          file = paste0(main, "/", dis,  "/01B_num_DEGs/", sub_ct[ct],"/", names(int_list[i]), "_intersected_genes.csv"),
                                                          row.names = TRUE))
       }
-      num_genes <- c(num_genes, length(int_list[[1]]))
-      num_genes <- c(num_genes, length(int_list[[2]]))
-      ct_qc <- c(ct_qc, sub_ct[ct])
-      ct_qc <- c(ct_qc, sub_ct[ct])
     } else {
       dir.create(paste(main, dis, "01B_num_DEGs", sub_ct[ct], sep="/"), showWarnings = FALSE)
-      num_proj <- 1
+      num_proj <- c(num_proj, 1)
+      num_proj_names <- c(num_proj_names, sub_ct[ct])
       int_list <- list(rownames(df_F[[1]])
                        ,rownames(df_M[[1]]))
       names(int_list) <- c("F", "M")
-      lapply(1:length(int_list), function(i) write.csv(int_list[i], 
-                                                       file = paste0(main, "/", dis,  "/01B_num_DEGs/", sub_ct[ct],"/", names(int_list[i]), "_intersected_genes.csv"),
-                                                       row.names = TRUE))
       num_genes <- c(num_genes, nrow(df_F[[1]]))
       num_genes <- c(num_genes, nrow(df_M[[1]]))
       ct_qc <- c(ct_qc, sub_ct[ct])
       ct_qc <- c(ct_qc, sub_ct[ct])
+      int_list <- int_list[lengths(int_list) > 0L]
+      lapply(1:length(int_list), function(i) write.csv(int_list[i], 
+                                                       file = paste0(main, "/", dis,  "/01B_num_DEGs/", sub_ct[ct],"/", names(int_list[i]), "_intersected_genes.csv"),
+                                                       row.names = TRUE))
     }
   }
   names(deg_list) <- sub_ct
@@ -165,7 +175,11 @@ IntersectDEG <- function(main, dis, pval, FC, ct_ordered) {
     df[col_factors] <- lapply(df[col_factors], as.factor) 
   } else {
     print("The cell types did not match when intersected; please check the input data")
+    print(df$celltypes)
+    print(ct_qc)
   }
+  num_proj <- data.frame(num_proj_names, num_proj)
+  colnames(num_proj) <- c("ct", "num_projects")
   return(list(df, num_proj))
 }
 
@@ -174,13 +188,16 @@ PlotIntDEGs <- function(main, dis, df, num_p, ct_ordered) {
   dis_ct_order <- ct_ordered[which(ct_ordered %in% levels(df$celltypes))]
   df$celltypes <- factor(df$celltypes, dis_ct_order)
   df <- df[order(df$celltypes), ]
+  num_p_ct_order <- ct_ordered[which(ct_ordered %in% num_p$ct)]
+  num_p$ct <- factor(num_p$ct, num_p_ct_order)
+  num_p <- num_p[order(num_p$ct), ]
   pdf(paste0(main, "/", dis,  "/01B_num_DEGs/num_genes_per_ct.pdf"))
   print(ggplot(df, aes(celltypes, counts, fill=sex)) +
           geom_bar(stat="identity", position="dodge") +
           labs(x="", y="Intersected number of DEGs", fill="Sex", main = dis) +
           #annotate("text", x = seq(1,length(levels(df$celltypes))), y = -1, label = num_p) +
-          annotate("text", x = seq(1,length(levels(df$celltypes))), y =(df$counts[c(TRUE, FALSE)] + 10) , label = num_p, colour = "blue") +
-          annotate("text", x = length(levels(df$celltypes))*0.75, y =max(df$counts) + 30 , label = "Number of intersected projects", colour = "blue") +
+          #annotate("text", x = seq(1,length(levels(df$celltypes))), y =(df$counts[c(TRUE, FALSE)] + 10) , label = num_p$num_projects, colour = "blue") +
+          annotate("text", x = length(levels(df$celltypes))*0.75, y =max(df$counts) + 20, label = "Number of intersected projects", colour = "blue") +
           theme(panel.grid.major = element_blank(), 
                 panel.grid.minor = element_blank(),
                 panel.background = element_blank(), 
