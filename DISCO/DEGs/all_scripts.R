@@ -202,8 +202,7 @@ num_chr_genes <- list("X" = X_chr_genes, "Y" = Y_chr_genes, "Autosome" = (tot_ge
 chr_normal <- ProcessCt(main, sub_disease[3])
 PlotGeneralHeatmap(main, sub_disease[3], chr_normal, ct_order)
 PlotSexHmp(main, sub_disease[3], chr_normal, ct_order)
-PlotNumChr(main, sub_disease[3], num_chr_genes, ct_order)
-#PlotNumChr(main, sub_disease[3], num_chr_genes, ct_order, T)
+#PlotNumChr(main, sub_disease[3], num_chr_genes, ct_order)
 
 # AD
 chr_ad <- ProcessCt(main, sub_disease[1])
@@ -324,19 +323,23 @@ PlotCMresults(main, sub_disease[2],
               ct_list, data_ct, ct_order)
 
 
-
 ####### 02A_Fisher.R
 
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs/01C_num_chr_func.R")
 source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/scripts/DEGs/02A_Fisher_func.R")
 
 # NORMAL
 SexChr2(main, sub_disease[3], tot_genes, X_chr_genes, Y_chr_genes)
+PlotNumChr(main, sub_disease[3], num_chr_genes, ct_order, T)
 
 # AD
 SexChr2(main, sub_disease[1], tot_genes, X_chr_genes, Y_chr_genes)
+PlotNumChr(main, sub_disease[1], num_chr_genes, ct_order, T)
 
 # MS
 SexChr2(main, sub_disease[2], tot_genes, X_chr_genes, Y_chr_genes)
+PlotNumChr(main, sub_disease[2], num_chr_genes, ct_order, T)
+
 
 
 ####### 02B_ARE_ERE.R

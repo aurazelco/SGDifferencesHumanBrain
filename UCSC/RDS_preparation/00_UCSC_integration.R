@@ -11,12 +11,11 @@ library(scales)
 library(readxl)
 library(matrixStats)
 
-
-main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/"
-
-
-# Modified tutorial from https://satijalab.org/seurat/articles/integration_introduction.html
+main_outs <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Eze_Nowakowski_integrated/"
+main_deg <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/Eze_Nowakowski_integrated_2nd_trimester/"
 input_rds_path <-  "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC"
+
+####### Modified tutorial from https://satijalab.org/seurat/articles/integration_introduction.html
 input_rds_files <- list.files(path = input_rds_path, pattern = ".rds", full.names = T)[1:2]
 input_rds <- lapply(input_rds_files,function(x) {
   readRDS(file = x)
@@ -53,7 +52,7 @@ rds.combined@project.name <- "Eze_Nowakowski_integrated"
 # Visualization
 DimPlot(rds.combined, reduction = "umap")
 DimPlot(rds.combined, reduction = "umap", group.by = "proj")
-ggsave(paste0(main, rds.combined@project.name, "_proj.pdf"))
+ggsave(paste0(main_outs, rds.combined@project.name, "_proj.pdf"))
 
 saveRDS(rds.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
 #rm(input_rds, input_rds_files, input_rds_path)
@@ -81,7 +80,7 @@ ggplot(sex_age_shared, aes(round(age))) +
 rds.combined@meta.data$age_final <- round(coalesce(rds.combined@meta.data$Age,rds.combined@meta.data$Age_in_Weeks))
 
 DimPlot(rds.combined, reduction = "umap", group.by = "age_final")
-ggsave(paste0(main, rds.combined@project.name, "_age_combined.pdf"))
+ggsave(paste0(main_outs, rds.combined@project.name, "_age_combined.pdf"))
 
 # 1st_trimester: 1 - 12 
 # 2nd_trimester: 13 - 26
@@ -94,7 +93,7 @@ rds.combined@meta.data[which(12 < rds.combined@meta.data$age_final & rds.combine
 rds.combined@meta.data[which(26 < rds.combined@meta.data$age_final & rds.combined@meta.data$age_final < 41), "trimesters"] <- "3rd"
 
 DimPlot(rds.combined, reduction = "umap", group.by = "trimesters")
-ggsave(paste0(main, rds.combined@project.name, "_trimesters.pdf"))
+ggsave(paste0(main_outs, rds.combined@project.name, "_trimesters.pdf"))
 
 
 saveRDS(rds.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
@@ -158,7 +157,7 @@ p2 <- ggplot(num_cells, aes(age, Freq, fill=sex)) +
 
 num_cells_int <- ggarrange(p1, p2, common.legend = T, legend = "bottom", nrow = 2)
 
-pdf(paste0(main, "num_samples_and_cells_integrated.pdf"), width = 10)
+pdf(paste0(main_outs, "num_samples_and_cells_integrated.pdf"), width = 10)
 print(num_cells_int)
 dev.off()
 
@@ -210,7 +209,7 @@ p2 <- ggplot(num_cells, aes(trimester, Freq, fill=sex)) +
 
 num_cells_trim <- ggarrange(p1, p2, common.legend = T, legend = "bottom", nrow = 2)
 
-pdf(paste0(main, "num_samples_and_cells_integrated_trimester.pdf"), width = 10)
+pdf(paste0(main_outs, "num_samples_and_cells_integrated_trimester.pdf"), width = 10)
 print(num_cells_trim)
 dev.off()
 
@@ -248,11 +247,11 @@ p2 <- DimPlot(rds.combined, reduction = "umap", group.by = "Cell.Type", split.by
 p3 <- DimPlot(rds.combined, reduction = "umap", group.by = "Cell.Type", split.by = "Cell.Type") 
 
 eze_clusters <- ggarrange(p1, p2, nrow = 2)
-pdf(paste0(main, "Eze_clusters_integrated.pdf"), width = 8)
+pdf(paste0(main_outs, "Eze_clusters_integrated.pdf"), width = 8)
 print(eze_clusters)
 dev.off()
 
-pdf(paste0(main, "Eze_clusters_integrated_split_ct.pdf"), width = 25)
+pdf(paste0(main_outs, "Eze_clusters_integrated_split_ct.pdf"), width = 25)
 print(p3)
 dev.off()
 
@@ -263,7 +262,7 @@ DimPlot(eze, reduction = "umap", group.by = "Cell.Type")
 
 Idents(eze) <- "Cell.Type"
 eze_markers <- FindAllMarkers(eze, assay = "RNA", logfc.threshold = 0.25, min.pct = 0.1)
-write.csv(eze_markers, paste0(main, "Eze_markers_for_annotation.csv"))
+write.csv(eze_markers, paste0(main_outs, "Eze_markers_for_annotation.csv"))
 
 # let's try to recluster nowa
 nowa <- subset(rds.combined, proj=="Nowakowski_2017")
@@ -370,7 +369,7 @@ saveRDS(rds.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat
 rds.combined <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
 DimPlot(rds.combined, reduction = "umap", group.by = "cluster_final")
 DimPlot(rds.combined, reduction = "umap", group.by = "cluster_final", split.by = "sex")
-ggsave(paste0(main, "clusters_by_sex.pdf"))
+ggsave(paste0(main_outs, "clusters_by_sex.pdf"))
 
 other_cl <- subset(rds.combined, cluster_final == "Other")
 
@@ -591,7 +590,7 @@ p.mat <- cor_pmat(avg_expr)
 
 library(ggcorrplot)
 ggcorrplot(cor_spearman, p.mat = p.mat, type = "lower", lab = T)
-ggsave(paste0(main, "Eze_Nowakowski_integrated/other_cluster_correlation_mtx.pdf"))
+ggsave(paste0(main_outs, "other_cluster_correlation_mtx.pdf"))
 
 # the only somewhat stronger correlation is between Seurat_8 and microglia, which is what we had observed previously
 
@@ -641,198 +640,166 @@ num_cells_sex_ct <- ggplot(num_cells, aes(cluster, Freq, fill=sex)) +
         legend.title = element_text(size=12, face="bold", colour = "black"),
         strip.text = element_text(size=12, face="bold", colour = "black"))
 
-pdf(paste0(main, "Eze_Nowakowski_integrated/num_cells_ct_trim_sex.pdf"))
+pdf(paste0(main_outs, "num_cells_ct_trim_sex.pdf"))
 print(num_cells_sex_ct)
 dev.off()
 
+########################
+
+rds.combined <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
+DimPlot(rds.combined, reduction = "umap", group.by = "cluster_final")
+DimPlot(rds.combined, reduction = "umap", group.by = "trimesters")
 
 
-
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
+trim_2nd <- subset(rds.combined, trimesters=="2nd")
+rm(rds.combined)
 
 
-# Modified tutorial from https://satijalab.org/seurat/articles/integration_introduction.html
-input_rds_path <-  "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC"
-input_rds_files <- list.files(path = input_rds_path, pattern = ".rds", full.names = T)[c(3,8)]
-input_rds <- lapply(input_rds_files,function(x) {
-  readRDS(file = x)
-})
-names(input_rds) <- list.files(path = input_rds_path, pattern = ".rds", full.names = F)[c(3,8)]
-names(input_rds) <- str_remove_all(names(input_rds), ".rds")
+DefaultAssay(trim_2nd) <- "integrated"
+DimHeatmap(trim_2nd, dims = 1:15, cells = 500, balanced = TRUE)
+trim_2nd <- JackStraw(trim_2nd, num.replicate = 100)
+trim_2nd <- ScoreJackStraw(trim_2nd, dims = 1:20)
+JackStrawPlot(trim_2nd, dims = 1:15)
+ElbowPlot(trim_2nd)
+trim_2nd <- FindNeighbors(trim_2nd, dims = 1:13)
+trim_2nd <- FindClusters(trim_2nd, resolution = 0.5)
+DimPlot(trim_2nd, reduction = "umap", group.by = "cluster_final")
+DimPlot(trim_2nd, reduction = "umap", group.by = "trimesters")
+saveRDS(trim_2nd, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated_2nd_trimester.rds")
 
-# normalize and identify variable features for each dataset independently
-input_rds <- lapply(X = input_rds, FUN = function(x) {
-  x <- NormalizeData(x)
-  x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
-})
+########################
 
-# select features that are repeatedly variable across datasets for integration
-features <- SelectIntegrationFeatures(object.list = input_rds)
-common.anchors <- FindIntegrationAnchors(object.list = input_rds, anchor.features = features)
+trim_2nd <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated_2nd_trimester.rds")
+trim_2nd@meta.data$sex_ct <- paste(trim_2nd@meta.data$sex, trim_2nd@meta.data$cluster_final, sep="_")
 
-# this command creates an 'integrated' data assay
-rds2.combined <- IntegrateData(anchorset = common.anchors)
+trim_2nd@project.name <- "Eze_Nowakowski_integrated_2nd_trimester"
 
-# specify that we will perform downstream analysis on the corrected data note that the
-# original unmodified data still resides in the 'RNA' assay
-DefaultAssay(rds2.combined) <- "integrated"
+num_sex_ct <- as.data.frame(table(trim_2nd$sex_ct))
+num_sex_ct <- separate(num_sex_ct, Var1, into = c("sex" , "ct"), sep = "_", remove = F)
+names(num_sex_ct)[names(num_sex_ct) == 'Var1'] <- "idents"
+names(num_sex_ct)[names(num_sex_ct) == 'Freq'] <- "count"
+col_factors <- c("idents", "sex","ct")
+num_sex_ct[col_factors] <- lapply(num_sex_ct[col_factors], as.factor)  
 
-# Run the standard workflow for visualization and clustering
-rds2.combined <- ScaleData(rds2.combined, verbose = FALSE)
-rds2.combined <- RunPCA(rds2.combined, npcs = 30, verbose = FALSE)
+FiltDF <- function(df, min_num_cells) {
+  `%!in%` <- Negate(`%in%`)
+  df <- droplevels(df)
+  incomplete_ct <- vector()
+  for (type in levels(df$ct)) {
+    if ((nrow(subset(df, subset = ct==type))%%2!=0) | (any(subset(df, subset = ct==type)[,"count"] < min_num_cells))) {
+      incomplete_ct <- c(incomplete_ct, type)
+    }
+  }
+  df_filt <- df[df$ct %!in% incomplete_ct,]
+  return(df_filt)
+}
 
-DimHeatmap(rds2.combined, dims = 1:15, cells = 500, balanced = TRUE)
+min_num_cells <- c(10,50,100)
 
-rds2.combined <- RunUMAP(rds2.combined, reduction = "pca", dims = 1:15)
-rds2.combined <- FindNeighbors(rds2.combined, reduction = "pca", dims = 1:15)
-rds2.combined <- FindClusters(rds2.combined, resolution = 0.5)
+trim_2nd_output <- paste0(main_deg, trim_2nd@project.name, "/outputs")
 
-rds2.combined@project.name <- "Nowakowski_Velmeshev_integrated"
+dir.create(trim_2nd_output, recursive = T, showWarnings = F)
 
-# Visualization
-DimPlot(rds2.combined, reduction = "umap")
-DimPlot(rds2.combined, reduction = "umap", group.by = "proj")
-ggsave(paste0(main, rds2.combined@project.name, "_proj.pdf"))
+for (min_cells in min_num_cells) {
+  num_filt <- FiltDF(num_sex_ct, min_cells)
+  write.csv(num_filt, file = paste0(trim_2nd_output, "/final_filt_", min_cells, ".csv"),
+            row.names = F)
+  pdf(paste0(trim_2nd_output, "/filt_counts_", min_cells, ".pdf"), 10, 15)
+  print(ggplot(num_sex_ct, aes(ct, count, fill=sex)) +
+          geom_bar(stat="identity", position = "dodge") + 
+          labs(x="", y="Nuclei count", fill="Sex") +
+          geom_hline(yintercept = min_cells, linetype="dashed") +
+          theme(panel.grid.major = element_blank(), 
+                panel.grid.minor = element_blank(),
+                panel.background = element_blank(), 
+                axis.line = element_line(colour = "black"),
+                axis.title.x = element_text(size=12, face="bold", colour = "black"),
+                axis.text.x = element_text(size=8, colour = "black",angle = 45, vjust = 0.5, hjust=0.5),
+                axis.ticks.x=element_blank(),
+                axis.title.y = element_text(size=12, face="bold", colour = "black"),
+                legend.position = "bottom"))
+  dev.off()
+}
 
-rds2.combined@meta.data$age_final <- coalesce(as.character(rds2.combined@meta.data$Age_in_Weeks), rds2.combined@meta.data$age)
-
-rds2.combined@meta.data$trimester <- rep("3rd", nrow(rds2.combined@meta.data))
-
-rds2.combined@meta.data[which(0 < rds2.combined@meta.data$Age_in_Weeks & rds2.combined@meta.data$Age_in_Weeks < 13), "trimester"] <- "1st"
-rds2.combined@meta.data[which(12 < rds2.combined@meta.data$Age_in_Weeks & rds2.combined@meta.data$Age_in_Weeks < 27), "trimester"] <- "2nd"
-rds2.combined@meta.data[which(26 < rds2.combined@meta.data$Age_in_Weeks & rds2.combined@meta.data$Age_in_Weeks < 41), "trimester"] <- "3rd"
-
-DimPlot(rds2.combined, reduction = "umap", group.by = "trimester", split.by = "proj")
-ggsave(paste0(main, rds2.combined@project.name, "_trimester_per_proj.pdf"))
-
-DimPlot(rds2.combined, reduction = "umap", group.by = "WGCNAcluster", split.by = "trimester")
-ggsave(paste0(main, rds2.combined@project.name, "_trimester_WGCNAcluster.pdf"))
-
-
-saveRDS(rds2.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Nowakowski_Velmeshev_3rd_trimester_integrated.rds")
-#rm(input_rds, input_rds_files, input_rds_path)
-
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
-###############################################################################################
+saveRDS(trim_2nd, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated_2nd_trimester.rds")
 
 
+############ For 02C_Conservation
 
-# Their tutorial - https://satijalab.org/seurat/articles/integration_introduction.html
-# install dataset
-InstallData("ifnb")
+trim_2nd <- readRDS(paste0(input_rds_path, "/Eze_Nowakowski_integrated_2nd_trimester.rds"))
 
-# load dataset
-LoadData("ifnb")
+Idents(trim_2nd) <- "sex_ct"
 
-# split the dataset into a list of two seurat objects (stim and CTRL)
-ifnb.list <- SplitObject(ifnb, split.by = "stim")
+expr_mat_all_cts <- GetAssayData(trim_2nd[["RNA"]], slot="data")
 
-# normalize and identify variable features for each dataset independently
-ifnb.list <- lapply(X = ifnb.list, FUN = function(x) {
-  x <- NormalizeData(x)
-  x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
-})
+cell_info <- data.frame()
+for (i in unique(trim_2nd@meta.data$sex_ct)) {
+  print(i)
+  cell_id <- WhichCells(trim_2nd, idents = i)
+  og_group <- rep(i, length(cell_id))
+  cell_info <- rbind(cell_info, data.frame(cell_id, og_group))
+}
 
-# select features that are repeatedly variable across datasets for integration
-features <- SelectIntegrationFeatures(object.list = ifnb.list)
-immune.anchors <- FindIntegrationAnchors(object.list = ifnb.list, anchor.features = features)
+write.csv(cell_info, paste0(main_deg, "cell_info.csv"))
 
-# this command creates an 'integrated' data assay
-immune.combined <- IntegrateData(anchorset = immune.anchors)
+rm(trim_2nd)
+expr_mat_all_cts <- as.data.frame(as.matrix(expr_mat_all_cts))
 
-# specify that we will perform downstream analysis on the corrected data note that the
-# original unmodified data still resides in the 'RNA' assay
-DefaultAssay(immune.combined) <- "integrated"
+df_list <- list()
+df_list_n <- vector()
+for (df_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==df_id), "cell_id"])
+  df_og_df <- expr_mat_all_cts[ , (names(expr_mat_all_cts) %in% og_cells)]
+  df_list <- append(df_list, list(df_og_df))
+  df_list_n <-  c(df_list_n, df_id)
+}
+names(df_list) <- df_list_n
 
-# Run the standard workflow for visualization and clustering
-immune.combined <- ScaleData(immune.combined, verbose = FALSE)
-immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
-immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:30)
-immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:30)
-immune.combined <- FindClusters(immune.combined, resolution = 0.5)
+FiltDf <- function(df_list_dis) {
+  filt_names <- vector()
+  df_dis <- list()
+  for (k in names(df_list_dis)) {
+    if (!is.null(ncol(df_list_dis[[k]]))) {
+      df_dis <- append(df_dis, list(rownames(df_list_dis[[k]][which(rowSums(as.matrix(df_list_dis[[k]]))!=0),])))
+      filt_names <- c(filt_names, k)
+    }
+  }
+  names(df_dis) <- filt_names
+  cts <- vector()
+  genes <- vector()
+  for (id in names(df_dis)) {
+    cts <- c(cts, rep(id, length(df_dis[[id]])))
+    genes <- c(genes, df_dis[[id]])
+  }
+  tot_genes <- data.frame(cts, genes)
+  return(tot_genes)
+}
 
-# Visualization
-p1 <- DimPlot(immune.combined, reduction = "umap", group.by = "stim")
-p2 <- DimPlot(immune.combined, reduction = "umap", label = TRUE, repel = TRUE)
-p1 + p2
+tot_df <- FiltDf(df_list)
 
-DimPlot(immune.combined, reduction = "umap", split.by = "stim")
+tot_df <- separate(tot_df, cts, into=c("sex", "ct"), sep ="_", remove = FALSE)
+colnames(tot_df)
+names(tot_df)[names(tot_df) == "cts"] <- "og"
 
-# For performing differential expression after integration, we switch back to the original
-# data
-DefaultAssay(immune.combined) <- "RNA"
-nk.markers <- FindConservedMarkers(immune.combined, ident.1 = 6, grouping.var = "stim", verbose = FALSE)
-head(nk.markers)
+col_factors <- c("og", "sex","ct")
+tot_df[col_factors] <- lapply(tot_df[col_factors], as.factor) 
 
-FeaturePlot(immune.combined, features = c("CD3D", "SELL", "CREM", "CD8A", "GNLY", "CD79A", "FCGR3A",
-                                          "CCL2", "PPBP"), min.cutoff = "q9")
+sexes <- vector()
+cts <- vector()
+genes <- vector()
+for (sex_id in levels(tot_df$sex)) {
+  for (ct_id in levels(tot_df$ct)) {
+    common_genes <- tot_df[which(tot_df$sex==sex_id & tot_df$ct==ct_id), "genes"]
+    genes <- c(genes, common_genes)
+    sexes <- c(sexes, rep(sex_id, length(common_genes)))
+    cts <- c(cts, rep(ct_id, length(common_genes)))
+  }
+}
 
+tot_genes <- as.data.frame(cbind(sexes, cts, genes))
+colnames(tot_genes) <- c("sex", "ct", "genes")
+col_factors <- c("sex", "ct")
+tot_genes[col_factors] <- lapply(tot_genes[col_factors], as.factor) 
 
-immune.combined <- RenameIdents(immune.combined, `0` = "CD14 Mono", `1` = "CD4 Naive T", `2` = "CD4 Memory T",
-                                `3` = "CD16 Mono", `4` = "B", `5` = "CD8 T", `6` = "NK", `7` = "T activated", `8` = "DC", `9` = "B Activated",
-                                `10` = "Mk", `11` = "pDC", `12` = "Eryth", `13` = "Mono/Mk Doublets", `14` = "HSPC")
-DimPlot(immune.combined, label = TRUE)
-
-Idents(immune.combined) <- factor(Idents(immune.combined), levels = c("HSPC", "Mono/Mk Doublets",
-                                                                      "pDC", "Eryth", "Mk", "DC", "CD14 Mono", "CD16 Mono", "B Activated", "B", "CD8 T", "NK", "T activated",
-                                                                      "CD4 Naive T", "CD4 Memory T"))
-markers.to.plot <- c("CD3D", "CREM", "HSPH1", "SELL", "GIMAP5", "CACYBP", "GNLY", "NKG7", "CCL5",
-                     "CD8A", "MS4A1", "CD79A", "MIR155HG", "NME1", "FCGR3A", "VMO1", "CCL2", "S100A9", "HLA-DQA1",
-                     "GPR183", "PPBP", "GNG11", "HBA2", "HBB", "TSPAN13", "IL3RA", "IGJ", "PRSS57")
-DotPlot(immune.combined, features = markers.to.plot, cols = c("blue", "red"), dot.scale = 8, split.by = "stim") +
-  RotatedAxis()
-
-library(ggplot2)
-library(cowplot)
-theme_set(theme_cowplot())
-t.cells <- subset(immune.combined, idents = "CD4 Naive T")
-Idents(t.cells) <- "stim"
-avg.t.cells <- as.data.frame(log1p(AverageExpression(t.cells, verbose = FALSE)$RNA))
-avg.t.cells$gene <- rownames(avg.t.cells)
-
-cd14.mono <- subset(immune.combined, idents = "CD14 Mono")
-Idents(cd14.mono) <- "stim"
-avg.cd14.mono <- as.data.frame(log1p(AverageExpression(cd14.mono, verbose = FALSE)$RNA))
-avg.cd14.mono$gene <- rownames(avg.cd14.mono)
-
-genes.to.label = c("ISG15", "LY6E", "IFI6", "ISG20", "MX1", "IFIT2", "IFIT1", "CXCL10", "CCL8")
-p1 <- ggplot(avg.t.cells, aes(CTRL, STIM)) + geom_point() + ggtitle("CD4 Naive T Cells")
-p1 <- LabelPoints(plot = p1, points = genes.to.label, repel = TRUE)
-p2 <- ggplot(avg.cd14.mono, aes(CTRL, STIM)) + geom_point() + ggtitle("CD14 Monocytes")
-p2 <- LabelPoints(plot = p2, points = genes.to.label, repel = TRUE)
-p1 + p2
-
-immune.combined$celltype.stim <- paste(Idents(immune.combined), immune.combined$stim, sep = "_")
-immune.combined$celltype <- Idents(immune.combined)
-Idents(immune.combined) <- "celltype.stim"
-b.interferon.response <- FindMarkers(immune.combined, ident.1 = "B_STIM", ident.2 = "B_CTRL", verbose = FALSE)
-head(b.interferon.response, n = 15)
-
-FeaturePlot(immune.combined, features = c("CD3D", "GNLY", "IFI6"), split.by = "stim", max.cutoff = 3,
-            cols = c("grey", "red"))
-
-plots <- VlnPlot(immune.combined, features = c("LYZ", "ISG15", "CXCL10"), split.by = "stim", group.by = "celltype",
-                 pt.size = 0, combine = FALSE)
-wrap_plots(plots = plots, ncol = 1)
+write.csv(tot_genes, paste0(main_deg, "tot_genes_ct.csv"))
 
