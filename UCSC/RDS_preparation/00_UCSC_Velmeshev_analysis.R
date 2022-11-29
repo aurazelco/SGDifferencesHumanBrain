@@ -48,7 +48,7 @@ ggsave(paste0(main, velm_rds@project.name, "_UMAP_cluster.pdf"))
 
 VlnPlot(velm_rds, features = "XIST", group.by = "id_sex_age") + NoLegend()
 
-# one sample is actually F and not M -> chnage that into metadata as well
+# one sample is actually F and not M -> change that into metadata as well
 
 velm_rds@meta.data[which(velm_rds@meta.data$samples=="1-1547-BA24"), "sex"] <- "Female"
 velm_rds@meta.data$sex_age <- paste(velm_rds@meta.data$sex, velm_rds@meta.data$age, sep="_")

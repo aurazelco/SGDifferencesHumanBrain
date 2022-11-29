@@ -703,25 +703,6 @@ norm_sampled <- rand_sample(norm, 3, 100, maindir, sub_disease[3])
 ad_sampled <- rand_sample(ad, 3, 100, maindir, sub_disease[1])
 ms_sampled <- rand_sample(ms, 3, 100, maindir, sub_disease[2])
 
-rand_sample_merged <- function(group_list, num_sampling, num_cells, main, dis_type) {
-  for (k in 1:num_sampling) {
-    sampled_dfs <-list()
-    sampled_names <- vector()
-    for (id in names(group_list)) {
-      if (id == names(group_list)[1]) {
-        sampled <- data.frame()
-        sampled <- sample(group_list[[id]][-1], num_cells)
-        sampled <- cbind("Genes" = group_list[[id]]$Genes, sampled)
-      } else {
-        sampled <- cbind(sampled, sample(group_list[[id]][-1], num_cells))
-      }
-    }
-    dir.create(paste0(main, dis_type, "/sampled_", num_cells, "_cells_all_cts"), showWarnings = FALSE)
-    write.csv(sampled, paste0(main, dis_type, "/sampled_", num_cells, "_cells_all_cts/", ))
-  }
-  
-  return(sampled_dfs)
-}
 
 ############ For 02C_Conservation
 

@@ -9,12 +9,17 @@ library(SeuratObject)
 library(ggpubr)
 library(S4Vectors)
 library(purrr)
+library(dplyr)
 
 
 ################################## Check randomly sampled SCENIC inputs
 
 SCENICInputSeurat <- function(main_dir, dis_type, run_v) {
-  input_dfs_path <-  paste0(main_dir, dis_type, "/0_input_dfs/sampled_100_cells_all")
+  if (dis_type) {
+    input_dfs_path <-  paste0(main_dir, dis_type, "/0_input_dfs/sampled_100_cells_all")
+  } else {
+    input_dfs_path <-  paste0(main_dir, "0_input_dfs/sampled_100_cells_all")
+  }
   input_dfs_files <- list.files(path = input_dfs_path, full.names = T)
   input_dfs <- lapply(input_dfs_files,function(x) {
     read.table(file = x, 
@@ -27,7 +32,7 @@ SCENICInputSeurat <- function(main_dir, dis_type, run_v) {
   input_dfs <- input_dfs[only_1]
   #names(input_dfs) <- str_remove_all(names(input_dfs), "_1")
   for (id in names(input_dfs)) {
-    colnames(input_dfs[[id]]) <- str_replace_all(colnames(input_dfs[[id]]), "[.]", "-")
+    #colnames(input_dfs[[id]]) <- str_replace_all(colnames(input_dfs[[id]]), "[.]", "-")
     rownames(input_dfs[[id]]) <- input_dfs[[id]]$Genes
     input_dfs[[id]]$Genes <- NULL
   #  sub_info <- subset(cell_info_df, cell_id %in% colnames(input_dfs[[id]])[-1])
@@ -85,7 +90,7 @@ SCENICSeuratPlots <- function(expr_matrix_list, metadata_id, id) {
 }
 
 # after deciding the number of PCAs to use, plots the final UMAP
-SCENICClustering <- function(main_dir, dis_type, id_seurat, cluster_num, ct_ordered, plot_flag = "no") {
+SCENICClustering <- function(main_dir, dis_type, id_seurat, cluster_num, ct_ordered, plot_flag = "no", file_out_name) {
   id_seurat <- FindNeighbors(id_seurat, dims = 1:cluster_num)
   id_seurat <- FindClusters(id_seurat, resolution = 0.5)
   # Look at cluster IDs of the first 5 cells
@@ -96,34 +101,48 @@ SCENICClustering <- function(main_dir, dis_type, id_seurat, cluster_num, ct_orde
   # note that you can set `label = TRUE` or use the LabelClusters function to help label
   # individual clusters
   if (plot_flag == "yes") {
-    SCENICUmap(main_dir, dis_type, id_seurat, ct_ordered)
+    SCENICUmap(main_dir, dis_type, id_seurat, ct_ordered, file_out_name)
   }
   return(id_seurat)
 }
 
-SCENICUmap <- function (main_dir, dis_type, id_seurat, ct_ordered) {
-  dir.create(paste0(main_dir, dis_type, "/plots/Seurat"), showWarnings = F, recursive = T)
+SCENICUmap <- function (main_dir, dis_type, id_seurat, ct_ordered, file_out_name) {
+  if (dis_type) {
+    plot_path <- paste0(main_dir, dis_type, "/plots/Seurat/")
+  } else {
+    plot_path <- paste0(main_dir, "plots/Seurat/")
+  }
   umap_id <- DimPlot(id_seurat, reduction = "umap", group.by = "ct")
   umap_order <- ct_ordered[which(ct_ordered %in% levels(umap_id$data$ct))]
   umap_id$data$ct <- factor(umap_id$data$ct, umap_order)
   umap_id$data <- umap_id$data[order(umap_id$data$ct), ]
-  pdf(paste0(main_dir, dis_type, "/plots/Seurat/UMAP_", unique(id_seurat$orig.ident), ".pdf"))
-  print(umap_id  + labs(title = unique(id_seurat$orig.ident)))
+  dir.create(plot_path, showWarnings = F, recursive = T)
+  pdf(paste0(plot_path,"UMAP_", file_out_name, ".pdf"))
+  print(umap_id  + labs(title = file_out_name))
   dev.off()
 }
 
-SCENICMarkers <- function (main_dir, dis_type, id_seurat) {
-  dir.create(paste0(main_dir, dis_type, "/4_Markers"), showWarnings = F, recursive = T)
+SCENICMarkers <- function (main_dir, dis_type, id_seurat, file_out_name) {
   Idents(id_seurat) <- "ct"
   ct_markers <- FindAllMarkers(id_seurat, 
                                     logfc.threshold = 0.25,
                                     min.pct = 0.1)
-  write.csv(ct_markers, file = paste0(main_dir, dis_type, "/4_Markers/", unique(id_seurat$orig.ident), "_markers.csv"),
+  if (dis_type) {
+    csv_path <- paste0(main_dir, dis_type, "/4_Markers/")
+  } else {
+    csv_path <- paste0(main_dir, "4_Markers/")
+  }
+  dir.create(csv_path, showWarnings = F, recursive = T)
+  write.csv(ct_markers, file = paste0(csv_path, file_out_name, "_markers.csv"),
             row.names = TRUE)
 }
 
 SCENICInputMarkers <- function(main_dir, dis_type, pval, FC) {
-  input_markers_path <-  paste0(main_dir, dis_type, "/4_Markers")
+  if (dis_type) {
+    input_markers_path <-  paste0(main_dir, dis_type, "/4_Markers/")
+  } else {
+    input_markers_path <-  paste0(main_dir, "4_Markers/")
+  }
   input_markers_files <- list.files(path = input_markers_path, full.names = T)
   input_markers <- lapply(input_markers_files,function(x) {
     read.table(file = x, 
@@ -149,7 +168,7 @@ SCENICInputMarkers <- function(main_dir, dis_type, pval, FC) {
   return(markers_v)
 }
 
-SCENICtop10genes <- function(input_markers) {
+SCENICtop10genes <- function(input_markers, dis_type) {
   top10 <- data.frame()
   for (v in names(input_markers)) {
     for (df in names(input_markers[[v]])) {
@@ -162,9 +181,15 @@ SCENICtop10genes <- function(input_markers) {
   }
   colnames(top10) <- c("og", "genes")
   for (i in 1:3) {top10$og <- str_replace(top10$og, "_", "/")}
-  top10 <- separate(top10, og, into = c("proj", "sex", "v", "ct"), sep="/", remove=F)
-  top10$files <- paste(top10$proj, top10$sex, top10$v, sep = "_")
-  col_names <- c("proj", "sex", "v", "ct")
+  if (dis_type) {
+    top10 <- separate(top10, og, into = c("proj", "sex", "v", "ct"), sep="/", remove=F)
+    top10$files <- paste(top10$proj, top10$sex, top10$v, sep = "_")
+    col_names <- c("proj", "sex", "v", "ct")
+  } else {
+    top10 <- separate(top10, og, into = c("sex", "v", "ct"), sep="/", remove=F)
+    top10$files <- paste(top10$sex, top10$v, sep = "_")
+    col_names <- c("sex", "v", "ct")
+  }
   top10[col_names] <- lapply(top10[col_names], as.factor)
   return(top10)
 }
@@ -178,7 +203,12 @@ Filter_gene <- function(order.gene.df, pval, FC) {
 }
 
 HmpSCENIC <- function(main_dir, dis_type, input_seurat, top10, ct_ordered) {
-  dir.create(paste0(main_dir, dis_type, "/plots/Seurat"), showWarnings = F, recursive = T)
+  if (dis_type) {
+    plot_path <- paste0(main_dir, dis_type, "/plots/Seurat/")
+  } else {
+    plot_path <- paste0(main_dir, "plots/Seurat/")
+  }
+  dir.create(plot_path, showWarnings = F, recursive = T)
   for (run_v in names(input_seurat)) {
     for (file in names(input_seurat[[run_v]])) {
       topgenes <-(top10[which(top10$files==file),])
@@ -189,16 +219,20 @@ HmpSCENIC <- function(main_dir, dis_type, input_seurat, top10, ct_ordered) {
       Idents(input_seurat[[run_v]][[file]]) <- "ct"
       levels(input_seurat[[run_v]][[file]]) <- hmp_top_order
       hmp_top <- DoHeatmap(input_seurat[[run_v]][[file]], features = topgenes$genes, group.by = "ident", angle = 90, size = 3)
-      pdf(paste0(main_dir, dis_type, "/plots/Seurat/hmp_top_10_", file, ".pdf"), height = 15)
+      pdf(paste0(plot_path, "hmp_top_10_", file, ".pdf"), height = 15)
       print(hmp_top  + labs(title = file))
       dev.off()
     }
   }
-  #return(hmp_top)
 }
 
 HmpSCENICAll <- function(main_dir, dis_type, input_seurat, markers, ct_ordered) {
-  dir.create(paste0(main_dir, dis_type, "/plots/Seurat"), showWarnings = F, recursive = T)
+  if (dis_type) {
+    plot_path <- paste0(main_dir, dis_type, "/plots/Seurat/")
+  } else {
+    plot_path <- paste0(main_dir, "plots/Seurat/")
+  }
+  dir.create(plot_path, showWarnings = F, recursive = T)
   for (run_v in names(input_seurat)) {
     for (file in names(input_seurat[[run_v]])) {
       file_markers <- markers[[run_v]][[file]]
@@ -209,7 +243,7 @@ HmpSCENICAll <- function(main_dir, dis_type, input_seurat, markers, ct_ordered) 
       Idents(input_seurat[[run_v]][[file]]) <- "ct"
       levels(input_seurat[[run_v]][[file]]) <- hmp_top_order
       hmp_top <- DoHeatmap(input_seurat[[run_v]][[file]], features = file_markers$gene, group.by = "ident", angle = 90, size = 3)
-      pdf(paste0(main_dir, dis_type, "/plots/Seurat/hmp_all_", file, ".pdf"), height = 15)
+      pdf(paste0(plot_path, "hmp_all_", file, ".pdf"), height = 15)
       print(hmp_top  + labs(title = file))
       dev.off()
     }
@@ -218,10 +252,14 @@ HmpSCENICAll <- function(main_dir, dis_type, input_seurat, markers, ct_ordered) 
 }
 
 SCENICresultsSeurat <- function(main_dir, dis_type, res_folder, proj_order = "no") {
-  all_path <- paste0(main_dir, dis_type, "/", res_folder, "/sampled_100_cells_all/")
+  if (dis_type) {
+    all_path <- paste0(main_dir, dis_type, "/", res_folder, "/sampled_100_cells_all/")
+    projs <- c("GSE157827", "GSE174367", "PRJNA544731")
+  } else {
+    all_path <- paste0(main_dir, res_folder, "/sampled_100_cells_all/")
+  }
   all2 <- list()
   runs <- c("_1", "_2", "_3")
-  projs <- c("GSE157827", "GSE174367", "PRJNA544731")
   if (res_folder == "1_GRN") {
     all_files <- list.files(path = all_path, pattern = "\\.tsv$",full.names = T)
     all <- lapply(all_files,function(x) {
@@ -279,7 +317,12 @@ SCENICresultsSeurat <- function(main_dir, dis_type, res_folder, proj_order = "no
 }
 
 SCENICTfTg <- function(main_dir, dis_type, scenic_all, input_seurat, ct_ordered, cutoff = "no") {
-  dir.create(paste0(main_dir, dis_type, "/plots/Seurat"), showWarnings = F, recursive = T)
+  if (dis_type) {
+    plot_path <- paste0(main_dir, dis_type, "/plots/Seurat/")
+  } else {
+    plot_path <- paste0(main_dir, "plots/Seurat/")
+  }
+  dir.create(plot_path, showWarnings = F, recursive = T)
   for (run_v in names(scenic_all)) {
     for (file in names(scenic_all[[run_v]])) {
       if (cutoff == "no") {
@@ -293,11 +336,11 @@ SCENICTfTg <- function(main_dir, dis_type, scenic_all, input_seurat, ct_ordered,
       for (k in c("TF", "target")) {
         hmp_top <- DoHeatmap(input_seurat[[run_v]][[file]], features = file_markers[, k], group.by = "ident", angle = 90, size = 3)
         if  (cutoff == "no") {
-          pdf(paste0(main_dir, dis_type, "/plots/Seurat/", k, "_hmp_all_",  file, ".pdf"), height = 15)
+          pdf(paste0(plot_path, k,"_hmp_all_",  file, ".pdf"), height = 15)
           print(hmp_top  + labs(title = file))
           dev.off()
         } else {
-          pdf(paste0(main_dir, dis_type, "/plots/Seurat/", k, "_hmp_top_", cutoff, "_", file, ".pdf"), height = 15)
+          pdf(paste0(plot_path, k, "_hmp_top_", cutoff, "_", file, ".pdf"), height = 15)
           print(hmp_top  + labs(title = file))
           dev.off()
         }
@@ -309,67 +352,105 @@ SCENICTfTg <- function(main_dir, dis_type, scenic_all, input_seurat, ct_ordered,
 
 ################################## Check regulons presence in AUCell outputs
 
-SCENICExtractRegulons <- function(aucell_out) {
-  regulons <- list()
-  for (id in names(aucell_out)) {
-    regulons_v <- lapply(aucell_out[[id]], "[", c("Regulon"))
-    regulon_ids <- vector()
-    proj_id <- vector()
-    for (id in names(regulons_v)){
-      regulon_ids <- c(regulon_ids, regulons_v[[id]][["Regulon"]])
-      proj_id <- c(proj_id, rep(id, length(regulons_v[[id]][["Regulon"]])))
+SCENICExtractRegulons <- function(aucell_out, dis_type) {
+  if (dis_type!=F) {
+    regulons <- list()
+    for (id in names(aucell_out)) {
+      regulons_v <- lapply(aucell_out[[id]], "[", c("Regulon"))
+      regulon_ids <- vector()
+      run_id <- vector()
+      for (id in names(regulons_v)){
+        regulon_ids <- c(regulon_ids, regulons_v[[id]][["Regulon"]])
+        run_id <- c(run_id, rep(id, length(regulons_v[[id]][["Regulon"]])))
+      }
+      tot_regs <- unique(regulon_ids)
+      run_id <- rep(names(regulons_v), each=length(tot_regs))
+      regulon_id <- rep(tot_regs, length(names(regulons_v)))
+      reg_df <- data.frame(run_id, regulon_id)
+      reg_df$presence <- rep("no", nrow(reg_df))
+      for (id in names(regulons_v)){
+        reg_df[which(reg_df$run_id==id & reg_df$regulon_id %in% regulons_v[[id]][["Regulon"]]),"presence"] <- "yes"
+      }
+      reg_df$presence <- factor(reg_df$presence, c("yes", "no"))
+      reg_df <- reg_df[order(reg_df$presence), ]
+      cols_df <- c("proj", "sex", "run")
+      reg_df <- separate(reg_df, run_id, into=cols_df, sep="_", remove=F)
+      reg_df[cols_df] <- lapply(reg_df[cols_df], as.factor)
+      regulons_v <- list(reg_df)
+      names(regulons_v) <- id
+      regulons <- append(regulons, regulons_v)
     }
-    tot_regs <- unique(regulon_ids)
-    proj_id <- rep(names(regulons_v), each=length(tot_regs))
-    regulon_id <- rep(tot_regs, length(names(regulons_v)))
-    reg_df <- data.frame(proj_id, regulon_id)
-    reg_df$presence <- rep("no", nrow(reg_df))
-    for (id in names(regulons_v)){
-      reg_df[which(reg_df$proj_id==id & reg_df$regulon_id %in% regulons_v[[id]][["Regulon"]]),"presence"] <- "yes"
+    names(regulons) <- names(aucell_out)
+  } else {
+    regulon_ids <- list()
+    run_id <- vector()
+    for (id_1 in names(aucell_out)) {
+      for (id_2 in names(aucell_out[[id_1]])) {
+        regulons_v <- lapply(aucell_out[[id_1]], "[", c("Regulon"))
+        regulon_ids <- append(regulon_ids, list(regulons_v[[id_2]][["Regulon"]]))
+        run_id <- c(run_id, id_2)
+      }
     }
-    reg_df$presence <- factor(reg_df$presence, c("yes", "no"))
-    reg_df <- reg_df[order(reg_df$presence), ]
-    reg_df <- separate(reg_df, proj_id, into=c("proj", "sex", "run"), sep="_", remove=F)
-    #reg_df$pres_sex <- paste(reg_df$sex, reg_df$presence, sep="_")
-    #reg_df[c("proj", "sex", "run", "pres_sex")] <- lapply(reg_df[c("proj", "sex", "run", "pres_sex")], as.factor)
-    reg_df[c("proj", "sex", "run")] <- lapply(reg_df[c("proj", "sex", "run")], as.factor)
-    regulons_v <- list(reg_df)
-    names(regulons_v) <- id
-    regulons <- append(regulons, regulons_v)
+    names(regulon_ids) <- run_id
+    tot_regs <- unique(unlist(regulon_ids))
+    run_id <- rep(run_id, each=length(tot_regs))
+    regulon_id <- rep(tot_regs, length(run_id))
+    regulons <- data.frame(run_id, regulon_id)
+    regulons$presence <- rep("no", nrow(regulons))
+    for (id in unique(regulons$run_id)){
+      regulons[which(regulons$run_id==id & regulons$regulon_id %in% regulon_ids[[id]]),"presence"] <- "yes"
+    }
+    regulons$presence <- factor(regulons$presence, c("yes", "no"))
+    regulons <- regulons[order(regulons$presence), ]
+    cols_df <- c("sex", "run")
+    regulons <- separate(regulons, run_id, into=cols_df, sep="_", remove=F)
+    regulons[cols_df] <- lapply(regulons[cols_df], as.factor)
   }
-  names(regulons) <- names(aucell_out)
   return(regulons)
 }
 
 SCENICPlotRegulons <- function(main_dir, dis_type, regulons) {
-  dir.create(paste0(main_dir, dis_type, "/plots/Regulons"), showWarnings = F, recursive = T)
-  for (id in names(regulons)) {
-    pdf(paste0(main_dir, dis_type, "/plots/Regulons/", id, "_hmp_regulons.pdf"))
-    print(
-      ggplot(regulons[[id]], aes(run, factor(regulon_id, levels = rev(levels(factor(regulon_id)))), fill=presence)) +
-        geom_tile(color="#D3D3D3") +
-        coord_fixed() +
-        facet_wrap(~sex) +
-        labs(x="Runs", y="Regulons", fill="Regulon found", title=id) +
-        theme(panel.grid.major = element_blank(), 
-              panel.grid.minor = element_blank(),
-              panel.background = element_blank(), 
-              panel.spacing.x=unit(0, "lines"),
-              plot.title = element_text(size=12, face="bold", colour = "black"),
-              axis.line = element_line(colour = "black"),
-              axis.title.x = element_text(size=12, face="bold", colour = "black"),
-              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
-              axis.ticks.x=element_blank(),
-              axis.title.y = element_text(size=12, face="bold", colour = "black"),
-              legend.position = "right", 
-              legend.title = element_text(size=12, face="bold", colour = "black"))
-    )
+  if (dis_type) {
+    plot_path <- paste0(main_dir, dis_type, "/plots/Regulons/")
+    dir.create(plot_path, showWarnings = F, recursive = T)
+    for (id in names(regulons)) {
+      regplot <- RegulonsPlot(regulons[[id]], id)
+      pdf(paste0(plot_path, id, "_hmp_regulons.pdf"))
+      print(regplot)
+      dev.off()
+    }
+  } else {
+    plot_path <- paste0(main_dir, "plots/Regulons/")
+    dir.create(plot_path, showWarnings = F, recursive = T)
+    regplot <- RegulonsPlot(regulons, "")
+    pdf(paste0(plot_path, "hmp_regulons.pdf"))
+    print(regplot)
     dev.off()
   }
 }
 
-################################## Check output from individual cts and all
+RegulonsPlot <- function(reg_data, id) {
+  regplot <- ggplot(reg_data, aes(run, factor(regulon_id, levels = rev(levels(factor(regulon_id)))), fill=presence)) +
+    geom_tile(color="#D3D3D3") +
+    coord_fixed() +
+    facet_wrap(~sex) +
+    labs(x="Runs", y="Regulons", fill="Regulon found", title=id) +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          panel.spacing.x=unit(0, "lines"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.x = element_text(size=12, face="bold", colour = "black"),
+          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
+          axis.ticks.x=element_blank(),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          legend.position = "right", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+  return(regplot)
+}
 
+################################## Check output from individual cts and all
 
 SCENICct <- function(main_dir, dis_type) {
   ct_path <- paste0(main_dir, dis_type, "/1_GRN/sampled_100_cells/")
@@ -502,7 +583,6 @@ PlotOverlapRuns <- function(main_dir, dis_type, sort_list, top_list, ct_list) {
 }
 
 ################################## Check overlap with scGRNom
-
 
 PlotscGRNomOverlap <- function(main_dir, dis_type, sort_list, top_scGRNom, ct_scGRNom, flag) {
   dir.create(paste0(main_dir, dis_type, "/plots/scGRNom"), showWarnings = F, recursive = T)
@@ -806,54 +886,97 @@ PlotTfTg <- function(main_dir, dis_type, all_sort, input_dfs, ct_ordered, top_TF
 
 ################################## Check number of TF-TG pairs between M and F within the same project
 
-SCENICAddTFTG <- function(all_grn) {
-  for (proj_id in names(all_grn)) {
-    for (run in names(all_grn[[proj_id]])) {
-      all_grn[[proj_id]][[run]]$pairs <- paste(all_grn[[proj_id]][[run]]$TF,  all_grn[[proj_id]][[run]]$target, sep="_")
+SCENICAddTFTG <- function(all_grn, dis_type) {
+  if (dis_type) {
+    for (proj_id in names(all_grn)) {
+      for (run in names(all_grn[[proj_id]])) {
+        all_grn[[proj_id]][[run]]$pairs <- paste(all_grn[[proj_id]][[run]]$TF,  all_grn[[proj_id]][[run]]$target, sep="_")
+      }
+    }
+  } else {
+    for (run in names(all_grn)) {
+      for (sex in names(all_grn[[run]])) {
+        all_grn[[run]][[sex]]$pairs <- paste(all_grn[[run]][[sex]]$TF,  all_grn[[run]][[sex]]$target, sep="_")
+      }
     }
   }
   return(all_grn)
 }
 
-SCENICOverlapTfTg <-  function(all_grn) {
-  all_grn <- SCENICAddTFTG(all_grn)
+SCENICOverlapTfTg <-  function(all_grn, dis_type) {
+  all_grn <- SCENICAddTFTG(all_grn, dis_type)
   id <- vector()
   overlap <- vector()
   count <- vector()
-  sexes <- c("_F_", "_M_")
+  if (dis_type) {
+    sexes <- c("_F_", "_M_")
+  } else {
+    sexes <- c("F_", "M_")
+    all_grn <- unlist(all_grn, recursive = F)
+  }
   for (sex in sexes) {
-    for (proj_id in names(all_grn)) {
-      only_1 <- names(all_grn[[proj_id]])[which(grepl(sex, names(all_grn[[proj_id]])))]
-      sex_proj <- all_grn[[proj_id]][only_1]
-      common_pairs <- sapply(sex_proj, "[", c("pairs"))
+    if (dis_type) {
+      for (proj_id in names(all_grn)) {
+        only_1 <- names(all_grn[[proj_id]])[which(grepl(sex, names(all_grn[[proj_id]])))]
+        sex_proj <- all_grn[[proj_id]][only_1]
+        common_pairs <- sapply(sex_proj, "[", c("pairs"))
+        common_pairs <- unique(unlist(common_pairs))
+        other_sex <- sexes[which(sexes!=sex)]
+        other_sex_proj <- names(all_grn[[proj_id]])[which(grepl(other_sex, names(all_grn[[proj_id]])))]
+        other_sex_proj <- all_grn[[proj_id]][other_sex_proj]
+        sex_pairs <- sapply(other_sex_proj, "[[", c("pairs"))
+        sex_pairs[[sex]] <- common_pairs 
+        sex_pairs <- as.data.frame(t(table(unlist(sex_pairs))))
+        sex_pairs[,1] <- NULL
+        colnames(sex_pairs) <- c("pairs", "count")
+        for (k in 1:length(unique(sex_pairs$count))) {
+          id <- c(id, paste0(proj_id,stri_replace_last_fixed(sex, "_", "")))
+          overlap <- c(overlap, k-1)
+          count <- c(count, sum(sex_pairs$count==k))
+        }
+      }  
+      tot_k <- length(unique(sex_pairs$count)) - 1
+    } else {
+      only_1 <- names(all_grn)[which(grepl(sex, names(all_grn)))]
+      sex_df <- all_grn[only_1]
+      common_pairs <- sapply(sex_df, "[", c("pairs"))
       common_pairs <- unique(unlist(common_pairs))
       other_sex <- sexes[which(sexes!=sex)]
-      other_sex_proj <- names(all_grn[[proj_id]])[which(grepl(other_sex, names(all_grn[[proj_id]])))]
-      other_sex_proj <- all_grn[[proj_id]][other_sex_proj]
-      sex_pairs <- sapply(other_sex_proj, "[[", c("pairs"))
+      other_sex_df <- names(all_grn)[which(grepl(other_sex, names(all_grn)))]
+      other_sex_df <- all_grn[other_sex_df]
+      sex_pairs <- sapply(other_sex_df, "[", c("pairs"))
       sex_pairs[[sex]] <- common_pairs 
       sex_pairs <- as.data.frame(t(table(unlist(sex_pairs))))
       sex_pairs[,1] <- NULL
       colnames(sex_pairs) <- c("pairs", "count")
       for (k in 1:length(unique(sex_pairs$count))) {
-        id <- c(id, paste0(proj_id,stri_replace_last_fixed(sex, "_", "")))
+        id <- c(id, str_replace_all(sex, "_", ""))
         overlap <- c(overlap, k-1)
         count <- c(count, sum(sex_pairs$count==k))
       }
-    }  
-  tot_k <- length(unique(sex_pairs$count)) - 1
+    tot_k <- length(unique(sex_pairs$count)) - 1
+    }
   }
   df_counts <- data.frame(id, overlap, count)
   df_counts[which(df_counts$overlap==0), "overlap"] <- "None"
-  df_counts <- separate(df_counts, id, into=c("proj", "sex"), remove = F, sep="_")
-  df_counts[c("id", "proj", "sex", "overlap")] <- lapply(df_counts[c("id", "proj", "sex", "overlap")], as.factor)
+  if (dis_type) {
+    df_counts <- separate(df_counts, id, into=c("proj", "sex"), remove = F, sep="_")
+    df_counts[c("id", "proj", "sex", "overlap")] <- lapply(df_counts[c("id", "proj", "sex", "overlap")], as.factor)
+  } else {
+    df_counts[c("id", "overlap")] <- lapply(df_counts[c("id", "overlap")], as.factor)
+  }
   df_counts$overlap <- factor(df_counts$overlap, c("None", seq(1,tot_k)))
   return(df_counts)
 }
 
 
 SCENICPlotOverlapTfTg <- function(main_dir, dis_type, df_counts) {
-  dir.create(paste0(main_dir, dis_type, "/plots/TF_TG"), showWarnings = F, recursive = T)
+  if (dis_type) {
+    plot_path <- paste0(main_dir, dis_type, "/plots/TF_TG/")
+  } else {
+    plot_path <- paste0(main_dir, "plots/TF_TG/")
+  }
+  dir.create(plot_path, showWarnings = F, recursive = T)
   p_dodge <- ggplot(df_counts, aes(id, count, fill=overlap)) +
     geom_bar(stat = "identity", position = "dodge") +
     labs(x="Reference TF-TG pairs", y="Counts of TF-TG pairs", fill="Overlap") +
@@ -883,7 +1006,7 @@ SCENICPlotOverlapTfTg <- function(main_dir, dis_type, df_counts) {
           legend.position = "right", 
           legend.title = element_text(size=12, face="bold", colour = "black"))
   TfTgplots <- ggarrange(p_dodge, p_fill, common.legend = T, legend = "bottom")
-  pdf(paste0(main_dir, dis_type, "/plots/TF_TG/pairs_overlap_among sexes.pdf"))
+  pdf(paste0(plot_path, "pairs_overlap_among sexes.pdf"))
   print(TfTgplots)
   dev.off()
 }

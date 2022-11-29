@@ -37,7 +37,7 @@ Annot.chr.name <- function(gene.list){
   library("biomaRt")
   require(biomaRt)
   # define biomart object
-  mart <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl",mirror = "uswest")
+  mart <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", mirror = "uswest")
   Annot_idf <- getBM(attributes = c("hgnc_symbol",
                                     "chromosome_name",
                                     "description"),
@@ -52,7 +52,7 @@ Annot.chr.name <- function(gene.list){
 
 # 3. Map genes from intersected genes against chromosome - Pattama
 map_chr <- function(RRA_df,Annot_df){
-  map_chr_df <- merge(RRA_df,Annot_df, by.x= "Gene", by.y= "hgnc_symbol")
+  map_chr_df <- merge(RRA_df, Annot_df, by.x= "Gene", by.y= "hgnc_symbol")
   return(map_chr_df)
 }
 
@@ -150,16 +150,19 @@ ProcessCt <- function(main_dir, ext, row_col) {
   names_M <- vector()
   for (ct in 1:length(sub_ct)) {
     deg <- ImportDE(paste(path, sub_ct[ct], sep="/"))
+    deg_filt <- list()
     for (k in 1:length(deg)) {
-      colnames(deg[[k]]) <- c("Gene")
+      df_filt <- as.data.frame(rownames(deg[[k]]))
+      colnames(df_filt) <- c("Gene")
+      deg_filt <- append(deg_filt, list(df_filt))
     }
-    names(deg) <- lapply(1:length(names(deg)), function(i) str_replace(names(deg)[i], "_filt", ""))
-    for (i in names(deg)) {
+    names(deg_filt) <- lapply(1:length(names(deg)), function(i) str_replace(names(deg)[i], "_filt", ""))
+    for (i in names(deg_filt)) {
       if (grepl("F", i, fixed=TRUE)){
-        df_F <- append(df_F, list(deg[[i]]))
+        df_F <- append(df_F, list(deg_filt[[i]]))
         names_F <- c(names_F, sub_ct[ct])
       } else {
-        df_M <- append(df_M, list(deg[[i]]))
+        df_M <- append(df_M, list(deg_filt[[i]]))
         names_M <- c(names_M, sub_ct[ct])
       }
     }
@@ -184,8 +187,6 @@ ProcessCt <- function(main_dir, ext, row_col) {
   output_path <- paste(main_dir, "01C_num_chr", sep="/")
   num_chrF <- num_chr_order(chr_F, output_path, "F")
   num_chrM <- num_chr_order(chr_M, output_path, "M")
-  #num_chr_list <- list(num_chrF, num_chrM)
-  #names(num_chr_list) <- c("F", "M")
   return(list("F" = chr_F, "M" = chr_M))
 }
 

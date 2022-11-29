@@ -78,7 +78,7 @@ num_chr_genes <- list("X" = X_chr_genes, "Y" = Y_chr_genes, "Autosome" = (tot_ge
 chr_2nd_trim <- ProcessCt(main)
 PlotGeneralHeatmap(main, chr_2nd_trim, ct_order)
 PlotSexHmp(main, chr_2nd_trim, ct_order)
-#PlotNumChr(main, sub_disease[3], num_chr_genes, ct_order)
+PlotNumChr(main, num_chr_genes, ct_order)
 
 ####### 01D_Xpar1,2.R
 
@@ -95,12 +95,10 @@ XparCt(main, Xpar1_list, Xpar2_list, ct_order)
 
 ####### 02A_Fisher.R
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/scripts/DEGs/02A_Fisher_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs/02A_Fisher_func.R")
 
 SexChr2(main, tot_genes, X_chr_genes, Y_chr_genes)
 PlotNumChr(main, num_chr_genes, ct_order, T)
-
-
 
 ####### 02B_ARE_ERE.R
 

@@ -10,9 +10,11 @@ library(dplyr)
 library(scales)
 library(readxl)
 library(matrixStats)
+`%!in%` <- Negate(`%in%`)
 
 main_outs <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Eze_Nowakowski_integrated/"
 main_deg <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/Eze_Nowakowski_integrated_2nd_trimester/"
+main_scenic <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/SCENIC/Eze_Nowakowski_integrated_2nd_trimester/"
 input_rds_path <-  "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC"
 
 ####### Modified tutorial from https://satijalab.org/seurat/articles/integration_introduction.html
@@ -721,7 +723,7 @@ for (min_cells in min_num_cells) {
   dev.off()
 }
 
-saveRDS(trim_2nd, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated_2nd_trimester.rds")
+saveRDS(trim_2nd, paste0(input_rds_path, "/Eze_Nowakowski_integrated_2nd_trimester.rds"))
 
 
 ############ For 02C_Conservation
@@ -802,4 +804,228 @@ col_factors <- c("sex", "ct")
 tot_genes[col_factors] <- lapply(tot_genes[col_factors], as.factor) 
 
 write.csv(tot_genes, paste0(main_deg, "tot_genes_ct.csv"))
+
+############ For SCENIC - HIGHEST VARIABLE GENES
+
+trim_2nd <- readRDS(paste0(input_rds_path, "/Eze_Nowakowski_integrated_2nd_trimester.rds"))
+
+trim_2nd@meta.data$sample_id <- rownames(trim_2nd@meta.data)
+
+trim_2nd@meta.data$sex_ct_sample <- paste(trim_2nd@meta.data$sex_ct, trim_2nd@meta.data$sample_id, sep="_")
+
+Idents(trim_2nd) <- "sex_ct_sample"
+
+expr_mat_all <- GetAssayData(trim_2nd[["RNA"]], slot="data")
+
+cell_info <- read.csv(paste0(main_deg, "cell_info.csv"))
+cell_info$X <- NULL
+
+saveRDS(trim_2nd, paste0(input_rds_path, "/Eze_Nowakowski_integrated_2nd_trimester.rds"))
+
+rm(trim_2nd)
+
+expr_mat_all <- as.data.frame(as.matrix(expr_mat_all))
+expr_mat_all$SD <- rowSds(as.matrix(expr_mat_all))
+expr_mat_all <- expr_mat_all[which(expr_mat_all$SD > 0), ]
+
+if (nrow(expr_mat_all) * 0.25 > 2000) {
+  expr_mat_all <- expr_mat_all[which(expr_mat_all$SD > quantile(expr_mat_all$SD)[4]), ]
+} else {
+  print(" less than 2k genes above third quantile")
+}
+
+# order df in descending order
+expr_mat_all <- expr_mat_all[order(-expr_mat_all$SD),] 
+expr_mat_all <- expr_mat_all[1:2000, ]
+expr_mat_all <- cbind("Genes" = rownames(expr_mat_all), expr_mat_all)
+rownames(expr_mat_all) <- NULL
+
+expr_sums <- colSums(expr_mat_all[2:ncol(expr_mat_all)])
+if (identical(length(which(expr_sums>0)), length(expr_sums))) {
+  print("all columns express at least one gene")
+} else {
+  expr_mat_all <- expr_mat_all[ , !(names(expr_mat_all) %in% which(expr_sums>0))]
+  print("calculate how many cells have been filtered out")
+}
+
+expr_mat_all <- expr_mat_all %>% 
+  relocate(SD, .after = Genes)
+
+dir.create(main_scenic, showWarnings = F, recursive = T)
+
+saveRDS(expr_mat_all, paste0(main_scenic, "top_2000_SD_expr_matrix.rds"))
+
+##### Map the samples back to the groups they belong to
+
+expr_mat_all <- readRDS(paste0(main_scenic, "top_2000_SD_expr_matrix.rds"))
+
+group_list <- list()
+group_list_n <- vector()
+for (group_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==group_id), "cell_id"])
+  df_og_group <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  group_list <- append(group_list, list(df_og_group))
+  group_list_n <-  c(group_list_n, group_id)
+}
+names(group_list) <- group_list_n
+
+remove_dfs <- function(df_list, threshold) {
+  incomplete_dfs <- vector()
+  for (group_id in names(df_list)) {
+    if (ncol(df_list[[group_id]]) < (threshold + 1)) {
+      incomplete_dfs <- c(incomplete_dfs, group_id)
+    }
+  }
+  add_counterpart <- vector()
+  for (i in incomplete_dfs) {
+    if (grepl("F", i)) {
+      m_id <- str_replace(i, "F", "M")
+      if (m_id %!in% incomplete_dfs) {
+        add_counterpart <- c(add_counterpart, m_id)
+      }
+    } else {
+      f_id <- str_replace(i, "M", "F")
+      if (f_id %!in% incomplete_dfs) {
+        add_counterpart <- c(add_counterpart, f_id)
+      }
+    }
+  }
+  incomplete_dfs <- c(incomplete_dfs, add_counterpart)
+  for (i in incomplete_dfs) {
+    df_list[[i]] <- NULL
+  }
+  return(df_list)
+}
+
+group_list100 <- remove_dfs(group_list, 100)
+group_list500 <- remove_dfs(group_list, 500)
+
+plot_group_numbers <- function(df_list, thresh) {
+  ids <- as.data.frame(names(df_list))
+  colnames(ids) <- c("groups")
+  ids <- separate(ids, groups, into = c("sex","ct"), sep="_", remove=FALSE)
+  col_factors <- c("sex","ct")
+  ids[col_factors] <- lapply(ids[col_factors], as.factor)  
+  ids$length_groups <- sapply(1:length(names(df_list)), function(i) ncol(df_list[[i]]))
+  pdf(paste0(main_scenic, "num_filt_", thresh, "_cells.pdf"))
+  print(
+    ggplot(ids, aes(ct, length_groups, fill=sex)) +
+      geom_bar(stat="identity", position = "dodge") + 
+      geom_hline(yintercept = thresh, linetype="dashed", color = "black") +
+      labs(title = paste0("Filter: ", thresh, " cells"), x="cell types", y="# of cells", fill="sex") +
+      theme(panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(),
+            panel.background = element_blank(), 
+            axis.line = element_line(colour = "black"),
+            axis.title.x = element_text(size=12, face="bold", colour = "black"),
+            axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.5, hjust=0.5),
+            axis.ticks.x=element_blank(),
+            axis.title.y = element_text(size=12, face="bold", colour = "black"),
+            legend.title = element_text(size=12, face="bold", colour = "black"),
+            legend.position = "bottom",
+            plot.title = element_text(size=12, face="bold", colour = "black"))
+  )
+  dev.off()
+}
+plot_group_numbers(group_list100, 100)
+plot_group_numbers(group_list500, 500)
+
+###### Create Randomly sampled dfs
+
+expr_mat_all <- readRDS(paste0(main_scenic, "top_2000_SD_expr_matrix.rds"))
+cell_info <- read.csv(paste0(main_deg, "cell_info.csv"))
+cell_info$X <- NULL
+
+remove_dfs <- function(df_list, threshold) {
+  incomplete_dfs <- vector()
+  for (group_id in names(df_list)) {
+    if (ncol(df_list[[group_id]]) < (threshold + 1)) {
+      incomplete_dfs <- c(incomplete_dfs, group_id)
+    }
+  }
+  add_counterpart <- vector()
+  for (i in incomplete_dfs) {
+    if (grepl("F", i)) {
+      m_id <- str_replace(i, "F", "M")
+      if (m_id %!in% incomplete_dfs) {
+        add_counterpart <- c(add_counterpart, m_id)
+      }
+    } else {
+      f_id <- str_replace(i, "M", "F")
+      if (f_id %!in% incomplete_dfs) {
+        add_counterpart <- c(add_counterpart, f_id)
+      }
+    }
+  }
+  incomplete_dfs <- c(incomplete_dfs, add_counterpart)
+  for (i in incomplete_dfs) {
+    df_list[[i]] <- NULL
+  }
+  return(df_list)
+}
+
+df_list <- list()
+df_list_n <- vector()
+for (df_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==df_id), "cell_id"])
+  df_og_df <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  df_list <- append(df_list, list(df_og_df))
+  df_list_n <-  c(df_list_n, df_id)
+}
+names(df_list) <- df_list_n
+
+df_list100 <- df_list
+df_list100 <- remove_dfs(df_list100, 100)
+
+check_dfs <- function(group_list) {
+  remove_groups <- vector()
+  if (length(group_list) %% 2 != 0 ) {
+    f_list <- vector()
+    m_list <- vector()
+    for (i in names(group_list)) {
+      if (grepl("F", i)) {
+        gen <- str_remove(i, "F_")
+        f_list <- c(f_list, gen)
+      } else {
+        gen <- str_remove(i, "M_")
+        m_list <- c(m_list, gen)
+      }
+    }
+    if (identical(m_list, f_list) == FALSE) {
+      if (length(m_list) > length(f_list)) {
+        remove_groups <- c(m_list[which(m_list %!in% f_list)], "M")
+      } else {
+        remove_groups <- c(f_list[which(f_list %!in% m_list)], "F")
+      }
+    }
+  }
+  return(remove_groups)
+}
+
+check_dfs(df_list100)
+
+rand_sample <- function(group_list, num_sampling, num_cells, main) {
+  sampled_dfs <-list()
+  sampled_names <- vector()
+  for (id in names(group_list)) {
+    for (k in 1:num_sampling) {
+      sampled <- data.frame()
+      sampled <- sample(group_list[[id]][-1], num_cells)
+      sampled <- cbind("Genes" = group_list[[id]]$Genes, sampled)
+      sampled_dfs <- append(sampled_dfs, list(sampled))
+      sampled_names <- c(sampled_names, paste(id, k, sep="_"))
+    }
+  }
+  names(sampled_dfs) <- lapply(1:length(sampled_names), function(i) str_replace_all(sampled_names[i]," ", "-"))
+  dir.create(paste0(main, "sampled_", num_cells, "_cells"), showWarnings = FALSE)
+  lapply(1:length(names(sampled_dfs)), function(i) write.csv(sampled_dfs[[i]], 
+                                                            file = paste0(main, "sampled_", num_cells, "_cells/", names(sampled_dfs)[i], ".csv"),
+                                                            row.names = FALSE))
+  return(sampled_dfs)
+}
+
+
+df_100_sampled <- rand_sample(df_list100, 3, 100, main_scenic)
+
+
 

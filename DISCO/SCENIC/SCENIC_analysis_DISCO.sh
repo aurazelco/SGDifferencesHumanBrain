@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # sets the flags for the arguments in the script
-while getopts i:g:c:e: flag
+while getopts i:g:c:a:e: flag
 do
     case "${flag}" in
         # where the original CSV files are
@@ -10,6 +10,8 @@ do
         g) grn=${OPTARG};;
         # where to save the CTX outputs
         c) ctx=${OPTARG};;
+        # where to save the AUCell outputs
+        a) auc=${OPTARG};;
         # where the extra files are located
         e) extra=${OPTARG};;
     esac
@@ -35,5 +37,9 @@ for i in $input_directory*.csv; do
   pyscenic grn --num_workers 20 --output $grn_out --method grnboost2 $i $extra_hs -t
   # runs CTX on the output from GRNBoost2; -t is because the raw CSV file is transposed
   pyscenic ctx $grn_out $extra_genome --annotations_fname $extra_motif --expression_mtx_fname $i --mode "dask_multiprocessing" --output $ctx_out --num_workers 20 --mask_dropouts -t
+  auc_out="$auc$id".csv
+  # runs AUCell on the file and saves it in the AUCell output directory; -t is because the CSV file is transposed
+  # respect to what SCENIC wants
+  pyscenic aucell $i $ctx_out --output $auc_out  --num_workers 20 -t
 done
 
