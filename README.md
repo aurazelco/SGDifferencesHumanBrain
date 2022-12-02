@@ -12,6 +12,7 @@
     * [Datasets source](#datasets-source)
       * [Eze - Nowakowski](#eze---nowakowski)
       * [Velmeshev](#velmeshev)
+    * [DEGs analysis on UCSC datasets](#degs-analysis-on-ucsc-datasets)
     * [Gene Regulatory Network Analysis - SCENIC](#gene-regulatory-network-analysis---scenic)
 * [THESIS DRAFT](#thesis-draft)
 
