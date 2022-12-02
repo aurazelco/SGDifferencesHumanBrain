@@ -460,7 +460,7 @@ cell_info$cell_id <- paste(cell_info$barcode, cell_info$sample, sep = "--")
 cell_info <- cell_info %>% 
   relocate(cell_id, .before = barcode)
 
-expr_mat_all <- readRDS(paste0(disco_path, "2SCENIC/top_2000_SD_expr_matrix.rds"))
+expr_mat_all <- readRDS(paste0(disco_path, "SCENIC/top_2000_SD_expr_matrix.rds"))
 
 group_list <- list()
 group_list_n <- vector()

@@ -4,6 +4,10 @@ library(data.table)
 library(stringr)
 library(tidyr)
 library(ggplot2)
+library(matrixStats)
+library(dplyr)
+`%!in%` <- Negate(`%in%`)
+
 
 out_path <- "/Home/ii/auraz/data/UCSC"
 
@@ -148,17 +152,370 @@ dev.off()
 
 saveRDS(velm_2nd_trim, paste0(rds_path, velm_2nd_trim@project.name, ".rds"))
 
-################
+################ FOR DEGs ANALYSIS
 
 velm_2nd_trim <- readRDS(paste0(rds_path, "Velmeshev_2022_2nd_trimester.rds"))
 
 velm_2nd_trim@meta.data$sex_ct <- paste(velm_2nd_trim@meta.data$sex, velm_2nd_trim@meta.data$cluster_final, sep="_")
 
-velm_num_sex_ct <- as.data.frame(table(velm_2nd_trim$sex_ct))
-velm_num_sex_ct <- separate(velm_num_sex_ct, Var1, into=c("sex", "ct"), sep="_")
-velm_num_sex_ct <- cbind("proj" = rep(velm_2nd_trim@project.name, nrow(velm_num_sex_ct)), velm_num_sex_ct)
+num_sex_ct <- as.data.frame(table(velm_2nd_trim$sex_ct))
+num_sex_ct <- separate(num_sex_ct, Var1, into = c("sex" , "ct"), sep = "_", remove = F)
+names(num_sex_ct)[names(num_sex_ct) == 'Var1'] <- "idents"
+names(num_sex_ct)[names(num_sex_ct) == 'Freq'] <- "count"
+col_factors <- c("idents", "sex","ct")
+num_sex_ct[col_factors] <- lapply(num_sex_ct[col_factors], as.factor)  
 
-write.csv(velm_num_sex_ct, paste0(output_2nd_trim, velm_2nd_trim@project.name, "_num_sex_ct_per_age.csv"))
+FiltDF <- function(df, min_num_cells) {
+  `%!in%` <- Negate(`%in%`)
+  df <- droplevels(df)
+  incomplete_ct <- vector()
+  for (type in levels(df$ct)) {
+    if ((nrow(subset(df, subset = ct==type))%%2!=0) | (any(subset(df, subset = ct==type)[,"count"] < min_num_cells))) {
+      incomplete_ct <- c(incomplete_ct, type)
+    }
+  }
+  df_filt <- df[df$ct %!in% incomplete_ct,]
+  return(df_filt)
+}
+
+min_num_cells <- c(10,50,100)
+
+main_deg <- "/Home/ii/auraz/data/UCSC/outputs/DEGs/"
+
+velm_2nd_trim_output <- paste0(main_deg, velm_2nd_trim@project.name, "/outputs/")
+
+dir.create(velm_2nd_trim_output, recursive = T, showWarnings = F)
+
+for (min_cells in min_num_cells) {
+  num_filt <- FiltDF(num_sex_ct, min_cells)
+  write.csv(num_filt, file = paste0(velm_2nd_trim_output, "final_filt_", min_cells, ".csv"),
+            row.names = F)
+  pdf(paste0(velm_2nd_trim_output, "filt_counts_", min_cells, ".pdf"), 10, 15)
+  print(ggplot(num_sex_ct, aes(ct, count, fill=sex)) +
+          geom_bar(stat="identity", position = "dodge") + 
+          labs(x="", y="Nuclei count", fill="Sex") +
+          geom_hline(yintercept = min_cells, linetype="dashed") +
+          theme(panel.grid.major = element_blank(), 
+                panel.grid.minor = element_blank(),
+                panel.background = element_blank(), 
+                axis.line = element_line(colour = "black"),
+                axis.title.x = element_text(size=12, face="bold", colour = "black"),
+                axis.text.x = element_text(size=8, colour = "black",angle = 45, vjust = 0.5, hjust=0.5),
+                axis.ticks.x=element_blank(),
+                axis.title.y = element_text(size=12, face="bold", colour = "black"),
+                legend.position = "bottom"))
+  dev.off()
+}
+
+saveRDS(velm_2nd_trim, paste0(rds_path, velm_2nd_trim@project.name, ".rds"))
+
+
+############ For 02C_Conservation
+
+velm_2nd_trim <- readRDS(paste0(rds_path, "Velmeshev_2022_2nd_trimester.rds"))
+
+Idents(velm_2nd_trim) <- "sex_ct"
+
+expr_mat_all <- GetAssayData(velm_2nd_trim[["RNA"]], slot="data")
+
+cell_info <- data.frame()
+for (i in unique(velm_2nd_trim@meta.data$sex_ct)) {
+  print(i)
+  cell_id <- WhichCells(velm_2nd_trim, idents = i)
+  og_group <- rep(i, length(cell_id))
+  cell_info <- rbind(cell_info, data.frame(cell_id, og_group))
+}
+
+write.csv(cell_info, paste0(main_deg, velm_2nd_trim@project.name, "/cell_info_", velm_2nd_trim@project.name,   ".csv"))
+
+rm(velm_2nd_trim)
+expr_mat_all <- as.data.frame(as.matrix(expr_mat_all))
+
+df_list <- list()
+df_list_n <- vector()
+for (df_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==df_id), "cell_id"])
+  df_og_df <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  df_list <- append(df_list, list(df_og_df))
+  df_list_n <-  c(df_list_n, df_id)
+}
+names(df_list) <- df_list_n
+
+FiltDf <- function(df_list_dis) {
+  filt_names <- vector()
+  df_dis <- list()
+  for (k in names(df_list_dis)) {
+    if (!is.null(ncol(df_list_dis[[k]]))) {
+      df_dis <- append(df_dis, list(rownames(df_list_dis[[k]][which(rowSums(as.matrix(df_list_dis[[k]]))!=0),])))
+      filt_names <- c(filt_names, k)
+    }
+  }
+  names(df_dis) <- filt_names
+  cts <- vector()
+  genes <- vector()
+  for (id in names(df_dis)) {
+    cts <- c(cts, rep(id, length(df_dis[[id]])))
+    genes <- c(genes, df_dis[[id]])
+  }
+  tot_genes <- data.frame(cts, genes)
+  return(tot_genes)
+}
+
+tot_df <- FiltDf(df_list)
+
+tot_df <- separate(tot_df, cts, into=c("sex", "ct"), sep ="_", remove = FALSE)
+colnames(tot_df)
+names(tot_df)[names(tot_df) == "cts"] <- "og"
+
+col_factors <- c("og", "sex","ct")
+tot_df[col_factors] <- lapply(tot_df[col_factors], as.factor) 
+
+sexes <- vector()
+cts <- vector()
+genes <- vector()
+for (sex_id in levels(tot_df$sex)) {
+  for (ct_id in levels(tot_df$ct)) {
+    common_genes <- tot_df[which(tot_df$sex==sex_id & tot_df$ct==ct_id), "genes"]
+    genes <- c(genes, common_genes)
+    sexes <- c(sexes, rep(sex_id, length(common_genes)))
+    cts <- c(cts, rep(ct_id, length(common_genes)))
+  }
+}
+
+tot_genes <- as.data.frame(cbind(sexes, cts, genes))
+colnames(tot_genes) <- c("sex", "ct", "genes")
+col_factors <- c("sex", "ct")
+tot_genes[col_factors] <- lapply(tot_genes[col_factors], as.factor) 
+
+write.csv(tot_genes, paste0(main_deg, velm_2nd_trim@project.name, "/tot_genes_ct_", velm_2nd_trim@project.name,   ".csv"))
+
+############ For SCENIC - HIGHEST VARIABLE GENES
+
+velm_2nd_trim <- readRDS(paste0(input_rds_path, "/Eze_Nowakowski_integrated_2nd_trimester.rds"))
+
+velm_2nd_trim@meta.data$sample_id <- rownames(velm_2nd_trim@meta.data)
+
+velm_2nd_trim@meta.data$sex_ct_sample <- paste(velm_2nd_trim@meta.data$sex_ct, velm_2nd_trim@meta.data$sample_id, sep="_")
+
+Idents(velm_2nd_trim) <- "sex_ct_sample"
+
+#expr_mat_all <- GetAssayData(velm_2nd_trim[["RNA"]], slot="data")
+
+#cell_info <- read.csv(paste0(main_deg, velm_2nd_trim@project.name, "/cell_info_", velm_2nd_trim@project.name, ".csv"))
+#cell_info$X <- NULL
+
+#saveRDS(velm_2nd_trim, paste0(input_rds_path, "/Eze_Nowakowski_integrated_2nd_trimester.rds"))
+
+#rm(velm_2nd_trim)
+
+#expr_mat_all <- as.data.frame(as.matrix(expr_mat_all))
+expr_mat_all$SD <- rowSds(as.matrix(expr_mat_all))
+expr_mat_all <- expr_mat_all[which(expr_mat_all$SD > 0), ]
+
+if (nrow(expr_mat_all) * 0.25 > 2000) {
+  expr_mat_all <- expr_mat_all[which(expr_mat_all$SD > quantile(expr_mat_all$SD)[4]), ]
+} else {
+  print(" less than 2k genes above third quantile")
+}
+
+# order df in descending order
+expr_mat_all <- expr_mat_all[order(-expr_mat_all$SD),] 
+expr_mat_all <- expr_mat_all[1:2000, ]
+expr_mat_all <- cbind("Genes" = rownames(expr_mat_all), expr_mat_all)
+rownames(expr_mat_all) <- NULL
+
+expr_sums <- colSums(expr_mat_all[2:ncol(expr_mat_all)])
+if (identical(length(which(expr_sums>0)), length(expr_sums))) {
+  print("all columns express at least one gene")
+} else {
+  expr_mat_all <- expr_mat_all[ , !(names(expr_mat_all) %in% which(expr_sums>0))]
+  print("calculate how many cells have been filtered out")
+}
+
+expr_mat_all <- expr_mat_all %>% 
+  relocate(SD, .after = Genes)
+
+main_scenic <- paste0("/Home/ii/auraz/data/UCSC/outputs/SCENIC/", velm_2nd_trim@project.name, "/")
+
+dir.create(main_scenic, showWarnings = F, recursive = T)
+
+saveRDS(expr_mat_all, paste0(main_scenic, "top_2000_SD_expr_matrix",  velm_2nd_trim@project.name, ".rds"))
+
+##### Map the samples back to the groups they belong to
+
+expr_mat_all <- readRDS(paste0(main_scenic, "top_2000_SD_expr_matrix_",  velm_2nd_trim@project.name, ".rds"))
+
+group_list <- list()
+group_list_n <- vector()
+for (group_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==group_id), "cell_id"])
+  df_og_group <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  group_list <- append(group_list, list(df_og_group))
+  group_list_n <-  c(group_list_n, group_id)
+}
+names(group_list) <- group_list_n
+
+remove_dfs <- function(df_list, threshold) {
+  incomplete_dfs <- vector()
+  for (group_id in names(df_list)) {
+    if (ncol(df_list[[group_id]]) < (threshold + 1)) {
+      incomplete_dfs <- c(incomplete_dfs, group_id)
+    }
+  }
+  add_counterpart <- vector()
+  for (i in incomplete_dfs) {
+    if (grepl("F", i)) {
+      m_id <- str_replace(i, "F", "M")
+      if (m_id %!in% incomplete_dfs) {
+        add_counterpart <- c(add_counterpart, m_id)
+      }
+    } else {
+      f_id <- str_replace(i, "M", "F")
+      if (f_id %!in% incomplete_dfs) {
+        add_counterpart <- c(add_counterpart, f_id)
+      }
+    }
+  }
+  incomplete_dfs <- c(incomplete_dfs, add_counterpart)
+  for (i in incomplete_dfs) {
+    df_list[[i]] <- NULL
+  }
+  return(df_list)
+}
+
+group_list100 <- remove_dfs(group_list, 100)
+group_list500 <- remove_dfs(group_list, 500)
+
+plot_group_numbers <- function(df_list, thresh) {
+  ids <- as.data.frame(names(df_list))
+  colnames(ids) <- c("groups")
+  ids <- separate(ids, groups, into = c("sex","ct"), sep="_", remove=FALSE)
+  col_factors <- c("sex","ct")
+  ids[col_factors] <- lapply(ids[col_factors], as.factor)  
+  ids$length_groups <- sapply(1:length(names(df_list)), function(i) ncol(df_list[[i]]))
+  pdf(paste0(main_scenic, "num_filt_", thresh, "_cells.pdf"))
+  print(
+    ggplot(ids, aes(ct, length_groups, fill=sex)) +
+      geom_bar(stat="identity", position = "dodge") + 
+      geom_hline(yintercept = thresh, linetype="dashed", color = "black") +
+      labs(title = paste0("Filter: ", thresh, " cells"), x="cell types", y="# of cells", fill="sex") +
+      theme(panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(),
+            panel.background = element_blank(), 
+            axis.line = element_line(colour = "black"),
+            axis.title.x = element_text(size=12, face="bold", colour = "black"),
+            axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.5, hjust=0.5),
+            axis.ticks.x=element_blank(),
+            axis.title.y = element_text(size=12, face="bold", colour = "black"),
+            legend.title = element_text(size=12, face="bold", colour = "black"),
+            legend.position = "bottom",
+            plot.title = element_text(size=12, face="bold", colour = "black"))
+  )
+  dev.off()
+}
+plot_group_numbers(group_list100, 100)
+plot_group_numbers(group_list500, 500)
+
+###### Create Randomly sampled dfs
+
+expr_mat_all <- readRDS(paste0(main_scenic, "top_2000_SD_expr_matrix.rds"))
+cell_info <- read.csv(paste0(main_deg, velm_2nd_trim@project.name, "/cell_info_", velm_2nd_trim@project.name, ".csv"))
+cell_info$X <- NULL
+
+remove_dfs <- function(df_list, threshold) {
+  incomplete_dfs <- vector()
+  for (group_id in names(df_list)) {
+    if (ncol(df_list[[group_id]]) < (threshold + 1)) {
+      incomplete_dfs <- c(incomplete_dfs, group_id)
+    }
+  }
+  add_counterpart <- vector()
+  for (i in incomplete_dfs) {
+    if (grepl("F", i)) {
+      m_id <- str_replace(i, "F", "M")
+      if (m_id %!in% incomplete_dfs) {
+        add_counterpart <- c(add_counterpart, m_id)
+      }
+    } else {
+      f_id <- str_replace(i, "M", "F")
+      if (f_id %!in% incomplete_dfs) {
+        add_counterpart <- c(add_counterpart, f_id)
+      }
+    }
+  }
+  incomplete_dfs <- c(incomplete_dfs, add_counterpart)
+  for (i in incomplete_dfs) {
+    df_list[[i]] <- NULL
+  }
+  return(df_list)
+}
+
+df_list <- list()
+df_list_n <- vector()
+for (df_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==df_id), "cell_id"])
+  df_og_df <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  df_list <- append(df_list, list(df_og_df))
+  df_list_n <-  c(df_list_n, df_id)
+}
+names(df_list) <- df_list_n
+
+df_list100 <- df_list
+df_list100 <- remove_dfs(df_list100, 100)
+
+check_dfs <- function(group_list) {
+  remove_groups <- vector()
+  if (length(group_list) %% 2 != 0 ) {
+    f_list <- vector()
+    m_list <- vector()
+    for (i in names(group_list)) {
+      if (grepl("F", i)) {
+        gen <- str_remove(i, "F_")
+        f_list <- c(f_list, gen)
+      } else {
+        gen <- str_remove(i, "M_")
+        m_list <- c(m_list, gen)
+      }
+    }
+    if (identical(m_list, f_list) == FALSE) {
+      if (length(m_list) > length(f_list)) {
+        remove_groups <- c(m_list[which(m_list %!in% f_list)], "M")
+      } else {
+        remove_groups <- c(f_list[which(f_list %!in% m_list)], "F")
+      }
+    }
+  }
+  return(remove_groups)
+}
+
+check_dfs(df_list100)
+
+rand_sample <- function(group_list, num_sampling, num_cells, main) {
+  sampled_dfs <-list()
+  sampled_names <- vector()
+  for (id in names(group_list)) {
+    for (k in 1:num_sampling) {
+      sampled <- data.frame()
+      sampled <- sample(group_list[[id]][-1], num_cells)
+      sampled <- cbind("Genes" = group_list[[id]]$Genes, sampled)
+      sampled_dfs <- append(sampled_dfs, list(sampled))
+      sampled_names <- c(sampled_names, paste(id, k, sep="_"))
+    }
+  }
+  names(sampled_dfs) <- lapply(1:length(sampled_names), function(i) str_replace_all(sampled_names[i]," ", "_"))
+  dir.create(paste0(main_scenic, "0_input_dfs/sampled_", num_cells, "_cells"), showWarnings = FALSE, recursive = T)
+  lapply(1:length(names(sampled_dfs)), function(i) write.csv(sampled_dfs[[i]], 
+                                                             file = paste0(main_scenic, "0_input_dfs/sampled_", num_cells, "_cells/", names(sampled_dfs)[i], ".csv"),
+                                                             row.names = FALSE))
+  return(sampled_dfs)
+}
+
+
+df_100_sampled <- rand_sample(df_list100, 3, 100, main_scenic)
+
+
+
+
 
 
 ####################################################################################################
