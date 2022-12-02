@@ -5,7 +5,7 @@ library(reshape2)
 library(ggplot2)
 library(stringr)
 library(scales)
-
+library(dplyr)
 
 # 1. Import data
 ImportDE <- function(path, ext, row_col) {
@@ -77,25 +77,29 @@ num_chr_order <- function(df, path, sex) {
 
 # 6. Extract Gene names - X for F-DEGs and Y for for M-DEGs
 ExtractSexGenes <- function(chr_sex, chr) {
-  sexchr <- lapply(chr_sex, function(x) x[x$chromosome_name == chr,"Gene"])
-  genes_names <- unique(unlist(sexchr, use.names = FALSE))
-  chr_mtx <- matrix(nrow = length(names(sexchr)), ncol=length(genes_names))
-  rownames(chr_mtx) <- names(sexchr)
-  colnames(chr_mtx) <- genes_names
-  for (ct in rownames(chr_mtx)) {
-    for (gene in colnames(chr_mtx)) {
-      if (gene %in% sexchr[[ct]]) {
-        chr_mtx[ct, gene] <- "y"
-      } else {
-        chr_mtx[ct, gene] <- "n"
+  test_df <- bind_rows(chr_sex)
+  if (chr %in% test_df$chromosome_name) {
+    sexchr <- lapply(chr_sex, function(x) x[x$chromosome_name == chr,"Gene"])
+    genes_names <- unique(unlist(sexchr, use.names = FALSE))
+    chr_mtx <- matrix(nrow = length(names(sexchr)), ncol=length(genes_names))
+    rownames(chr_mtx) <- names(sexchr)
+    colnames(chr_mtx) <- genes_names
+    for (ct in rownames(chr_mtx)) {
+      for (gene in colnames(chr_mtx)) {
+        if (gene %in% sexchr[[ct]]) {
+          chr_mtx[ct, gene] <- "y"
+        } else {
+          chr_mtx[ct, gene] <- "n"
+        }
       }
     }
+    chr_df <- reshape::melt.matrix(chr_mtx)
+    colnames(chr_df) <- c("ct", "gene", "DEG")
+    col_factors <- c("ct")
+    chr_df[col_factors] <- lapply(chr_df[col_factors], as.factor) 
+  } else {
+    chr_df <- data.frame()
   }
-  return(chr_mtx)
-  chr_df <- reshape::melt.matrix(chr_mtx)
-  colnames(chr_df) <- c("ct", "gene", "DEG")
-  col_factors <- c("ct")
-  chr_df[col_factors] <- lapply(chr_df[col_factors], as.factor) 
   return(chr_df)
 }
 
@@ -194,30 +198,34 @@ ProcessCt <- function(main_dir, ext, row_col) {
 # 9. Plot heatmap of sex-genes across cts
 PlotSexHeatmap <- function(main_dir, chr_sex, chr, sex, ct_ordered) {
   sexdf <- ExtractSexGenes(chr_sex, chr)
-  dis_ct_ordered <- ct_ordered[which(ct_ordered %in% levels(sexdf$ct))]
-  sexdf$ct <- factor(sexdf$ct, dis_ct_ordered)
-  sexdf <- sexdf[order(sexdf$ct), ]
-  pdf(paste0(main_dir, "/01C_num_chr/", chr, "genes_heatmap_in_", sex, ".pdf"))
-  print(
-    ggplot(sexdf, aes(ct, gene)) +
-      geom_tile(aes(fill=DEG), color = "light grey") + 
-      scale_fill_manual(values = c("y" =  "#F8766D", "n"= "#00BFC4")) +
-      scale_color_manual(values = c("y" =  "#F8766D", "n"= "#00BFC4")) +
-      labs(x = "Cell types", y = paste0(sex, " genes"), fill = "Expressed", main = sex) +
-      theme(panel.grid.major = element_blank(), 
-            panel.grid.minor = element_blank(),
-            panel.background = element_blank(), 
-            axis.line = element_line(colour = "black"),
-            axis.title.x = element_text(size=12, face="bold", colour = "black"),
-            axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
-            axis.ticks.x=element_blank(),
-            axis.title.y = element_text(size=12, face="bold", colour = "black"),
-            axis.text.y = element_text(size=8, colour = "black"),
-            legend.position = "bottom", 
-            legend.title = element_text(size=12, face="bold", colour = "black"))
-    
-  )
-  dev.off()
+  if (length(sexdf!=0)) {
+    dis_ct_ordered <- ct_ordered[which(ct_ordered %in% levels(sexdf$ct))]
+    sexdf$ct <- factor(sexdf$ct, dis_ct_ordered)
+    sexdf <- sexdf[order(sexdf$ct), ]
+    pdf(paste0(main_dir, "/01C_num_chr/", chr, "genes_heatmap_in_", sex, ".pdf"))
+    print(
+      ggplot(sexdf, aes(ct, gene)) +
+        geom_tile(aes(fill=DEG), color = "light grey") + 
+        scale_fill_manual(values = c("y" =  "#F8766D", "n"= "#00BFC4")) +
+        scale_color_manual(values = c("y" =  "#F8766D", "n"= "#00BFC4")) +
+        labs(x = "Cell types", y = paste0(sex, " genes"), fill = "Expressed", main = sex) +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              axis.line = element_line(colour = "black"),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
+              axis.ticks.x=element_blank(),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              axis.text.y = element_text(size=8, colour = "black"),
+              legend.position = "bottom", 
+              legend.title = element_text(size=12, face="bold", colour = "black"))
+      
+    )
+    dev.off()
+  } else {
+    print(paste0("No ", chr , " genes in ", sex))
+  }
 }
 
 # 10. Plots heatmaps

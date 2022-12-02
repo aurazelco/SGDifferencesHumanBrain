@@ -92,8 +92,7 @@ num_chr_genes <- list("X" = X_chr_genes, "Y" = Y_chr_genes, "Autosome" = (tot_ge
 
 chr_2nd_trim <- ProcessCt(main_local)
 PlotGeneralHeatmap(main_local, chr_2nd_trim, ct_order)
-# doe snot work -> need to check later why not, but these plots are non-essentials
-#PlotSexHmp(main_local, chr_2nd_trim, ct_order)
+PlotSexHmp(main_local, chr_2nd_trim, ct_order)
 
 
 ####### 01D_Xpar1,2.R
