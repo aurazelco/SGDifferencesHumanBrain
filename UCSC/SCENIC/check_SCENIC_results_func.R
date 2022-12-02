@@ -903,7 +903,7 @@ SCENICAddTFTG <- function(all_grn, dis_type) {
   return(all_grn)
 }
 
-SCENICOverlapTfTg <-  function(all_grn, dis_type) {
+SCENICOverlapTfTg <-  function(all_grn, dis_type, analysis_type="no") {
   all_grn <- SCENICAddTFTG(all_grn, dis_type)
   id <- vector()
   overlap <- vector()
@@ -911,7 +911,11 @@ SCENICOverlapTfTg <-  function(all_grn, dis_type) {
   if (dis_type) {
     sexes <- c("_F_", "_M_")
   } else {
-    sexes <- c("F_", "M_")
+    if (analysis_type=="Velmeshev") {
+      sexes <- c("Female_", "Male_")
+    } else {
+      sexes <- c("F_", "M_")
+    }
     all_grn <- unlist(all_grn, recursive = F)
   }
   for (sex in sexes) {

@@ -54,6 +54,7 @@ rm(list=ls())
 ####### GENERAL VARIABLES
 
 main <- "/Home/ii/auraz/data/UCSC/outputs/DEGs/Velmeshev_2022_2nd_trimester/outputs/"
+main_local <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/Velmeshev_2022_2nd_trimester/outputs/"
 
 ct_order <- c(
   "Dorsal progenitors",
@@ -78,9 +79,9 @@ FC_thresh <- 1.2
 # NORMAL
 CountDEG(main, pval_thresh, FC_thresh, ct_order)
 
-####### 01C_num_chr.R
+####### 01C_num_chr.R -> not on the server
 
-source("/Home/ii/auraz/scripts/DEGs/01C_num_chr_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs/01C_num_chr_func.R")
 
 # as used in 02A_Fisher
 X_chr_genes <- 1848
@@ -89,10 +90,11 @@ tot_genes <- 20000
 
 num_chr_genes <- list("X" = X_chr_genes, "Y" = Y_chr_genes, "Autosome" = (tot_genes - X_chr_genes - Y_chr_genes))
 
-chr_2nd_trim <- ProcessCt(main)
-PlotGeneralHeatmap(main, chr_2nd_trim, ct_order)
-PlotSexHmp(main, chr_2nd_trim, ct_order)
-PlotNumChr(main, num_chr_genes, ct_order)
+chr_2nd_trim <- ProcessCt(main_local)
+PlotGeneralHeatmap(main_local, chr_2nd_trim, ct_order)
+# doe snot work -> need to check later why not, but these plots are non-essentials
+#PlotSexHmp(main_local, chr_2nd_trim, ct_order)
+
 
 ####### 01D_Xpar1,2.R
 
@@ -107,22 +109,22 @@ Xpar2_list <- Xpar2$Approved.symbol
 
 XparCt(main, Xpar1_list, Xpar2_list, ct_order)
 
-####### 02A_Fisher.R
+####### 02A_Fisher.R  -> not on the server
 
-source("/Home/ii/auraz/scripts/DEGs/02A_Fisher_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs/02A_Fisher_func.R")
 
-SexChr2(main, tot_genes, X_chr_genes, Y_chr_genes)
-PlotNumChr(main, num_chr_genes, ct_order, T)
+SexChr2(main_local, tot_genes, X_chr_genes, Y_chr_genes)
+PlotNumChr(main_local, num_chr_genes, ct_order, T)
 
 ####### 02B_ARE_ERE.R
 
 source("/Home/ii/auraz/scripts/DEGs/02B_ARE_ERE_func.R")
 
-ARE <- read_excel("Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/extra_files/AREsitesHuman.xlsx",
+ARE <- read_excel("/Home/ii/auraz/data/UCSC/outputs/DEGs/extra_files/AREsitesHuman.xlsx",
                   skip=1)
 colnames(ARE) <- c("fullsites", "halfsites")
 
-ERE <- read_excel("Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/extra_files/Hs_allEREs.xls")
+ERE <- read_excel("/Home/ii/auraz/data/UCSC/outputs/DEGs/extra_files/Hs_allEREs.xls")
 EREgene <- ERE$`Hs Gene Name`
 
 AnalysisARE_ERE(main, ARE, EREgene, ct_order)
@@ -200,7 +202,7 @@ SAGD_df[,1] <- NULL
 
 
 # all genes commonly expressed in the cts
-all_genes <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/Eze_Nowakowski_integrated_2nd_trimester/tot_genes_ct.csv")
+all_genes <- read.csv("/Home/ii/auraz/data/UCSC/outputs/DEGs/Velmeshev_2022_2nd_trimester/tot_genes_ct_Velmeshev_2022_2nd_trimester.csv")
 all_genes$X <- NULL
 col_factors <- c("sex", "ct")
 all_genes[col_factors] <- lapply(all_genes[col_factors], as.factor) 

@@ -91,6 +91,7 @@ ExtractSexGenes <- function(chr_sex, chr) {
       }
     }
   }
+  return(chr_mtx)
   chr_df <- reshape::melt.matrix(chr_mtx)
   colnames(chr_df) <- c("ct", "gene", "DEG")
   col_factors <- c("ct")

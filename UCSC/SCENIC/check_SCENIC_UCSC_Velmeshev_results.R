@@ -46,11 +46,6 @@ for (v in runs) {
 names(Velm_2nd) <- runs
 
 
-for (Velm_2nd_id in names(Velm_2nd_input_seurat)) {
-  metadata_id <- cell_info[which(cell_info$cell_id %in% colnames(Velm_2nd_input_seurat[[Velm_2nd_id]])),]
-  print(metadata_id )
-}
-
 k_clusters <- list("_1" = c(12, 11),
                    "_2" = c(12, 11),
                    "_3" = c(13, 10))
@@ -62,10 +57,8 @@ for (v in runs) {
   for (Velm_2nd_id in names(Velm_2nd_seurat_list)) {
     #Velm_2nd_final[[v]][[Velm_2nd_id]] <- SCENICClustering(main_Velm_2nd, F, Velm_2nd_seurat_list[[Velm_2nd_id]], k_clusters[[v]][[Velm_2nd_id]], ct_order)
     # if also need to plot the UMAPs
-    print(Velm_2nd_id)
-    print(unique(Velm_2nd_seurat_list[[Velm_2nd_id]]@meta.data$ct))
-    #Velm_2nd_final[[v]][[Velm_2nd_id]] <- SCENICClustering(main_Velm_2nd, F, Velm_2nd_seurat_list[[Velm_2nd_id]], k_clusters[[v]][[Velm_2nd_id]], ct_order, plot_flag = "yes", Velm_2nd_id)
-    #SCENICMarkers(main_Velm_2nd, F, Velm_2nd[[v]][[Velm_2nd_id]], Velm_2nd_id)
+    Velm_2nd_final[[v]][[Velm_2nd_id]] <- SCENICClustering(main_Velm_2nd, F, Velm_2nd_seurat_list[[Velm_2nd_id]], k_clusters[[v]][[Velm_2nd_id]], ct_order, plot_flag = "yes", Velm_2nd_id)
+    SCENICMarkers(main_Velm_2nd, F, Velm_2nd[[v]][[Velm_2nd_id]], Velm_2nd_id)
   }
 }
 
@@ -78,7 +71,7 @@ Velm_2nd_final <- readRDS(paste0(main_Velm_2nd, "seurat_files.rds"))
 ### Calculates Markers in each SeuratObject
 
 Velm_2nd_markers <- SCENICInputMarkers(main_Velm_2nd, F, pval_thresh, FC_thresh)
-Velm_2nd_10 <- SCENICtop10genes(Velm_2nd_markers)
+Velm_2nd_10 <- SCENICtop10genes(Velm_2nd_markers, F)
 
 ### Calculates Markers in each SeuratObject
 
@@ -99,6 +92,6 @@ Velm_2nd_reg_list <- SCENICExtractRegulons(Velm_2nd_auc, F)
 SCENICPlotRegulons(main_Velm_2nd, F, Velm_2nd_reg_list)
 
 ########## Number of TF-TG pairs between F and M of same project
-Velm_2nd_overlapTFTG <- SCENICOverlapTfTg(Velm_2nd_scenic, F)
+Velm_2nd_overlapTFTG <- SCENICOverlapTfTg(Velm_2nd_scenic, F, "Velmeshev")
 SCENICPlotOverlapTfTg(main_Velm_2nd, F, Velm_2nd_overlapTFTG)
 
