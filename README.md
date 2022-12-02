@@ -74,7 +74,7 @@ This [folder](UCSC/DEGs) contains the analysis done on the DEGs between F and M 
 
 #### Gene Regulatory Network Analysis - SCENIC
 
-The [SCENIC](UCSC/SCENIC/) folder contains a bash script to run the two main steps of SCENIC on all files contained in a folder, ran in October 2022. A brief description of the scripts can be found in the respective [README file](UCSC/README.md). 
+The [SCENIC](UCSC/SCENIC/) folder contains a bash script to run the two main steps of SCENIC on all files contained in a folder, ran in November/DEcember 2022. A brief description of the scripts can be found in the respective [README file](UCSC/README.md). 
 
 ----------------------------------------------------------------------------------------------------------
 
