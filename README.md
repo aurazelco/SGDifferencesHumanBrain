@@ -7,13 +7,12 @@
   * [DISCO](#disco)
     * [Datasets source](#datasets-source)
     * [DEGs analysis on DISCO dataset](#degs-analysis-on-disco-dataset)
+    * [Gene Regulatory Network Analysis - SCENIC](#gene-regulatory-network-analysis---scenic)
   * [UCSC](#ucsc)
     * [Datasets source](#datasets-source)
-    * [Eze - Nowakowski](#eze---nowakowski)
-    * [Velmeshev](#velmeshev)
-* [SOFTWARES/ANALYSES](#softwares/analyses)
-  * [Gene Regulatory Network Analysis](#gene-regulatory-network-analysis)
-    * [SCENIC](#scenic)
+      * [Eze - Nowakowski](#eze---nowakowski)
+      * [Velmeshev](#velmeshev)
+    * [Gene Regulatory Network Analysis - SCENIC](#gene-regulatory-network-analysis---scenic)
 * [THESIS DRAFT](#thesis-draft)
 
 ----------------------------------------------------------------------------------------------------------
@@ -45,7 +44,7 @@ This [folder](DISCO/DEGs) contains the analysis done on the DEGs between F and M
 
 This analysis takes all genes expressed by the cells and search for regulatory networks
 
-#### SCENIC
+#### Gene Regulatory Network Analysis - SCENIC
 
 The [SCENIC](DISCO/SCENIC/) folder contains a bash script to run the two main steps of SCENIC on all files contained in a folder, ran in October 2022. A brief description of the scripts can be found in the respective [README file](DISCO/README.md). 
 
@@ -72,7 +71,7 @@ This dataset contained not only fetal samples from the second and third trimeste
 
 This [folder](UCSC/DEGs) contains the analysis done on the DEGs between F and M done in November/Decmber 2022. A brief description of the scripts can be found in the respective [README file](UCSC/README.md). 
 
-#### SCENIC
+#### Gene Regulatory Network Analysis - SCENIC
 
 The [SCENIC](UCSC/SCENIC/) folder contains a bash script to run the two main steps of SCENIC on all files contained in a folder, ran in October 2022. A brief description of the scripts can be found in the respective [README file](UCSC/README.md). 
 
