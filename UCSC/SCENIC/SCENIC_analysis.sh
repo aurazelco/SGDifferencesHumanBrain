@@ -22,6 +22,7 @@ extra_hs="$extra"hs_hgnc_tfs.txt
 extra_motif="$extra"motifs-v9-nr.hgnc-m0.001-o0.0.tbl
 extra_genome="$extra"hg38_10kbp_up_10kbp_down_full_tx_v10_clust.genes_vs_motifs.rankings.feather
 
+# creates the output directories, if they do not exist already
 mkdir -p $grn
 mkdir -p $ctx
 mkdir -p $auc

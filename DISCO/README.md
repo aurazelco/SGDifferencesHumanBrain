@@ -1,23 +1,30 @@
-# Brief description of the RDS_preparation scripts
+# DISCO Analysis
+
+## Table of contents
+* [Brief description of the RDS_preparation scripts](#brief-description-of-the-rds_preparation-scripts)
+* [Brief description of the DEGs scripts](#brief-description-of-the-degs-scripts)
+* [Brief description of the SCENIC scripts](#brief-description-of-the-scenic-scripts)
+
+
+## Brief description of the RDS_preparation scripts
 
 * [00_filtering_disco.R](RDS_preparation/00_filtering_disco.R) - script to filter the DISCO dataset
-* [00_filtering_disco_final.R](RDS_preparation/00_filtering_disco_final.R) - script to filter the DISCO dataset
+* [00_filtering_disco_final.R](RDS_preparation/00_filtering_disco_final.R) - script to filter the DISCO dataset -> polished version
 * [01_general.R](RDS_preparation/01_general.R) - script to produce first informative plots about number of cells per celltype per sex, divided per project
 
-# Brief description of the DEGs scripts
+## Brief description of the DEGs scripts
 
-* [01A_generate_DEGs.R](DEGs/01A_generate_DEGs.R) - script  to generate all the DEGs, one for F and one for M DEGs in each subtype and project
-* [01B_plot_num_genes.R](DEGs/01B_plot_num_genes.R), [01B_plot_num_genes_func.R](DEGs/01B_plot_num_genes_func.R) - script to extract the common DEGs among F and M DEGs per each subtype, and plot the results
-* [01C_num_chr.R](DEGs/01C_num_chr.R), [01C_num_chr_func.R](DEGs/01C_num_chr_func.R) - script to map the DEGs obtained from 01B to the genome and plot the fraction of DEGs belonging to X, Y or autosomial chromosome; it also plots a heatmap of the X- and Y-genes expression across the different subtypes
-* [01D_Xpar1,2.R](DEGs/01D_Xpar1,2.R), [01D_Xpar1,2_func.R](DEGs/01D_Xpar1,2_func.R) - script to calculate and plot the number of genes belonging to Xpar1 and Xpar2
-* [01E_CellMarker.R](DEGs/01E_CellMarker.R), [01E_CellMarker_func.R](DEGs/01E_CellMarker_func.R) - script to calculate and plot the percentage of DEGs which are also markers (marker list retrieved from [CellMarker](http://bio-bigdata.hrbmu.edu.cn/CellMarker/))
-* [02A_Fisher.R](DEGs/02A_Fisher.R), [02A_Fisher_func.R](DEGs/02A_Fisher_func.R) - script to calculate the enrichment of sex chromosomes compared to autosomial genes - used in 01C to add significance to plot
-* [02B_ARE_ERE.R](DEGs/02B_ARE_ERE.R), [02B_ARE_ERE_func.R](DEGs/02B_ARE_ERE_func.R) - script to calculate and plot the ARE and ERE sites percentages in the cell types, separated F and M
-* [02B_ARE_ERE_proj.R](DEGs/02B_ARE_ERE_proj.R), [02B_ARE_ERE_proj_func.R](DEGs/02B_ARE_ERE_proj_func.R) - script to calculate and plot the ARE and ERE sites percentages in the cell types, separated F and M, but in the individual projects instead of on the intersected DEGs
-* [02C_Conservation.R](DEGs/02C_Conservation.R), [02C_Conservation_func.R](DEGs/02C_Conservation_func.R) - script to plot the conserved fraction of DEGs across mammals and primates
-* [all_scripts.R](DEGs/all_scripts.R) - script containing the previous scripts, 01A-02C
+* [01B_plot_num_genes_func.R](DEGs/01B_plot_num_genes_func.R) - script to extract the common DEGs among F and M DEGs per each subtype, and plot the results
+* [01C_num_chr_func.R](DEGs/01C_num_chr_func.R) - script to map the DEGs obtained from 01B to the genome and plot the fraction of DEGs belonging to X, Y or autosomial chromosome; it also plots a heatmap of the X- and Y-genes expression across the different subtypes
+* [01D_Xpar1,2_func.R](DEGs/01D_Xpar1,2_func.R) - script to calculate and plot the number of genes belonging to Xpar1 and Xpar2
+* [01E_CellMarker_func.R](DEGs/01E_CellMarker_func.R) - script to calculate and plot the percentage of DEGs which are also markers (marker list retrieved from [CellMarker](http://bio-bigdata.hrbmu.edu.cn/CellMarker/))
+* [02A_Fisher_func.R](DEGs/02A_Fisher_func.R) - script to calculate the enrichment of sex chromosomes compared to autosomial genes - used in 01C to add significance to plot
+* [02B_ARE_ERE_func.R](DEGs/02B_ARE_ERE_func.R) - script to calculate and plot the ARE and ERE sites percentages in the cell types, separated F and M
+* [02B_ARE_ERE_proj_func.R](DEGs/02B_ARE_ERE_proj_func.R) - script to calculate and plot the ARE and ERE sites percentages in the cell types, separated F and M, but in the individual projects instead of on the intersected DEGs
+* [02C_Conservation_func.R](DEGs/02C_Conservation_func.R) - script to plot the conserved fraction of DEGs across mammals and primates
+* [all_scripts_DISCO.R](DEGs/all_scripts_DISCO.R) - script sourcing and running the previous scripts, 01A-02C
 
-# Brief description of the SCENIC scripts
+## Brief description of the SCENIC scripts
 
 We used SCENIC to run a Gene Regulatory Network (GRN) analysis, followed their pipeline which can be found in the [original paper](https://doi.org/10.1038/s41596-020-0336-2) or on their [GitHub repo](https://github.com/aertslab/SCENICprotocol). 
 
@@ -26,6 +33,7 @@ The scripts below were used to execute the SCENIC pipeline and plot the results:
 * [SCENIC_merge_DISCO.sh](SCENIC/SCENIC_merge_DISCO.sh) - bash script which takes the individual .csv files for each project and sex combination, and merges them, in order to obtain one .csv file per project and sex - more information [here](#scenic_merge)
 * [check_SCENIC_results.R](SCENIC/check_SCENIC_results_DISCO.R), [check_SCENIC_results_func.R](SCENIC/check_SCENIC_results_func.R) -  R script to check the results from the SCENIC, more specifically to plot the overlap among runs, the overlap with [scGRNom results](https://genomemedicine.biomedcentral.com/articles/10.1186/s13073-021-00908-9), and to plot the expression of the transcription factors (TFs) and targets (TGs) in the cell types. 
 
+Additionally, in this folder the [scenic requirements](SCENIC/scenic_requirements.txt) file can be found, which was extracted from the conda environemt in which SCENIC was run. 
 
 ## SCENIC_analysis.sh
 
