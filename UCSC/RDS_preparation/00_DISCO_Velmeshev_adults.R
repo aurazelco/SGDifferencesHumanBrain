@@ -20,18 +20,22 @@ names(input_rds) <- str_remove_all(names(input_rds), ".rds")
 names(input_rds) <- str_extract(names(input_rds), "\\w+$")
 names(input_rds)[1] <- "disco" 
 
+missing_cols <- names(which(colSums(is.na(input_rds[["disco"]]@meta.data)) > 0))
+input_rds[["disco"]]@meta.data <- input_rds[["disco"]]@meta.data %>% select(-missing_cols)
+
 disco_projs  <- SplitObject(input_rds[["disco"]], split.by = "project_id")
 
-input_rds <- c(input_rds["Velmeshev_2022_Adult"], disco_projs)
+input_rds_2 <- c(input_rds["Velmeshev_2022_Adult"], disco_projs)
 
-input_rds <- lapply(X = input_rds, FUN = function(x) {
+for (i in names(input_rds_2)) {
+  DefaultAssay(input_rds_2[[i]]) <- "RNA"
+}
+
+input_rds_2 <- lapply(X = input_rds_2, FUN = function(x) {
   x <- NormalizeData(x)
   x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
 })
 # this command above raises some issues -> not sure how to solve it
-
-
-
 
 
 

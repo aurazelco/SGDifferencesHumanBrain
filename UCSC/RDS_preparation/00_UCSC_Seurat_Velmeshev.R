@@ -4,7 +4,14 @@ library(data.table)
 library(stringr)
 library(stringi)
 library(tidyr)
+library(ggplot2)
+library(matrixStats)
+library(dplyr)
+`%!in%` <- Negate(`%in%`)
 
+rds_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/"
+main_deg <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/"
+main_scenic <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/SCENIC/"
 
 main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev/"
 
@@ -193,7 +200,7 @@ velm_ad@meta.data$id_sex_age <- paste(velm_ad@meta.data$samples, velm_ad@meta.da
 VlnPlot(velm_ad, features = "XIST", group.by = "id_sex_age") + NoLegend()
 ggsave(paste0(main, velm_ad@project.name, "_XIST.pdf"))
 
-saveRDS(velm_ad, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_ad@project.name, ".rds"))
+saveRDS(velm_ad, paste0(rds_path, velm_ad@project.name, ".rds"))
 
 velm_num_cells <- as.data.frame(table(velm_ad$id_sex_age))
 velm_num_cells <- separate(velm_num_cells, Var1, into=c("id", "sex", "age"), sep="_")
@@ -203,7 +210,7 @@ write.csv(velm_num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/ou
 
 ################
 
-velm_ad <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_Adult.rds")
+velm_ad <- readRDS(paste0(rds_path, "Velmeshev_2022_Adult.rds"))
 
 velm_ad@meta.data$cluster_final <- rep("no_data", nrow(velm_ad@meta.data))
 present_clusters <- ann_df[which(ann_df$og_clusters %in% velm_ad@meta.data$cluster),]
@@ -220,12 +227,11 @@ print(DimPlot(velm_ad, reduction = "umap", group.by = "cluster_final"))
 dev.off()
 
 
-saveRDS(velm_ad, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_ad@project.name, ".rds"))
+saveRDS(velm_ad, paste0(rds_path, velm_ad@project.name, ".rds"))
 
 ################
 
-velm_ad <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_Adult.rds")
-
+velm_ad <- readRDS(paste0(rds_path, "Velmeshev_2022_Adult.rds"))
 velm_ad@meta.data$sex_ct <- paste(velm_ad@meta.data$sex, velm_ad@meta.data$cluster_final, sep="_")
 
 velm_num_sex_ct <- as.data.frame(table(velm_ad$sex_ct))
@@ -234,7 +240,98 @@ velm_num_sex_ct <- cbind("proj" = rep(velm_ad@project.name, nrow(velm_num_sex_ct
 
 write.csv(velm_num_sex_ct, paste0(main, "Velmeshev_num_sex_ct_per_age.csv"))
 
-saveRDS(velm_ad, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_ad@project.name, ".rds"))
+saveRDS(velm_ad, paste0(rds_path, velm_ad@project.name, ".rds"))
+
+################ FOR DEGs ANALYSIS
+
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/RDS_preparation/00_DEGs_and_SCENIC_files_prep.R")
+
+velm_ad <- readRDS(paste0(rds_path, "Velmeshev_2022_Adult.rds"))
+
+num_sex_ct <- NumSexCt(velm_ad)
+
+min_num_cells <- c(10,50,100)
+
+velm_ad_deg <- paste0(main_deg, velm_ad@project.name, "/outputs/")
+dir.create(velm_ad_deg, recursive = T, showWarnings = F)
+
+PlotFiltDf(min_num_cells, num_sex_ct, velm_ad_deg)
+
+saveRDS(velm_ad, paste0(rds_path, velm_ad@project.name, ".rds"))
+
+############ For 02C_Conservation
+
+velm_ad <- readRDS(paste0(rds_path, "Velmeshev_2022_Adult.rds"))
+
+cell_info <- CreateCellInfo(velm_ad, main_deg)
+
+expr_mat_all <- GetAssayData(velm_ad[["RNA"]], slot="data")
+expr_mat_all <- as.data.frame(as.matrix(expr_mat_all))
+
+df_list <- list()
+df_list_n <- vector()
+for (df_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==df_id), "cell_id"])
+  df_og_df <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  df_list <- append(df_list, list(df_og_df))
+  df_list_n <-  c(df_list_n, df_id)
+}
+names(df_list) <- df_list_n
+
+GenerateTotGenesDf(df_list, main_deg, velm_ad)
+
+############ For SCENIC - HIGHEST VARIABLE GENES
+
+velm_ad <- readRDS(paste0(rds_path, "Velmeshev_2022_Adult.rds"))
+
+velm_ad@meta.data$sample_id <- rownames(velm_ad@meta.data)
+velm_ad@meta.data$sex_ct_sample <- paste(velm_ad@meta.data$sex_ct, velm_ad@meta.data$sample_id, sep="_")
+Idents(velm_ad) <- "sex_ct_sample"
+
+velm_ad_scenic <- paste0(main_scenic, velm_ad@project.name, "/")
+dir.create(velm_ad_scenic, recursive = T, showWarnings = F)
+
+Top2000ExprMtx(expr_mat_all, velm_ad_scenic, velm_ad)
+
+##### Map the samples back to the groups they belong to
+
+expr_mat_all <- readRDS(paste0(velm_ad_scenic, "top_2000_SD_expr_matrix_",  velm_ad@project.name, ".rds"))
+
+group_list <- list()
+group_list_n <- vector()
+for (group_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==group_id), "cell_id"])
+  df_og_group <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  group_list <- append(group_list, list(df_og_group))
+  group_list_n <-  c(group_list_n, group_id)
+}
+names(group_list) <- group_list_n
+
+PlotGroupNumbers(group_list, 100, velm_ad_scenic)
+PlotGroupNumbers(group_list, 500, velm_ad_scenic)
+
+###### Create Randomly sampled dfs
+
+expr_mat_all <- readRDS(paste0(velm_ad_scenic, "top_2000_SD_expr_matrix_",  velm_ad@project.name, ".rds"))
+cell_info <- read.csv(paste0(main_deg, velm_ad@project.name, "/cell_info_", velm_ad@project.name, ".csv"))
+cell_info$X <- NULL
+
+df_list <- list()
+df_list_n <- vector()
+for (df_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==df_id), "cell_id"])
+  df_og_df <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  df_list <- append(df_list, list(df_og_df))
+  df_list_n <-  c(df_list_n, df_id)
+}
+names(df_list) <- df_list_n
+
+df_list100 <- df_list
+df_list100 <- RemoveDfs(df_list100, 100)
+
+CheckDfs(df_list100)
+
+RandomSampling(df_list100, 3, 100, velm_ad_scenic)
 
 
 ####################################################################################################
@@ -264,7 +361,7 @@ colnames(mat_3rd_trim) <- rownames(meta_3rd_trim)
 
 velm_3rd_trim <- CreateSeuratObject(counts = mat_3rd_trim, project = "Velmeshev_2022_3rd_trimester", meta.data=meta_3rd_trim, assay = "RNA")
 
-saveRDS(velm_3rd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_3rd_trim@project.name, ".rds"))
+saveRDS(velm_3rd_trim, paste0(rds_path, velm_3rd_trim@project.name, ".rds"))
 
 rm(meta_3rd_trim, mat_3rd_trim)
 
@@ -281,7 +378,7 @@ plot1 + plot2
 velm_3rd_trim <- subset(velm_3rd_trim, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
 velm_3rd_trim <- NormalizeData(velm_3rd_trim)
 velm_3rd_trim <- FindVariableFeatures(velm_3rd_trim, selection.method = "vst", nfeatures = 2000)
-saveRDS(velm_3rd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_3rd_trim@project.name, ".rds"))
+saveRDS(velm_3rd_trim, paste0(rds_path, velm_3rd_trim@project.name, ".rds"))
 # Identify the 10 most highly variable genes
 top10 <- head(VariableFeatures(velm_3rd_trim), 10)
 # plot variable features with and without labels
@@ -321,7 +418,7 @@ velm_3rd_trim@meta.data$id_sex_age <- paste(velm_3rd_trim@meta.data$samples, vel
 VlnPlot(velm_3rd_trim, features = "XIST", group.by = "id_sex_age")
 ggsave(paste0(main, velm_3rd_trim@project.name, "_XIST.pdf"))
 
-saveRDS(velm_3rd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_3rd_trim@project.name, ".rds"))
+saveRDS(velm_3rd_trim, paste0(rds_path, velm_3rd_trim@project.name, ".rds"))
 
 num_cells <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
 num_cells[,1] <- NULL
@@ -338,7 +435,7 @@ write.csv(num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs
 
 ################
 
-velm_3rd_trim <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_3rd_trimester.rds")
+velm_3rd_trim <- readRDS(paste0(rds_path, "Velmeshev_2022_3rd_trimester.rds"))
 
 velm_3rd_trim@meta.data$cluster_final <- rep("no_data", nrow(velm_3rd_trim@meta.data))
 present_clusters <- ann_df[which(ann_df$og_clusters %in% velm_3rd_trim@meta.data$cluster),]
@@ -355,11 +452,11 @@ print(DimPlot(velm_3rd_trim, reduction = "umap", group.by = "cluster_final"))
 dev.off()
 
 
-saveRDS(velm_3rd_trim, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", velm_3rd_trim@project.name, ".rds"))
+saveRDS(velm_3rd_trim, paste0(rds_path, velm_3rd_trim@project.name, ".rds"))
 
 ################
 
-velm_3rd_trim <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_3rd_trimester.rds")
+velm_3rd_trim <- readRDS(paste0(rds_path, "Velmeshev_2022_3rd_trimester.rds"))
 
 velm_3rd_trim@meta.data$sex_ct <- paste(velm_3rd_trim@meta.data$sex, velm_3rd_trim@meta.data$cluster_final, sep="_")
 
@@ -504,6 +601,89 @@ velm_num_sex_ct_all <- rbind(velm_num_sex_ct_all, velm_num_sex_ct)
 
 write.csv(velm_num_sex_ct_all, paste0(main, "Velmeshev_num_sex_ct_per_age.csv"))
 
+################ FOR DEGs ANALYSIS
+
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/RDS_preparation/00_DEGs_and_SCENIC_files_prep.R")
+
+velm_1st_year <- readRDS(paste0(rds_path, "Velmeshev_2022_0_1_years.rds"))
+
+velm_1st_year@meta.data$sex_ct <- paste(velm_1st_year@meta.data$sex, velm_1st_year@meta.data$cluster_final, sep="_")
+
+
+num_sex_ct <- NumSexCt(velm_1st_year)
+
+min_num_cells <- c(10,50,100)
+
+velm_1st_year_deg <- paste0(main_deg, velm_1st_year@project.name, "/outputs/")
+dir.create(velm_1st_year_deg, recursive = T, showWarnings = F)
+
+PlotFiltDf(min_num_cells, num_sex_ct, velm_1st_year_deg)
+
+############ For 02C_Conservation
+
+cell_info <- CreateCellInfo(velm_1st_year, main_deg)
+
+expr_mat_all <- GetAssayData(velm_1st_year[["RNA"]], slot="data")
+expr_mat_all <- as.data.frame(as.matrix(expr_mat_all))
+
+df_list <- list()
+df_list_n <- vector()
+for (df_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==df_id), "cell_id"])
+  df_og_df <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  df_list <- append(df_list, list(df_og_df))
+  df_list_n <-  c(df_list_n, df_id)
+}
+names(df_list) <- df_list_n
+
+GenerateTotGenesDf(df_list, main_deg, velm_1st_year)
+
+############ For SCENIC - HIGHEST VARIABLE GENES
+
+velm_1st_year@meta.data$sample_id <- rownames(velm_1st_year@meta.data)
+velm_1st_year@meta.data$sex_ct_sample <- paste(velm_1st_year@meta.data$sex_ct, velm_1st_year@meta.data$sample_id, sep="_")
+Idents(velm_1st_year) <- "sex_ct_sample"
+
+velm_1st_year_scenic <- paste0(main_scenic, velm_1st_year@project.name, "/")
+dir.create(velm_1st_year_scenic, recursive = T, showWarnings = F)
+
+Top2000ExprMtx(expr_mat_all, velm_1st_year_scenic, velm_1st_year)
+
+##### Map the samples back to the groups they belong to
+
+group_list <- list()
+group_list_n <- vector()
+for (group_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==group_id), "cell_id"])
+  df_og_group <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  group_list <- append(group_list, list(df_og_group))
+  group_list_n <-  c(group_list_n, group_id)
+}
+names(group_list) <- group_list_n
+
+PlotGroupNumbers(group_list, 100, velm_1st_year_scenic)
+PlotGroupNumbers(group_list, 500, velm_1st_year_scenic)
+
+###### Create Randomly sampled dfs
+
+df_list <- list()
+df_list_n <- vector()
+for (df_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==df_id), "cell_id"])
+  df_og_df <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  df_list <- append(df_list, list(df_og_df))
+  df_list_n <-  c(df_list_n, df_id)
+}
+names(df_list) <- df_list_n
+
+df_list100 <- df_list
+df_list100 <- RemoveDfs(df_list100, 100)
+
+CheckDfs(df_list100)
+
+RandomSampling(df_list100, 3, 100, velm_1st_year_scenic)
+
+saveRDS(velm_1st_year, paste0(rds_path, velm_1st_year@project.name, ".rds"))
 
 
 ####################################################################################################
@@ -629,6 +809,79 @@ velm_num_sex_ct_all <- rbind(velm_num_sex_ct_all, velm_num_sex_ct)
 
 write.csv(velm_num_sex_ct_all, paste0(main, "Velmeshev_num_sex_ct_per_age.csv"))
 
+################ FOR DEGs ANALYSIS
+
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/RDS_preparation/00_DEGs_and_SCENIC_files_prep.R")
+
+velm_2nd_year <- readRDS(paste0(rds_path, "Velmeshev_2022_1_2_years.rds"))
+
+velm_2nd_year@meta.data$sex_ct <- paste(velm_2nd_year@meta.data$sex, velm_2nd_year@meta.data$cluster_final, sep="_")
+
+num_sex_ct <- NumSexCt(velm_2nd_year)
+
+min_num_cells <- c(10,50,100)
+
+velm_2nd_year_deg <- paste0(main_deg, velm_2nd_year@project.name, "/outputs/")
+dir.create(velm_2nd_year_deg, recursive = T, showWarnings = F)
+
+PlotFiltDf(min_num_cells, num_sex_ct, velm_2nd_year_deg)
+
+
+############ For 02C_Conservation
+
+cell_info <- CreateCellInfo(velm_2nd_year, main_deg)
+
+expr_mat_all <- GetAssayData(velm_2nd_year[["RNA"]], slot="data")
+expr_mat_all <- as.data.frame(as.matrix(expr_mat_all))
+
+df_list <- list()
+df_list_n <- vector()
+for (df_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==df_id), "cell_id"])
+  df_og_df <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  df_list <- append(df_list, list(df_og_df))
+  df_list_n <-  c(df_list_n, df_id)
+}
+names(df_list) <- df_list_n
+
+GenerateTotGenesDf(df_list, main_deg, velm_2nd_year)
+
+############ For SCENIC - HIGHEST VARIABLE GENES
+
+velm_2nd_year@meta.data$sample_id <- rownames(velm_2nd_year@meta.data)
+velm_2nd_year@meta.data$sex_ct_sample <- paste(velm_2nd_year@meta.data$sex_ct, velm_2nd_year@meta.data$sample_id, sep="_")
+Idents(velm_2nd_year) <- "sex_ct_sample"
+
+velm_2nd_year_scenic <- paste0(main_scenic, velm_2nd_year@project.name, "/")
+dir.create(velm_2nd_year_scenic, recursive = T, showWarnings = F)
+
+Top2000ExprMtx(expr_mat_all, velm_2nd_year_scenic, velm_2nd_year)
+
+##### Map the samples back to the groups they belong to
+
+group_list <- list()
+group_list_n <- vector()
+for (group_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==group_id), "cell_id"])
+  df_og_group <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  group_list <- append(group_list, list(df_og_group))
+  group_list_n <-  c(group_list_n, group_id)
+}
+names(group_list) <- group_list_n
+
+PlotGroupNumbers(group_list, 100, velm_2nd_year_scenic)
+PlotGroupNumbers(group_list, 500, velm_2nd_year_scenic)
+
+###### Create Randomly sampled dfs
+
+df_list100 <- group_list
+df_list100 <- RemoveDfs(df_list100, 100)
+
+CheckDfs(df_list100)
+
+RandomSampling(df_list100, 3, 100, velm_2nd_year_scenic)
+
+saveRDS(velm_2nd_year, paste0(rds_path, velm_2nd_year@project.name, ".rds"))
 
 ####################################################################################################
 #
@@ -752,6 +1005,79 @@ velm_num_sex_ct_all <- rbind(velm_num_sex_ct_all, velm_num_sex_ct)
 
 write.csv(velm_num_sex_ct_all, paste0(main, "Velmeshev_num_sex_ct_per_age.csv"))
 
+################ FOR DEGs ANALYSIS
+
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/RDS_preparation/00_DEGs_and_SCENIC_files_prep.R")
+
+velm_2_4_years <- readRDS(paste0(rds_path, "Velmeshev_2022_2_4_years.rds"))
+
+velm_2_4_years@meta.data$sex_ct <- paste(velm_2_4_years@meta.data$sex, velm_2_4_years@meta.data$cluster_final, sep="_")
+
+num_sex_ct <- NumSexCt(velm_2_4_years)
+
+min_num_cells <- c(10,50,100)
+
+velm_2_4_years_deg <- paste0(main_deg, velm_2_4_years@project.name, "/outputs/")
+dir.create(velm_2_4_years_deg, recursive = T, showWarnings = F)
+
+PlotFiltDf(min_num_cells, num_sex_ct, velm_2_4_years_deg)
+
+############ For 02C_Conservation
+
+cell_info <- CreateCellInfo(velm_2_4_years, main_deg)
+
+expr_mat_all <- GetAssayData(velm_2_4_years[["RNA"]], slot="data")
+expr_mat_all <- as.data.frame(as.matrix(expr_mat_all))
+
+df_list <- list()
+df_list_n <- vector()
+for (df_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==df_id), "cell_id"])
+  df_og_df <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  df_list <- append(df_list, list(df_og_df))
+  df_list_n <-  c(df_list_n, df_id)
+}
+names(df_list) <- df_list_n
+
+GenerateTotGenesDf(df_list, main_deg, velm_2_4_years)
+
+############ For SCENIC - HIGHEST VARIABLE GENES
+
+velm_2_4_years@meta.data$sample_id <- rownames(velm_2_4_years@meta.data)
+velm_2_4_years@meta.data$sex_ct_sample <- paste(velm_2_4_years@meta.data$sex_ct, velm_2_4_years@meta.data$sample_id, sep="_")
+Idents(velm_2_4_years) <- "sex_ct_sample"
+
+velm_2_4_years_scenic <- paste0(main_scenic, velm_2_4_years@project.name, "/")
+dir.create(velm_2_4_years_scenic, recursive = T, showWarnings = F)
+
+Top2000ExprMtx(expr_mat_all, velm_2_4_years_scenic, velm_2_4_years)
+
+##### Map the samples back to the groups they belong to
+
+group_list <- list()
+group_list_n <- vector()
+for (group_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==group_id), "cell_id"])
+  df_og_group <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
+  group_list <- append(group_list, list(df_og_group))
+  group_list_n <-  c(group_list_n, group_id)
+}
+names(group_list) <- group_list_n
+
+PlotGroupNumbers(group_list, 100, velm_2_4_years_scenic)
+PlotGroupNumbers(group_list, 500, velm_2_4_years_scenic)
+
+###### Create Randomly sampled dfs
+
+df_list100 <- group_list
+df_list100 <- RemoveDfs(df_list100, 100)
+
+CheckDfs(df_list100)
+
+RandomSampling(df_list100, 3, 100, velm_2_4_years_scenic)
+
+
+saveRDS(velm_2_4_years, paste0(rds_path, velm_2_4_years@project.name, ".rds"))
 
 ####################################################################################################
 #
