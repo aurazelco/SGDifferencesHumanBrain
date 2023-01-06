@@ -316,17 +316,7 @@ expr_mat_all <- readRDS(paste0(velm_ad_scenic, "top_2000_SD_expr_matrix_",  velm
 cell_info <- read.csv(paste0(main_deg, velm_ad@project.name, "/cell_info_", velm_ad@project.name, ".csv"))
 cell_info$X <- NULL
 
-df_list <- list()
-df_list_n <- vector()
-for (df_id in unique(cell_info$og_group)) {
-  og_cells <- c("Genes", cell_info[which(cell_info$og_group==df_id), "cell_id"])
-  df_og_df <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
-  df_list <- append(df_list, list(df_og_df))
-  df_list_n <-  c(df_list_n, df_id)
-}
-names(df_list) <- df_list_n
-
-df_list100 <- df_list
+df_list100 <- group_list
 df_list100 <- RemoveDfs(df_list100, 100)
 
 CheckDfs(df_list100)
@@ -431,8 +421,6 @@ num_cells <- rbind(num_cells, velm_num_cells)
 
 write.csv(num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
 
-
-
 ################
 
 velm_3rd_trim <- readRDS(paste0(rds_path, "Velmeshev_2022_3rd_trimester.rds"))
@@ -469,6 +457,7 @@ velm_num_sex_ct_all[,1] <- NULL
 velm_num_sex_ct_all <- rbind(velm_num_sex_ct_all, velm_num_sex_ct)
 
 write.csv(velm_num_sex_ct_all, paste0(main, "Velmeshev_num_sex_ct_per_age.csv"))
+
 
 ####################################################################################################
 #
@@ -666,17 +655,11 @@ PlotGroupNumbers(group_list, 500, velm_1st_year_scenic)
 
 ###### Create Randomly sampled dfs
 
-df_list <- list()
-df_list_n <- vector()
-for (df_id in unique(cell_info$og_group)) {
-  og_cells <- c("Genes", cell_info[which(cell_info$og_group==df_id), "cell_id"])
-  df_og_df <- expr_mat_all[ , (names(expr_mat_all) %in% og_cells)]
-  df_list <- append(df_list, list(df_og_df))
-  df_list_n <-  c(df_list_n, df_id)
-}
-names(df_list) <- df_list_n
+expr_mat_all <- readRDS(paste0(velm_1st_year_scenic, "top_2000_SD_expr_matrix_",  velm_1st_year@project.name, ".rds"))
+cell_info <- read.csv(paste0(main_deg, velm_1st_year@project.name, "/cell_info_", velm_1st_year@project.name, ".csv"))
+cell_info$X <- NULL
 
-df_list100 <- df_list
+df_list100 <- group_list
 df_list100 <- RemoveDfs(df_list100, 100)
 
 CheckDfs(df_list100)
@@ -874,6 +857,10 @@ PlotGroupNumbers(group_list, 500, velm_2nd_year_scenic)
 
 ###### Create Randomly sampled dfs
 
+expr_mat_all <- readRDS(paste0(velm_2nd_year_scenic, "top_2000_SD_expr_matrix_",  velm_2nd_year@project.name, ".rds"))
+cell_info <- read.csv(paste0(main_deg, velm_2nd_year@project.name, "/cell_info_", velm_2nd_year@project.name, ".csv"))
+cell_info$X <- NULL
+
 df_list100 <- group_list
 df_list100 <- RemoveDfs(df_list100, 100)
 
@@ -1068,6 +1055,11 @@ PlotGroupNumbers(group_list, 100, velm_2_4_years_scenic)
 PlotGroupNumbers(group_list, 500, velm_2_4_years_scenic)
 
 ###### Create Randomly sampled dfs
+
+expr_mat_all <- readRDS(paste0(velm_2_4_years_scenic, "top_2000_SD_expr_matrix_",  velm_2_4_years@project.name, ".rds"))
+cell_info <- read.csv(paste0(main_deg, velm_2_4_years@project.name, "/cell_info_", velm_2_4_years@project.name, ".csv"))
+cell_info$X <- NULL
+
 
 df_list100 <- group_list
 df_list100 <- RemoveDfs(df_list100, 100)

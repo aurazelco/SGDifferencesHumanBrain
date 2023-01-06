@@ -136,3 +136,8 @@ saveRDS(trim_2nd, paste0(input_rds_path, "/", trim_2nd@project.name, ".rds"))
 ########
 
 trim_2nd <- readRDS(paste0(input_rds_path, "/trim_2nd_all.rds"))
+
+pdf(paste0(main, "/", trim_2nd@project.name, "_projects.pdf"))
+DimPlot(trim_2nd, reduction = "umap", group.by = "proj")
+dev.off()
+

@@ -62,6 +62,7 @@ ct_order <- c(
   "Excitatory neurons",    
   "Interneurons",                      
   "OPCs",  
+  "Oligodendrocytes", 
   "Astrocytes",
   "Microglia",   
   "Vascular cells",  
@@ -91,6 +92,7 @@ tot_genes <- 20000
 num_chr_genes <- list("X" = X_chr_genes, "Y" = Y_chr_genes, "Autosome" = (tot_genes - X_chr_genes - Y_chr_genes))
 
 chr_2nd_trim <- ProcessCt(main_local)
+ExtractSharedGenes(main_local, chr_2nd_trim)
 PlotGeneralHeatmap(main_local, chr_2nd_trim, ct_order)
 PlotSexHmp(main_local, chr_2nd_trim, ct_order)
 
@@ -159,7 +161,7 @@ conserved <- conserved %>% distinct(gene_name, .keep_all = TRUE)
 # SAGD CONSERVATION
 
 SAGD_df <- read.csv("/Home/ii/auraz/data/UCSC/outputs/DEGs/extra_files/SAGD_filt.csv")
-SAGD_df[,1] <- NULL
+SAGD_df$X <- NULL
 
 #SAGD <- read.csv("/Home/ii/auraz/data/UCSC/outputs/DEGs/extra_files/Sexassociatedgene_Padj0.05_PMID30380119.csv")
 #SAGD <- SAGD[, c(2,4)]
@@ -203,6 +205,7 @@ SAGD_df[,1] <- NULL
 # all genes commonly expressed in the cts
 all_genes <- read.csv("/Home/ii/auraz/data/UCSC/outputs/DEGs/Velmeshev_2022_2nd_trimester/tot_genes_ct_Velmeshev_2022_2nd_trimester.csv")
 all_genes$X <- NULL
+all_genes$sex <- str_replace_all(all_genes$sex, c("Female"="F", "Male"="M"))
 col_factors <- c("sex", "ct")
 all_genes[col_factors] <- lapply(all_genes[col_factors], as.factor) 
 

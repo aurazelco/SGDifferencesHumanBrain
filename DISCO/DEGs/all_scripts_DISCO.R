@@ -134,12 +134,14 @@ num_chr_genes <- list("X" = X_chr_genes, "Y" = Y_chr_genes, "Autosome" = (tot_ge
 
 # NORMAL
 chr_normal <- ProcessCt(main, sub_disease[3])
+ExtractSharedGenes(main, sub_disease[3], chr_normal)
 PlotGeneralHeatmap(main, sub_disease[3], chr_normal, ct_order)
 PlotSexHmp(main, sub_disease[3], chr_normal, ct_order)
 #PlotNumChr(main, sub_disease[3], num_chr_genes, ct_order)
 
 # AD
 chr_ad <- ProcessCt(main, sub_disease[1])
+ExtractSharedGenes(main, sub_disease[1], chr_ad)
 PlotGeneralHeatmap(main, sub_disease[1], chr_ad, ct_order)
 PlotSexHmp(main, sub_disease[1], chr_ad, ct_order)
 PlotNumChr(main, sub_disease[1], num_chr_genes, ct_order)
@@ -147,6 +149,7 @@ PlotNumChr(main, sub_disease[1], num_chr_genes, ct_order)
 
 # MS
 chr_ms <- ProcessCt(main, sub_disease[2])
+ExtractSharedGenes(main, sub_disease[2], chr_ms)
 PlotGeneralHeatmap(main, sub_disease[2], chr_ms, ct_order)
 PlotSexHmp(main, sub_disease[2], chr_ms, ct_order)
 PlotNumChr(main, sub_disease[2], num_chr_genes, ct_order)

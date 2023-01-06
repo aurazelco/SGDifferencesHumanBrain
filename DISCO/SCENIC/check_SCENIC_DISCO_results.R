@@ -1,11 +1,12 @@
-main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/outputs/"
+main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/SCENIC/outputs/"
 sub_disease <- list.dirs(main_DISCO, full.names = FALSE, recursive = FALSE)
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/SCENIC/check_SCENIC_results_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/SCENIC/check_SCENIC_results_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/SCENIC/plot_high_variable_genes_func.R")
 
 ########## Important files
 
-cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/extra_files/cell_info.csv")
+cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/SCENIC/extra_files/cell_info.csv")
 cell_info$X <- NULL
 cell_info <- separate(cell_info, og_group, into=c("proj", "sex", "disease", "ct"), sep="_", remove=F)
 cell_info$ct <- str_replace_all(cell_info$ct, "/", "_")
@@ -94,6 +95,21 @@ norm_scenic <- SCENICresultsSeurat(main_DISCO, sub_disease[3], "1_GRN")
 SCENICTfTg(main_DISCO, sub_disease[3], norm_scenic, all_norm_final, ct_order)
 SCENICTfTg(main_DISCO, sub_disease[3], norm_scenic, all_norm_final, ct_order, 100)
 
+norm_tf_list <- SCENICExtractGRN(norm_scenic, sub_disease[3], "TF", 100)
+SCENICPlotGRN(main_DISCO, sub_disease[3], norm_tf_list, "TF")
+
+norm_tg_list <- SCENICExtractGRN(norm_scenic, sub_disease[3], "target", 50)
+SCENICPlotGRN(main_DISCO, sub_disease[3], norm_tg_list, "Target")
+
+#####  Gene Variability
+
+
+
+
+SexSD(main, cell_info, top2000)
+
+
+
 
 # AD
 
@@ -148,6 +164,12 @@ HmpSCENICAll(main_DISCO, sub_disease[1], all_ad_final, ad_markers, ct_order)
 ad_scenic <- SCENICresultsSeurat(main_DISCO, sub_disease[1], "1_GRN")
 SCENICTfTg(main_DISCO, sub_disease[1], ad_scenic, all_ad_final, ct_order)
 SCENICTfTg(main_DISCO, sub_disease[1], ad_scenic, all_ad_final, ct_order, 100)
+
+ad_tf_list <- SCENICExtractGRN(ad_scenic, sub_disease[1], "TF", 100)
+SCENICPlotGRN(main_DISCO, sub_disease[1], ad_tf_list, "TF")
+
+ad_tg_list <- SCENICExtractGRN(ad_scenic, sub_disease[1], "target", 50)
+SCENICPlotGRN(main_DISCO, sub_disease[1], ad_tg_list, "Target")
 
 
 # MS
@@ -205,6 +227,11 @@ SCENICTfTg(main_DISCO, sub_disease[2], ms_scenic, all_ms_final, ct_order)
 SCENICTfTg(main_DISCO, sub_disease[2], ms_scenic, all_ms_final, ct_order, 100)
 
 
+ms_tf_list <- SCENICExtractGRN(ms_scenic, sub_disease[2], "TF", 100)
+SCENICPlotGRN(main_DISCO, sub_disease[2], ms_tf_list, "TF")
+
+ms_tg_list <- SCENICExtractGRN(ms_scenic, sub_disease[2], "target", 50)
+SCENICPlotGRN(main_DISCO, sub_disease[2], ms_tg_list, "Target")
 
 
 
@@ -255,8 +282,42 @@ ms_overlapTFTG <- SCENICOverlapTfTg(ms_scenic)
 SCENICPlotOverlapTfTg(main_DISCO, sub_disease[2], ms_overlapTFTG)
 
 
+#####  Gene Variability - ON KJEMPEFURU
 
+#####  Gene Variability
 
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/SCENIC/plot_high_variable_genes_func.R")
+
+main_scenic <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/SCENIC/outputs/"
+
+cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs/cell_info.csv")
+cell_info$X <- NULL
+cell_info <- separate(cell_info, og_group, into=c("proj", "sex","disease", "ct"), sep="_", remove=F)
+library(stringr)
+cell_info$ct <- str_replace_all(cell_info$ct, c("/"="_", " "="_"))
+
+sub_disease <- list.dirs(main_scenic, full.names = F, recursive = F)
+
+for (dis_type in sub_disease) {
+  print(dis_type)
+  main_scenic_dis <- paste0(main_scenic, dis_type, "/")
+  dir.create(main_scenic_dis, recursive = T, showWarnings = F)
+  top2000_dis <- readRDS(paste0(main_scenic_dis, "top_2000_SD_expr_matrix.rds"))
+  cell_info_dis <- subset(cell_info, disease==dis_type)
+  if (length(unique(cell_info_dis$proj)) == 1) {
+    print("only one project")
+    SexSD(main_scenic_dis, cell_info_dis, top2000_dis)
+  } else {
+    for (proj_id in unique(cell_info_dis$proj)) {
+      print(paste0("multiple projects: ", proj_id))
+      cell_info_ds_proj <- subset(cell_info_dis, proj==proj_id)
+      main_scenic_dis_proj <- paste0(main_scenic_dis, "plots/", proj_id, "/")
+      dir.create(main_scenic_dis_proj, recursive = T, showWarnings = F)
+      SexSD(main_scenic_dis_proj, cell_info_ds_proj, top2000_dis)
+    }
+  }
+  rm(top2000_dis, cell_info_dis)
+}
 
 
 
@@ -293,7 +354,7 @@ scGRNom_sheets <- c("Mic_GRN_with_openchrom",
                     "Oli_GRN_without_openchrom")
 scGRNom <- list()
 for (sheet in scGRNom_sheets) {
-  scGRNom_sub <- as.data.frame(read_xlsx(("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/extra_files/scGRNom_suppl_file_2.xlsx"),
+  scGRNom_sub <- as.data.frame(read_xlsx(("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/SCENIC/extra_files/scGRNom_suppl_file_2.xlsx"),
                                          sheet = sheet, skip = 1))
   scGRNom <- append(scGRNom, list(scGRNom_sub))
 }

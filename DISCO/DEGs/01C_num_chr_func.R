@@ -252,7 +252,7 @@ AddPval <- function(df, pvalX, pvalY) {
   return(df)
 }
 
-# 13. Plot Heatmap of all DEGs, with heircachy of chromosome origin
+# 13. Plot Heatmap of all DEGs, with hierarchy of chromosome origin
 PlotGeneralHeatmap <- function(main_dir, dis_type, chr_sex_list, ct_ordered) {
   df_sex_list <- ExtractGenes(chr_sex_list) 
   for (sex in names(df_sex_list)) {
@@ -283,7 +283,6 @@ PlotGeneralHeatmap <- function(main_dir, dis_type, chr_sex_list, ct_ordered) {
     )
     dev.off()
   }
-  
 }
 
 # 14. Plot the fraction of enriched DEGs per chromosome, including or not the Fisher p-value
@@ -348,3 +347,18 @@ PlotNumChr <- function(main_dir, dis_type, num_chr_genes, ct_ordered, pval_file=
   }
 }
 
+# 15. Saves to CSv output the DEGs from one sex shared by al least 50% of the ct
+ExtractSharedGenes <- function(main_dir, dis_type, chr_sex_list) {
+  output_path <- paste(main_dir, dis_type, "01C_num_chr", sep="/")
+  dir.create(output_path, showWarnings = F, recursive = T)
+  df_sex_list <- ExtractGenes(chr_sex_list) 
+  for (sex in names(df_sex_list)) {
+    shared_genes <- data.frame()
+    thresh <- ceiling(length(levels(df_sex_list[[sex]]$ct)) / 2)
+    for (gene in unique(df_sex_list[[sex]]$gene)) {
+      if (sum(df_sex_list[[sex]][which(df_sex_list[[sex]]$gene==gene), "DEG"]=="y") >= thresh)
+        shared_genes <- rbind(shared_genes, df_sex_list[[sex]][which(df_sex_list[[sex]]$gene==gene & df_sex_list[[sex]]$DEG=="y"), c("ct", "gene", "chr_name")])
+    }
+    write.csv(shared_genes, paste0(output_path, "/", sex, "_shared_genes.csv"))
+  }
+}

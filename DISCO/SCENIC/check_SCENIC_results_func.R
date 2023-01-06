@@ -15,14 +15,14 @@ library(dplyr)
 ################################## Check randomly sampled SCENIC inputs
 
 SCENICInputSeurat <- function(main_dir, dis_type, run_v) {
-  if (dis_type) {
+  if (dis_type!=F) {
     input_dfs_path <-  paste0(main_dir, dis_type, "/0_input_dfs/sampled_100_cells_all")
   } else {
     input_dfs_path <-  paste0(main_dir, "0_input_dfs/sampled_100_cells_all")
   }
   input_dfs_files <- list.files(path = input_dfs_path, full.names = T)
   input_dfs <- lapply(input_dfs_files,function(x) {
-    read.table(file = x, 
+    read.csv(file = x, 
                sep = ',', 
                header = TRUE)
   })
@@ -107,7 +107,7 @@ SCENICClustering <- function(main_dir, dis_type, id_seurat, cluster_num, ct_orde
 }
 
 SCENICUmap <- function (main_dir, dis_type, id_seurat, ct_ordered, file_out_name) {
-  if (dis_type) {
+  if (dis_type!=F) {
     plot_path <- paste0(main_dir, dis_type, "/plots/Seurat/")
   } else {
     plot_path <- paste0(main_dir, "plots/Seurat/")
@@ -127,7 +127,7 @@ SCENICMarkers <- function (main_dir, dis_type, id_seurat, file_out_name) {
   ct_markers <- FindAllMarkers(id_seurat, 
                                     logfc.threshold = 0.25,
                                     min.pct = 0.1)
-  if (dis_type) {
+  if (dis_type!=F) {
     csv_path <- paste0(main_dir, dis_type, "/4_Markers/")
   } else {
     csv_path <- paste0(main_dir, "4_Markers/")
@@ -138,7 +138,7 @@ SCENICMarkers <- function (main_dir, dis_type, id_seurat, file_out_name) {
 }
 
 SCENICInputMarkers <- function(main_dir, dis_type, pval, FC) {
-  if (dis_type) {
+  if (dis_type!=F) {
     input_markers_path <-  paste0(main_dir, dis_type, "/4_Markers/")
   } else {
     input_markers_path <-  paste0(main_dir, "4_Markers/")
@@ -181,7 +181,7 @@ SCENICtop10genes <- function(input_markers, dis_type) {
   }
   colnames(top10) <- c("og", "genes")
   for (i in 1:3) {top10$og <- str_replace(top10$og, "_", "/")}
-  if (dis_type) {
+  if (dis_type!=F) {
     top10 <- separate(top10, og, into = c("proj", "sex", "v", "ct"), sep="/", remove=F)
     top10$files <- paste(top10$proj, top10$sex, top10$v, sep = "_")
     col_names <- c("proj", "sex", "v", "ct")
@@ -202,8 +202,8 @@ Filter_gene <- function(order.gene.df, pval, FC) {
   return(gene.sig)
 }
 
-HmpSCENIC <- function(main_dir, dis_type, input_seurat, top10, ct_ordered) {
-  if (dis_type) {
+HmpSCENIC <- function(main_dir, dis_type, input_seurat, top10, ct_ordered, ord_level="yes") {
+  if (dis_type!=F) {
     plot_path <- paste0(main_dir, dis_type, "/plots/Seurat/")
   } else {
     plot_path <- paste0(main_dir, "plots/Seurat/")
@@ -217,7 +217,9 @@ HmpSCENIC <- function(main_dir, dis_type, input_seurat, top10, ct_ordered) {
       topgenes <- topgenes[order(topgenes$ct), ]
       hmp_top_order <- ct_ordered[which(ct_ordered %in% unique(topgenes$ct))]
       Idents(input_seurat[[run_v]][[file]]) <- "ct"
-      levels(input_seurat[[run_v]][[file]]) <- hmp_top_order
+      if (ord_level=="yes") {
+        levels(input_seurat[[run_v]][[file]]) <- hmp_top_order
+      }
       hmp_top <- DoHeatmap(input_seurat[[run_v]][[file]], features = topgenes$genes, group.by = "ident", angle = 90, size = 3)
       pdf(paste0(plot_path, "hmp_top_10_", file, ".pdf"), height = 15)
       print(hmp_top  + labs(title = file))
@@ -226,8 +228,8 @@ HmpSCENIC <- function(main_dir, dis_type, input_seurat, top10, ct_ordered) {
   }
 }
 
-HmpSCENICAll <- function(main_dir, dis_type, input_seurat, markers, ct_ordered) {
-  if (dis_type) {
+HmpSCENICAll <- function(main_dir, dis_type, input_seurat, markers, ct_ordered, ord_level="yes") {
+  if (dis_type!=F) {
     plot_path <- paste0(main_dir, dis_type, "/plots/Seurat/")
   } else {
     plot_path <- paste0(main_dir, "plots/Seurat/")
@@ -241,7 +243,9 @@ HmpSCENICAll <- function(main_dir, dis_type, input_seurat, markers, ct_ordered) 
       file_markers <- file_markers[order(file_markers$cluster), ]
       hmp_top_order <- ct_ordered[which(ct_ordered %in% unique(file_markers$cluster))]
       Idents(input_seurat[[run_v]][[file]]) <- "ct"
-      levels(input_seurat[[run_v]][[file]]) <- hmp_top_order
+      if (ord_level=="yes") {
+        levels(input_seurat[[run_v]][[file]]) <- hmp_top_order
+      }
       hmp_top <- DoHeatmap(input_seurat[[run_v]][[file]], features = file_markers$gene, group.by = "ident", angle = 90, size = 3)
       pdf(paste0(plot_path, "hmp_all_", file, ".pdf"), height = 15)
       print(hmp_top  + labs(title = file))
@@ -252,7 +256,7 @@ HmpSCENICAll <- function(main_dir, dis_type, input_seurat, markers, ct_ordered) 
 }
 
 SCENICresultsSeurat <- function(main_dir, dis_type, res_folder, proj_order = "no") {
-  if (dis_type) {
+  if (dis_type!=F) {
     all_path <- paste0(main_dir, dis_type, "/", res_folder, "/sampled_100_cells_all/")
     projs <- c("GSE157827", "GSE174367", "PRJNA544731")
   } else {
@@ -316,8 +320,8 @@ SCENICresultsSeurat <- function(main_dir, dis_type, res_folder, proj_order = "no
   return(all2)
 }
 
-SCENICTfTg <- function(main_dir, dis_type, scenic_all, input_seurat, ct_ordered, cutoff = "no") {
-  if (dis_type) {
+SCENICTfTg <- function(main_dir, dis_type, scenic_all, input_seurat, ct_ordered, cutoff = "no", ord_levels="yes") {
+  if (dis_type!=F) {
     plot_path <- paste0(main_dir, dis_type, "/plots/Seurat/")
   } else {
     plot_path <- paste0(main_dir, "plots/Seurat/")
@@ -332,7 +336,9 @@ SCENICTfTg <- function(main_dir, dis_type, scenic_all, input_seurat, ct_ordered,
       }
       hmp_top_order <- ct_ordered[which(ct_ordered %in% unique(input_seurat[[run_v]][[file]]@meta.data$ct))]
       Idents(input_seurat[[run_v]][[file]]) <- "ct"
-      levels(input_seurat[[run_v]][[file]]) <- hmp_top_order
+      if (ord_levels=="yes") {
+        levels(input_seurat[[run_v]][[file]]) <- hmp_top_order
+      }
       for (k in c("TF", "target")) {
         hmp_top <- DoHeatmap(input_seurat[[run_v]][[file]], features = file_markers[, k], group.by = "ident", angle = 90, size = 3)
         if  (cutoff == "no") {
@@ -349,6 +355,85 @@ SCENICTfTg <- function(main_dir, dis_type, scenic_all, input_seurat, ct_ordered,
   }
 }
 
+################################## Check TF and targets presence in GRNBoost2 outputs
+
+SCENICExtractGRN <- function(grn_out, dis_type, obj, cutoff) {
+  grn_filt <- list()
+  for (k in names(grn_out)) {
+    grn_k <- list()
+    for (i in names(grn_out[[k]])) {
+      grn_k <- append(grn_k, list(grn_out[[k]][[i]][1:cutoff, ]))
+    }
+    names(grn_k) <- names(grn_out[[k]])
+    grn_filt <- append(grn_filt, list(grn_k))
+  }
+  names(grn_filt) <- names(grn_out)
+  grn_ids <- list()
+  run_id <- vector()
+  for (id_1 in names(grn_filt)) {
+    for (id_2 in names(grn_filt[[id_1]])) {
+      grns_v <- lapply(grn_filt[[id_1]], "[", c(obj))
+      grn_ids <- append(grn_ids, list(grns_v[[id_2]][[obj]]))
+      run_id <- c(run_id, id_2)
+    }
+  }
+  names(grn_ids) <- run_id
+  tot_grns <- unique(unlist(grn_ids))
+  run_id <- rep(run_id, each=length(tot_grns))
+  grn_id <- rep(tot_grns, length(run_id))
+  grns <- data.frame(run_id, grn_id)
+  grns$presence <- rep("no", nrow(grns))
+  for (id in unique(grns$run_id)){
+    grns[which(grns$run_id==id & grns$grn_id %in% grn_ids[[id]]),"presence"] <- "yes"
+  }
+  grns$presence <- factor(grns$presence, c("yes", "no"))
+  grns <- grns[order(grns$presence), ]
+  if (dis_type!=F) {
+    cols_df <- c("proj", "sex", "run")
+  } else {
+    cols_df <- c("sex", "run")
+  }
+  grns <- separate(grns, run_id, into=cols_df, sep="_", remove=F)
+  grns[cols_df] <- lapply(grns[cols_df], as.factor)
+  return(grns)
+}
+
+SCENICPlotGRN <- function(main_dir, dis_type, obj_grn, obj) {
+  if (dis_type!=F) {
+    plot_path <- paste0(main_dir, dis_type, "/plots/TF_TG/")
+    dir.create(plot_path, showWarnings = F, recursive = T)
+    grnplot <- GRNPlot(obj_grn, obj, T)
+  } else {
+    plot_path <- paste0(main_dir, "plots/TF_TG/")
+    dir.create(plot_path, showWarnings = F, recursive = T)
+    grnplot <- GRNPlot(obj_grn, obj)
+  }
+  pdf(paste0(plot_path, "hmp_", obj, ".pdf"))
+  print(grnplot)
+  dev.off()
+}
+
+GRNPlot <- function(grn_data, obj, proj_facet=F) {
+  grnplot <- ggplot(grn_data, aes(run, factor(grn_id, levels = rev(levels(factor(grn_id)))), fill=presence)) +
+    geom_tile(color="#D3D3D3") +
+    coord_fixed() +
+    labs(x="Runs", y=obj, fill=paste0(obj, " found")) +
+    {if (proj_facet) facet_wrap(~proj+sex, nrow = 1) } +
+    {if (proj_facet==F) facet_wrap(~sex) } +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          panel.spacing.x=unit(0, "lines"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.x = element_text(size=12, face="bold", colour = "black"),
+          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
+          axis.ticks.x=element_blank(),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          legend.position = "right", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+  return(grnplot)
+}
 
 ################################## Check regulons presence in AUCell outputs
 
@@ -410,7 +495,7 @@ SCENICExtractRegulons <- function(aucell_out, dis_type) {
 }
 
 SCENICPlotRegulons <- function(main_dir, dis_type, regulons) {
-  if (dis_type) {
+  if (dis_type!=F) {
     plot_path <- paste0(main_dir, dis_type, "/plots/Regulons/")
     dir.create(plot_path, showWarnings = F, recursive = T)
     for (id in names(regulons)) {
@@ -887,7 +972,7 @@ PlotTfTg <- function(main_dir, dis_type, all_sort, input_dfs, ct_ordered, top_TF
 ################################## Check number of TF-TG pairs between M and F within the same project
 
 SCENICAddTFTG <- function(all_grn, dis_type) {
-  if (dis_type) {
+  if (dis_type!=F) {
     for (proj_id in names(all_grn)) {
       for (run in names(all_grn[[proj_id]])) {
         all_grn[[proj_id]][[run]]$pairs <- paste(all_grn[[proj_id]][[run]]$TF,  all_grn[[proj_id]][[run]]$target, sep="_")
@@ -903,19 +988,23 @@ SCENICAddTFTG <- function(all_grn, dis_type) {
   return(all_grn)
 }
 
-SCENICOverlapTfTg <-  function(all_grn, dis_type) {
+SCENICOverlapTfTg <-  function(all_grn, dis_type, analysis_type="no") {
   all_grn <- SCENICAddTFTG(all_grn, dis_type)
   id <- vector()
   overlap <- vector()
   count <- vector()
-  if (dis_type) {
+  if (dis_type!=F) {
     sexes <- c("_F_", "_M_")
   } else {
-    sexes <- c("F_", "M_")
+    if (analysis_type=="Velmeshev") {
+      sexes <- c("Female_", "Male_")
+    } else {
+      sexes <- c("F_", "M_")
+    }
     all_grn <- unlist(all_grn, recursive = F)
   }
   for (sex in sexes) {
-    if (dis_type) {
+    if (dis_type!=F) {
       for (proj_id in names(all_grn)) {
         only_1 <- names(all_grn[[proj_id]])[which(grepl(sex, names(all_grn[[proj_id]])))]
         sex_proj <- all_grn[[proj_id]][only_1]
@@ -959,7 +1048,7 @@ SCENICOverlapTfTg <-  function(all_grn, dis_type) {
   }
   df_counts <- data.frame(id, overlap, count)
   df_counts[which(df_counts$overlap==0), "overlap"] <- "None"
-  if (dis_type) {
+  if (dis_type!=F) {
     df_counts <- separate(df_counts, id, into=c("proj", "sex"), remove = F, sep="_")
     df_counts[c("id", "proj", "sex", "overlap")] <- lapply(df_counts[c("id", "proj", "sex", "overlap")], as.factor)
   } else {
@@ -971,7 +1060,7 @@ SCENICOverlapTfTg <-  function(all_grn, dis_type) {
 
 
 SCENICPlotOverlapTfTg <- function(main_dir, dis_type, df_counts) {
-  if (dis_type) {
+  if (dis_type!=F) {
     plot_path <- paste0(main_dir, dis_type, "/plots/TF_TG/")
   } else {
     plot_path <- paste0(main_dir, "plots/TF_TG/")

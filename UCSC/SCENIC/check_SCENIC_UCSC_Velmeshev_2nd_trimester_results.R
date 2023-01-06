@@ -16,11 +16,13 @@ ct_order <- c(
   "Excitatory neurons",    
   "Interneurons",                      
   "OPCs",  
+  "Oligodendrocytes",
   "Astrocytes",
   "Microglia",   
   "Vascular cells",  
   "Unknown"
 )
+
 
 pval_thresh <- 0.05
 FC_thresh <- 1.2
@@ -84,6 +86,13 @@ Velm_2nd_scenic <- SCENICresultsSeurat(main_Velm_2nd, F, "1_GRN", proj_order = "
 SCENICTfTg(main_Velm_2nd, F, Velm_2nd_scenic, Velm_2nd_final, ct_order)
 SCENICTfTg(main_Velm_2nd, F, Velm_2nd_scenic, Velm_2nd_final, ct_order, 100)
 
+Velm_2nd_tf_list <- SCENICExtractGRN(Velm_2nd_scenic, F, "TF", 100)
+SCENICPlotGRN(main_Velm_2nd, F, Velm_2nd_tf_list, "TF")
+
+Velm_2nd_tg_list <- SCENICExtractGRN(Velm_2nd_scenic, F, "target", 50)
+SCENICPlotGRN(main_Velm_2nd, F, Velm_2nd_tg_list, "Target")
+
+
 #####  Regulons
 
 # Velm_2nd
@@ -94,4 +103,19 @@ SCENICPlotRegulons(main_Velm_2nd, F, Velm_2nd_reg_list)
 ########## Number of TF-TG pairs between F and M of same project
 Velm_2nd_overlapTFTG <- SCENICOverlapTfTg(Velm_2nd_scenic, F, "Velmeshev")
 SCENICPlotOverlapTfTg(main_Velm_2nd, F, Velm_2nd_overlapTFTG)
+
+#####  Gene Variability
+
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/SCENIC/plot_high_variable_genes_func.R")
+
+cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/Velmeshev_2022_2nd_trimester/cell_info_Velmeshev_2022_2nd_trimester.csv")
+cell_info$X <- NULL
+cell_info <- separate(cell_info, og_group, into=c("sex", "ct"), sep="_", remove=F)
+
+cell_info[which(cell_info$sex=="Female"), "sex"] <- "F"
+cell_info[which(cell_info$sex=="Male"), "sex"] <- "M"
+
+top2000 <- readRDS(paste0(main_Velm_2nd, "top_2000_SD_expr_matrix_Velmeshev_2022_2nd_trimester.rds"))
+
+SexSD(main_Velm_2nd, cell_info, top2000)
 

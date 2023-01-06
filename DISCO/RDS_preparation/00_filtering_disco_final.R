@@ -453,14 +453,11 @@ if (identical(length(which(expr_sums>0)), length(expr_sums))) {
 expr_mat_all <- expr_mat_all %>% 
   relocate(SD, .after = Genes)
 
-saveRDS(expr_mat_all, paste0(disco_path, "DEGs/top_2000_SD_expr_matrix.rds"))
 
 ##### Map the samples back to the groups they belong to
 cell_info$cell_id <- paste(cell_info$barcode, cell_info$sample, sep = "--")
 cell_info <- cell_info %>% 
   relocate(cell_id, .before = barcode)
-
-expr_mat_all <- readRDS(paste0(disco_path, "SCENIC/top_2000_SD_expr_matrix.rds"))
 
 group_list <- list()
 group_list_n <- vector()
@@ -827,4 +824,68 @@ col_factors <- c("disease", "sex", "ct")
 tot_genes[col_factors] <- lapply(tot_genes[col_factors], as.factor) 
 
 write.csv(tot_genes, paste0(disco_path, "DEGs/tot_genes_ct.csv"))
+
+
+##### Saving separated expr_mtx for each disease -> done on KJEMPEFURU
+
+library(Seurat)
+library(SeuratObject)
+library(tidyr)
+library(dplyr)
+library(matrixStats)
+
+
+disco_path_server <- "/Home/ii/auraz/data/DISCO/Seurat/"
+scenic_server <- "/Home/ii/auraz/data/DISCO/SCENIC/"
+sub_disease <- c("Alzheimer's disease", "Multiple Sclerosis",  "Normal" )
+
+SaveExprMtx <- function(input_rds, main_dir, dis_type) {
+  print(paste0("Subsetting the input rds by the disease factor ", dis_type))
+  input_rds_filt <- subset(input_rds, disease==dis_type)
+  print("Extracting the expression matrix")
+  expr_mat_all <- GetAssayData(input_rds_filt[["RNA"]], slot="data")
+  print("Transforming into a dataframe")
+  expr_mat_all <- as.data.frame(as.matrix(expr_mat_all))
+  print("Calculating the SD for all genes")
+  expr_mat_all$SD <- rowSds(as.matrix(expr_mat_all))
+  print("Removing genes with SD == 0")
+  expr_mat_all <- expr_mat_all[which(expr_mat_all$SD > 0), ]
+  if (nrow(expr_mat_all) * 0.25 > 2000) {
+    print("Keeping the fourth quantile of genes based on sD")
+    expr_mat_all <- expr_mat_all[which(expr_mat_all$SD > quantile(expr_mat_all$SD)[4]), ]
+  } else {
+    print(" less than 2k genes above third quantile")
+  }
+  print("Re-ordering df in descending order of SD")
+  expr_mat_all <- expr_mat_all[order(-expr_mat_all$SD),] 
+  print("Keeping the top 2000 genes")
+  expr_mat_all <- expr_mat_all[1:2000, ]
+  expr_mat_all <- cbind("Genes" = rownames(expr_mat_all), expr_mat_all)
+  rownames(expr_mat_all) <- NULL
+  print("Checking if all columns express at least one gene")
+  expr_sums <- colSums(expr_mat_all[2:ncol(expr_mat_all)])
+  if (identical(length(which(expr_sums>0)), length(expr_sums))) {
+    print("all columns express at least one gene")
+  } else {
+    expr_mat_all <- expr_mat_all[ , !(names(expr_mat_all) %in% which(expr_sums>0))]
+    print("calculate how many cells have been filtered out")
+  }
+  print("Re-ordering the columns so SD is right after the Genes column")
+  expr_mat_all <- expr_mat_all %>% 
+    relocate(SD, .after = Genes)
+  print("Save the expr mtx in the proper folder")
+  out_path <- paste0(main_dir, dis_type, "/")
+  dir.create(out_path, recursive = T, showWarnings = F)
+  saveRDS(expr_mat_all, paste0(out_path, "top_2000_SD_expr_matrix.rds"))
+}
+
+
+disco_filt <- readRDS(paste0(disco_path_server, "brainV1.0_all_FM_filt.rds"))
+
+# NORMAL
+SaveExprMtx(disco_filt, scenic_server, sub_disease[3])
+# AD
+SaveExprMtx(disco_filt, scenic_server, sub_disease[1])
+# MS
+SaveExprMtx(disco_filt, scenic_server, sub_disease[2])
 

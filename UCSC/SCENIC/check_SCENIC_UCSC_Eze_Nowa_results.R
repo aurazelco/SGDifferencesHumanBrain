@@ -77,6 +77,13 @@ eze_nowa_scenic <- SCENICresultsSeurat(main_Eze_Nowa, F, "1_GRN", proj_order = "
 SCENICTfTg(main_Eze_Nowa, F, eze_nowa_scenic, eze_nowa_final, ct_order)
 SCENICTfTg(main_Eze_Nowa, F, eze_nowa_scenic, eze_nowa_final, ct_order, 100)
 
+eze_nowa_tf_list <- SCENICExtractGRN(eze_nowa_scenic, F, "TF", 100)
+SCENICPlotGRN(main_Eze_Nowa, F, eze_nowa_tf_list, "TF")
+
+eze_nowa_tg_list <- SCENICExtractGRN(eze_nowa_scenic, F, "target", 50)
+SCENICPlotGRN(main_Eze_Nowa, F, eze_nowa_tg_list, "Target")
+
+
 #####  Regulons
 
 # eze_nowa
@@ -87,4 +94,20 @@ SCENICPlotRegulons(main_Eze_Nowa, F, eze_nowa_reg_list)
 ########## Number of TF-TG pairs between F and M of same project
 eze_nowa_overlapTFTG <- SCENICOverlapTfTg(eze_nowa_scenic, F)
 SCENICPlotOverlapTfTg(main_Eze_Nowa, F, eze_nowa_overlapTFTG)
+
+#####  Gene Variability
+
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/SCENIC/plot_high_variable_genes_func.R")
+
+main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/SCENIC/Eze_Nowakowski_integrated_2nd_trimester/"
+
+cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/Eze_Nowakowski_integrated_2nd_trimester/cell_info.csv")
+cell_info$X <- NULL
+cell_info <- separate(cell_info, og_group, into=c("sex", "ct"), sep="_", remove=F)
+
+top2000 <- readRDS(paste0(main, "top_2000_SD_expr_matrix.rds"))
+
+
+SexSD(main, cell_info, top2000)
+
 
