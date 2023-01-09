@@ -92,10 +92,25 @@ Velm_2_4_years_scenic <- SCENICresultsSeurat(main_Velm_2_4_years, F, "1_GRN", pr
 SCENICTfTg(main_Velm_2_4_years, F, Velm_2_4_years_scenic, Velm_2_4_years_final, ct_order, 100)
 
 Velm_2_4_years_tf_list <- SCENICExtractGRN(Velm_2_4_years_scenic, F, "TF", 100)
+ExtractDiffGRN(main_Velm_2_4_years, F, Velm_2_4_years_tf_list, "TF")
 SCENICPlotGRN(main_Velm_2_4_years, F, Velm_2_4_years_tf_list, "TF")
 
 Velm_2_4_years_tg_list <- SCENICExtractGRN(Velm_2_4_years_scenic, F, "target", 50)
+ExtractDiffGRN(main_Velm_2_4_years, F, Velm_2_4_years_tg_list, "Target")
 SCENICPlotGRN(main_Velm_2_4_years, F, Velm_2_4_years_tg_list, "Target")
+
+#####  TFs and Targets expression in original SeuratObject
+
+Velm_2_4_years <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_2_4_years.rds")
+Velm_2_4_years@meta.data$ct_sex <- paste(Velm_2_4_years@meta.data$cluster_final, Velm_2_4_years@meta.data$sex, sep="_")
+
+Velm_2_4_years_tf <- read.csv(paste0(main_Velm_2_4_years, "5_outputs/different_TF_between_sexes.csv"))
+RidgeTFTG(main_Velm_2_4_years, Velm_2_4_years, Velm_2_4_years_tf$gene_id, "ct_sex", "TF")
+
+Velm_2_4_years_tg <- read.csv(paste0(main_Velm_2_4_years, "5_outputs/different_Target_between_sexes.csv"))
+RidgeTFTG(main_Velm_2_4_years, Velm_2_4_years, Velm_2_4_years_tg$gene_id, "ct_sex", "Target")
+
+
 
 
 #####  Regulons

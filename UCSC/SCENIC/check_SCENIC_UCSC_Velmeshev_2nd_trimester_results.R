@@ -87,9 +87,11 @@ SCENICTfTg(main_Velm_2nd, F, Velm_2nd_scenic, Velm_2nd_final, ct_order)
 SCENICTfTg(main_Velm_2nd, F, Velm_2nd_scenic, Velm_2nd_final, ct_order, 100)
 
 Velm_2nd_tf_list <- SCENICExtractGRN(Velm_2nd_scenic, F, "TF", 100)
+ExtractDiffGRN(main_Velm_2nd, F, Velm_2nd_tf_list, "TF")
 SCENICPlotGRN(main_Velm_2nd, F, Velm_2nd_tf_list, "TF")
 
 Velm_2nd_tg_list <- SCENICExtractGRN(Velm_2nd_scenic, F, "target", 50)
+ExtractDiffGRN(main_Velm_2nd, F, Velm_2nd_tg_list, "Target")
 SCENICPlotGRN(main_Velm_2nd, F, Velm_2nd_tg_list, "Target")
 
 
@@ -119,3 +121,17 @@ top2000 <- readRDS(paste0(main_Velm_2nd, "top_2000_SD_expr_matrix_Velmeshev_2022
 
 SexSD(main_Velm_2nd, cell_info, top2000)
 
+#####  TFs and Targets expression in original SeuratObject
+
+main_Velm_2nd_furu <- "/Home/ii/auraz/data/UCSC/outputs/SCENIC/Velmeshev_2022_2nd_trimester/"
+
+source("/Home/ii/auraz/scripts/check_SCENIC_results_func.R")
+
+Velm_2nd_trim <- readRDS("/Home/ii/auraz/data/UCSC/Seurat_UCSC/Velmeshev/Velmeshev_2022_2nd_trimester.rds")
+Velm_2nd_trim@meta.data$ct_sex <- paste(Velm_2nd_trim@meta.data$cluster_final, Velm_2nd_trim@meta.data$sex, sep="_")
+
+Velm_2nd_trim_tf <- read.csv(paste0(main_Velm_2nd_furu, "5_outputs/different_TF_between_sexes.csv"))
+RidgeTFTG(main_Velm_2nd_furu, Velm_2nd_trim, Velm_2nd_trim_tf$gene_id, "ct_sex", "TF")
+
+Velm_2nd_trim_tg <- read.csv(paste0(main_Velm_2nd_furu, "5_outputs/different_Target_between_sexes.csv"))
+RidgeTFTG(main_Velm_2nd_furu, Velm_2nd_trim, Velm_2nd_trim_tg$gene_id, "ct_sex", "Target")

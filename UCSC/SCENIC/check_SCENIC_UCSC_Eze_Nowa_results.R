@@ -78,10 +78,23 @@ SCENICTfTg(main_Eze_Nowa, F, eze_nowa_scenic, eze_nowa_final, ct_order)
 SCENICTfTg(main_Eze_Nowa, F, eze_nowa_scenic, eze_nowa_final, ct_order, 100)
 
 eze_nowa_tf_list <- SCENICExtractGRN(eze_nowa_scenic, F, "TF", 100)
+ExtractDiffGRN(main_Eze_Nowa, F, eze_nowa_tf_list, "TF")
 SCENICPlotGRN(main_Eze_Nowa, F, eze_nowa_tf_list, "TF")
 
 eze_nowa_tg_list <- SCENICExtractGRN(eze_nowa_scenic, F, "target", 50)
+ExtractDiffGRN(main_Eze_Nowa, F, eze_nowa_tg_list, "Target")
 SCENICPlotGRN(main_Eze_Nowa, F, eze_nowa_tg_list, "Target")
+
+#####  TFs and Targets expression in original SeuratObject
+
+eze_nowa <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated_2nd_trimester.rds")
+eze_nowa@meta.data$ct_sex <- paste(eze_nowa@meta.data$cluster_final, eze_nowa@meta.data$sex, sep="_")
+
+eze_nowa_tf <- read.csv(paste0(main_Eze_Nowa, "5_outputs/different_TF_between_sexes.csv"))
+RidgeTFTG(main_Eze_Nowa, eze_nowa, eze_nowa_tf$gene_id, "ct_sex", "TF")
+
+eze_nowa_tg <- read.csv(paste0(main_Eze_Nowa, "5_outputs/different_Target_between_sexes.csv"))
+RidgeTFTG(main_Eze_Nowa, eze_nowa, eze_nowa_tg$gene_id, "ct_sex", "Target")
 
 
 #####  Regulons

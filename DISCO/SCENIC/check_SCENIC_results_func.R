@@ -10,7 +10,8 @@ library(ggpubr)
 library(S4Vectors)
 library(purrr)
 library(dplyr)
-
+library(Seurat)
+library(matrixStats)
 
 ################################## Check randomly sampled SCENIC inputs
 
@@ -395,8 +396,106 @@ SCENICExtractGRN <- function(grn_out, dis_type, obj, cutoff) {
   }
   grns <- separate(grns, run_id, into=cols_df, sep="_", remove=F)
   grns[cols_df] <- lapply(grns[cols_df], as.factor)
+  grns <- grns[!duplicated(grns),]
   return(grns)
 }
+
+
+ExtractDiffGRN <- function(main_dir, dis_type, grns, obj) {
+  if (dis_type!=F) {
+    out_path <- paste0(main_dir, dis_type, "/5_outputs/")
+    dir.create(out_path, showWarnings = F, recursive = T)
+    grn_diff <- DISCOGRN(grns)
+  } else {
+    out_path <- paste0(main_dir, "5_outputs/")
+    dir.create(out_path, showWarnings = F, recursive = T)
+    grn_diff <- UCSCGRN(grns)
+  }
+  write.csv(grn_diff, paste0(out_path, "different_", obj, "_between_sexes.csv"))
+}
+
+DISCOGRN <- function(grns) {
+  grn_diff <- data.frame()
+  for (proj_id in levels(grns$proj)) {
+    gene_id <- vector()
+    F_counts <- vector()
+    M_counts <- vector()
+    higher_expr <- vector()
+    for (gene in unique(grns$grn_id)) {
+      f_gene_count <- sum(grns[which(grns$proj==proj_id & grns$grn_id==gene & grns$sex == "F"), "presence"]=="yes")
+      m_gene_count <- sum(grns[which(grns$proj==proj_id & grns$grn_id==gene & grns$sex == "M"), "presence"]=="yes")
+      if (f_gene_count == 0 | m_gene_count == 0) {
+        if (abs(f_gene_count - m_gene_count)>1) {
+          gene_id <- c(gene_id , gene)
+          F_counts<- c(F_counts, f_gene_count)
+          M_counts<- c(M_counts, m_gene_count)
+          if (f_gene_count - m_gene_count > 0 ) {
+            higher_expr <- c(higher_expr, "F")
+          } else {
+            higher_expr <- c(higher_expr, "M")
+          }
+        }
+      }
+    }
+    projs <- rep(proj_id, length(gene_id))
+    grn_diff <- rbind(grn_diff, data.frame(projs, gene_id, F_counts, M_counts, higher_expr))
+  }
+  return(grn_diff)
+}
+
+UCSCGRN <- function(grns) {
+  gene_id <- vector()
+  F_counts <- vector()
+  M_counts <- vector()
+  higher_expr <- vector()
+  grns$sex <- str_replace_all(grns$sex, c("Female"="F", "Male"="M"))
+  for (gene in unique(grns$grn_id)) {
+    f_gene_count <- sum(grns[which(grns$grn_id==gene & grns$sex == "F"), "presence"]=="yes")
+    m_gene_count <- sum(grns[which(grns$grn_id==gene & grns$sex == "M"), "presence"]=="yes")
+    if (f_gene_count == 0 | m_gene_count == 0) {
+      if (abs(f_gene_count - m_gene_count)>1) {
+        gene_id <- c(gene_id , gene)
+        F_counts<- c(F_counts, f_gene_count)
+        M_counts<- c(M_counts, m_gene_count)
+        if (f_gene_count - m_gene_count > 0 ) {
+          higher_expr <- c(higher_expr, "F")
+        } else {
+          higher_expr <- c(higher_expr, "M")
+        }
+      }
+    }
+  }
+  return(data.frame(gene_id, F_counts, M_counts, higher_expr))
+}
+
+# Plot RdigePlots of unique TFs and TGs
+RidgeTFTG <- function(main_dir, seurat_obj, shared_features, obj_ident, obj) {
+  if (length(shared_features)==0) {
+    print(paste0("No unique ", obj, "s found"))
+  } else {
+    out_path <- paste0(main_dir, "plots/TF_TG/")
+    dir.create(out_path, showWarnings = F, recursive = T)
+    if (length(shared_features)==1) {
+      pdf(paste0(out_path, obj, "_ridgeplot.pdf"))
+      print(RidgePlot(seurat_obj, assay = "RNA", features = shared_features, group.by = obj_ident))
+      dev.off()
+    } else if (length(shared_features)>20) {
+      shared_features_list <- split(shared_features, ceiling(seq_along(shared_features)/20))
+      for (i in names(shared_features_list)) {
+        pdf(paste0(out_path, obj, "_ridgeplot_", i, ".pdf"), width = 10)
+        print(RidgePlot(seurat_obj, assay = "RNA", features = shared_features_list[[i]], group.by = obj_ident, stack = T))
+        dev.off()
+      }
+    } else {
+      pdf(paste0(out_path, obj, "_ridgeplot.pdf"), width = 10)
+      print(RidgePlot(seurat_obj, assay = "RNA", features = shared_features, group.by = obj_ident, stack = T))
+      dev.off()
+    }
+  }
+}
+
+
+
 
 SCENICPlotGRN <- function(main_dir, dis_type, obj_grn, obj) {
   if (dis_type!=F) {

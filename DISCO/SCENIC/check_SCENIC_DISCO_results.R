@@ -77,7 +77,6 @@ runs <- c( "_1", "_2", "_3")
 
 #saveRDS(all_norm_final, paste0(main_DISCO, sub_disease[3], "/seurat_files.rds"))
 
-all_norm_final <- readRDS(paste0(main_DISCO, sub_disease[3], "/seurat_files.rds"))
 
 ### Calculates Markers in each SeuratObject
 
@@ -96,19 +95,17 @@ SCENICTfTg(main_DISCO, sub_disease[3], norm_scenic, all_norm_final, ct_order)
 SCENICTfTg(main_DISCO, sub_disease[3], norm_scenic, all_norm_final, ct_order, 100)
 
 norm_tf_list <- SCENICExtractGRN(norm_scenic, sub_disease[3], "TF", 100)
+norm_tf_sex <- ExtractDiffGRN(main_DISCO, sub_disease[3], norm_tf_list, "TF")
 SCENICPlotGRN(main_DISCO, sub_disease[3], norm_tf_list, "TF")
 
 norm_tg_list <- SCENICExtractGRN(norm_scenic, sub_disease[3], "target", 50)
+norm_tg_sex <- ExtractDiffGRN(main_DISCO, sub_disease[3], norm_tg_list, "Target")
 SCENICPlotGRN(main_DISCO, sub_disease[3], norm_tg_list, "Target")
+
 
 #####  Gene Variability
 
-
-
-
 SexSD(main, cell_info, top2000)
-
-
 
 
 # AD
@@ -166,9 +163,11 @@ SCENICTfTg(main_DISCO, sub_disease[1], ad_scenic, all_ad_final, ct_order)
 SCENICTfTg(main_DISCO, sub_disease[1], ad_scenic, all_ad_final, ct_order, 100)
 
 ad_tf_list <- SCENICExtractGRN(ad_scenic, sub_disease[1], "TF", 100)
+ExtractDiffGRN(main_DISCO, sub_disease[1], ad_tf_list, "TF")
 SCENICPlotGRN(main_DISCO, sub_disease[1], ad_tf_list, "TF")
 
 ad_tg_list <- SCENICExtractGRN(ad_scenic, sub_disease[1], "target", 50)
+ExtractDiffGRN(main_DISCO, sub_disease[1], ad_tg_list, "Target")
 SCENICPlotGRN(main_DISCO, sub_disease[1], ad_tg_list, "Target")
 
 
@@ -228,9 +227,11 @@ SCENICTfTg(main_DISCO, sub_disease[2], ms_scenic, all_ms_final, ct_order, 100)
 
 
 ms_tf_list <- SCENICExtractGRN(ms_scenic, sub_disease[2], "TF", 100)
+ExtractDiffGRN(main_DISCO, sub_disease[2], ms_tf_list, "TF")
 SCENICPlotGRN(main_DISCO, sub_disease[2], ms_tf_list, "TF")
 
 ms_tg_list <- SCENICExtractGRN(ms_scenic, sub_disease[2], "target", 50)
+ExtractDiffGRN(main_DISCO, sub_disease[2], ms_tg_list, "Target")
 SCENICPlotGRN(main_DISCO, sub_disease[2], ms_tg_list, "Target")
 
 
@@ -318,6 +319,106 @@ for (dis_type in sub_disease) {
   }
   rm(top2000_dis, cell_info_dis)
 }
+
+
+#####  TFs and Targets expression in original SeuratObject
+
+disco_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/"
+disco_filt <- readRDS(paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
+
+
+disco_filt.list <- SplitObject(disco_filt, split.by = "disease")
+rm(disco_filt)
+
+norm <- disco_filt.list[[1]]
+ad <- disco_filt.list[[2]]
+ms <- disco_filt.list[[3]]
+rm(disco_filt.list)
+
+###### NORMAL
+
+norm@meta.data$ct_sex <- paste(norm@meta.data$ct, norm@meta.data$gender, sep="_")
+
+norm_tf <- read.csv(paste0(main_DISCO, sub_disease[3], "/5_outputs/different_TF_between_sexes.csv"))
+norm_tg <- read.csv(paste0(main_DISCO, sub_disease[3], "/5_outputs/different_Target_between_sexes.csv"))
+
+if (length(unique(norm_tf$projs))>1) {
+  norm_projs <- SplitObject(norm, split.by = "project_id")
+  for (proj in names(norm_projs)) {
+    print(proj)
+    RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm_projs[[proj]], norm_tf$gene_id, "ct_sex", paste("TF", proj, sep = "_"))
+  }
+} else {
+  RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm, norm_tf$gene_id, "ct_sex", "TF")
+}
+
+if (length(unique(norm_tg$projs))>1) {
+  norm_projs <- SplitObject(norm, split.by = "project_id")
+  for (proj in names(norm_projs)) {
+    print(proj)
+    RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm_projs[[proj]], norm_tg$gene_id, "ct_sex", paste("Target", proj, sep = "_"))
+  }
+} else {
+  RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm, norm_tg$gene_id, "ct_sex", "Target")
+}
+
+
+###### AD
+
+ad@meta.data$ct_sex <- paste(ad@meta.data$ct, ad@meta.data$gender, sep="_")
+
+ad_tf <- read.csv(paste0(main_DISCO, sub_disease[1], "/5_outputs/different_TF_between_sexes.csv"))
+ad_tg <- read.csv(paste0(main_DISCO, sub_disease[1], "/5_outputs/different_Target_between_sexes.csv"))
+
+if (length(unique(ad_tf$projs))>1) {
+  ad_projs <- SplitObject(ad, split.by = "project_id")
+  for (proj in names(ad_projs)) {
+    print(proj)
+    RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad_projs[[proj]], ad_tf$gene_id, "ct_sex", paste("TF", proj, sep = "_"))
+  }
+} else {
+  RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad, ad_tf$gene_id, "ct_sex", "TF")
+}
+
+if (length(unique(ad_tg$projs))>1) {
+  ad_projs <- SplitObject(ad, split.by = "project_id")
+  for (proj in names(ad_projs)) {
+    print(proj)
+    RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad_projs[[proj]], ad_tg$gene_id, "ct_sex", paste("Target", proj, sep = "_"))
+  }
+} else {
+  RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad, ad_tg$gene_id, "ct_sex", "Target")
+}
+
+
+
+###### MS
+
+ms@meta.data$ct_sex <- paste(ms@meta.data$ct, ms@meta.data$gender, sep="_")
+
+ms_tf <- read.csv(paste0(main_DISCO, sub_disease[2], "/5_outputs/different_TF_between_sexes.csv"))
+ms_tg <- read.csv(paste0(main_DISCO, sub_disease[2], "/5_outputs/different_Target_between_sexes.csv"))
+
+if (length(unique(ms_tf$projs))>1) {
+  ms_projs <- SplitObject(ms, split.by = "project_id")
+  for (proj in names(ms_projs)) {
+    print(proj)
+    RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms_projs[[proj]], ms_tf$gene_id, "ct_sex", paste("TF", proj, sep = "_"))
+  }
+} else {
+  RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms, ms_tf$gene_id, "ct_sex", "TF")
+}
+
+if (length(unique(ms_tg$projs))>1) {
+  ms_projs <- SplitObject(ms, split.by = "project_id")
+  for (proj in names(ms_projs)) {
+    print(proj)
+    RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms_projs[[proj]], ms_tg$gene_id, "ct_sex", paste("Target", proj, sep = "_"))
+  }
+} else {
+  RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms, ms_tg$gene_id, "ct_sex", "Target")
+}
+
 
 
 
