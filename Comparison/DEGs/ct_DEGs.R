@@ -1,27 +1,36 @@
 # Author: Aura Zelco
 # Brief description:
-    # This script is used for comparusing the DEGs from the DEG analysis across multiple datasets and ages
+    # This script is used for comparing the DEGs from the DEG analysis across multiple datasets (different ages/disease conditions)
 # Brief procedure:
-    # 1. Reads all DEG csv files from all the dofferent datasets (in this case 2)
+    # 1. Reads all DEG csv files from all the different datasets (in this case 2 - DISCO and UCSC)
     # 2. Manually combines the annotations to be able to compare at a general level the different celltypes
     # 3. Plots presence heatmaps (yes/no, not the expression) across all ages, for each celltype
     # 4. Plots how many genes are found in all age groups, in all but one, etc
-# OBS: since there is a need for manual input, it is recommended to run this script in a R environment/IDE (e.g. Rstudio)
+# OBS: since there is a need for manual input, it is recommended to run this script in a R environment/IDE (e.g. RStudio)
 
+# sources the script containing all functions run here
 source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison/DEGs/ct_DEGs_func.R")
 
+# sets the directories where to find the DEG csv files
 main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs/outputs/"
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/"
+
+# set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
 main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/"
 
-
+# Vectors to save the different sub-groups of DISCO and UCSC
 sub_disease <- list.dirs(main_DISCO, full.names = F, recursive = F)
+# the first folder "exta_files" is excluded
 sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)[-1]
 
+# Import all the CSVs from the different ages/conditions - slightly different file tree structure requires a different approach for UCSC
 disco <- ImportDataset(main_DISCO, sub_disease)
 UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes")
 
-# disco[[2]] and UCSC[[2]] can be used to manually create unified_annotation
+# disco[[2]] and UCSC[[2]] can be used to manually create unified_annotation, as done below
+disco[[2]]
+UCSC[[2]]
+# manually decided how to combine the sub-celltypes
 
 unified_annotation <- c("CXCL14 IN" = "Interneurons",
               "EC" = "Endothelial cells",
@@ -60,6 +69,7 @@ unified_annotation <- c("CXCL14 IN" = "Interneurons",
              "Ventral progenitors" = "Ventral progenitors")
 names(unified_annotation) <- tolower(names(unified_annotation))
 
+# defines the order in which to organize the presence heatmaps, so the groups are in developmental order, with the last groups as diseases
 age_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
                "Velmeshev_2022_2nd_trimester",           
                "Velmeshev_2022_3rd_trimester", 

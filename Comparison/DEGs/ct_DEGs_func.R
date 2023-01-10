@@ -1,17 +1,33 @@
+# Author: Aura Zelco
+# Brief description:
+    # This script is used for comparing the DEGs from the DEG analysis across multiple datasets (different ages/disease conditions)
+# Brief procedure:
+    # 1. Reads all DEG CSV files from all the different datasets (in this case 2 - DISCO and UCSC)
+    # 2. Manually combines the annotations to be able to compare at a general level the different celltypes
+    # 3. Plots presence heatmaps (yes/no, not the expression) across all ages, for each celltype
+    # 4. Plots how many genes are found in all age groups, in all but one, etc
 # Documentation abbreviations:
-# deg: differentially expressed genes
-# F and M: females and males
-# ct: celltype
-# df: dataframe
-# ds: dataset
+  # deg: differentially expressed genes
+  # F and M: females and males
+  # ct: celltype
+  # df: dataframe
+  # ds: dataset
+  # hmps: heatmaps
+
+# OBS: this script is sourced in ct_DEGs.R
+
+
 
 # 0. Import Libraries
 library(stringr) # to modify and harmonize names
 library(ggplot2) # to plot
-library(tidyr) # to clean and re-organize dataframes
+library(tidyr) # to clean and re-organize dfs
 library(ggpubr) # to assemble plots together before saving
 
 # 1. Import data for each ct
+  # Input: CSV files
+  # Return: list of dfs
+
 ImportDE <- function(path, ext, row_col) {
   if (missing(ext)) {
     deg_files <- list.files(path = path, pattern = "\\.csv$",full.names = TRUE)
@@ -36,7 +52,10 @@ ImportDE <- function(path, ext, row_col) {
   return(deg)
 }
 
-# Import All DEGs from F and M for all ct; slight different folder structure requires different inputs
+# 2. Import All DEGs from F and M for all ct; slight different folder structure requires different inputs
+  # Input: directory where to find ct sub-folders, if UCSC or not, file extension, where to find row-names
+  # Return: list of 2 lists, one for F and one for M dfs
+
 ImportCt <- function(main_dir, UCSC_flag="no", ext, row_col) {
   path <- paste0(main_dir, "/01B_num_DEGs")
   sub_ct <- list.dirs(path, recursive=FALSE, full.names = FALSE)
@@ -76,7 +95,10 @@ ImportCt <- function(main_dir, UCSC_flag="no", ext, row_col) {
   return(list("F"=df_F, "M"=df_M))
 }
 
-# Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
+# 3. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
+  # Input: main directory, sub-folders list, if UCSC or not
+  # Return: list of age/condition lists, each containing ct lists divided in F and M
+
 ImportDataset <- function(main_dir, folder_list, UCSC_flag="no") {
   ds_list <- list()
   ct_list <- vector()
@@ -93,7 +115,10 @@ ImportDataset <- function(main_dir, folder_list, UCSC_flag="no") {
   return(list("genes"=ds_list, "ct"=unique(ct_list)))
 }
 
-# Creates the Df for the input ct so that we know if a DEG is found in a certain age or not -> used to generate hmps
+# 4. Creates the df for the input ct so that we know if a DEG is found in a certain age or not -> used to generate hmps
+  # Input: list of ct dfs, which sex and ct to analyze
+  # Return: df with info whether each gene is present in all age/condition groups in which the ct is found
+
 CreatePresenceCtDf <- function(sex_dfs, sex, ct) {
   sub_ct <- sex_dfs[[sex]][which(sex_dfs[[sex]]$common_annot==ct), ]
   ct_sex <-(rep(unique(sub_ct$gene_id), length(unique(sub_ct$age))))
@@ -111,7 +136,10 @@ CreatePresenceCtDf <- function(sex_dfs, sex, ct) {
   return(ct_sex)
 }
 
-# Creates all PresenceDfs for all cts
+# 5. Creates all PresenceDfs for all cts
+  # Input: list of lists, each list corresponding to a specific age/condition-sex-ct combination
+  # Return: list of ct dfs, with information on presence of each gene across all ages/conditions
+
 CreatePresenceDf <- function(sex_dfs) {
   if (all(unique(sex_dfs[["F"]][,"common_annot"]) %in% unique(sex_dfs[["M"]][,"common_annot"]))) {
     ct_df_list <- list()
@@ -128,7 +156,10 @@ CreatePresenceDf <- function(sex_dfs) {
   }
 }
 
-# Groups cts according to common annotation, then cretaes the presence dfs
+# 6. Groups cts according to common annotation, then creates the presence dfs
+  # Input: list of lists generated from ImportDatasets, here combined in a vector, and the named vector used to harmonize the annotation
+  # Return: list of presence dfs, one per each ct
+
 CreateSexDf <- function(list_ds, common_annot) {
   all <- unlist(list_ds, recursive = F)
   sex_dfs <- list()
@@ -157,7 +188,10 @@ CreateSexDf <- function(list_ds, common_annot) {
   return(ct_df_list)
 }
 
-# Plots the heatmpa for a certain ct and sex combo
+# Plots the heatmap for a certain ct and sex combo
+  # Input: presence df, which sex to plot, and the order in which to plot the ages/conditions
+  # Return: heatmap plot
+
 PlotDEGsAges <- function(ct_df, sex, age_ordered) {
   ct_df <- ct_df[which(ct_df$sex==sex),]
   ct_df_ordered <- age_ordered[which(age_ordered %in% unique(ct_df$age))]
@@ -186,6 +220,9 @@ PlotDEGsAges <- function(ct_df, sex, age_ordered) {
 }
 
 # Generates the presence hmps for each ct, putting together F and M from the same ct and saving it as a pdf
+  # Input: main directory where to save the plots, the list of presence dfs, and the order in which to plot the ages/conditions
+  # Return: nothing, saves the plot instead
+
 PlotCts <- function(main_dir, ct_df_list, age_ordered) {
   plot_path <- paste0(main_dir, "Hmp_DEGs_across_ages/")
   dir.create(plot_path, showWarnings = F, recursive = T)
@@ -201,6 +238,9 @@ PlotCts <- function(main_dir, ct_df_list, age_ordered) {
 }
 
 # Creates dfs which counts in how many ages we find each gene, per sex and ct combo
+  # Input: ct df obtained previously, and the sex to analyze
+  # Return: df containing for each gene the number of ages which had that gene in their DEGs
+
 GroupsSharingGenes <- function(ct_df, sex_id) {
   ct_df <- ct_df[which(ct_df$sex==sex_id),]
   gene_id <- vector()
@@ -214,6 +254,9 @@ GroupsSharingGenes <- function(ct_df, sex_id) {
 }
 
 # Create Count Dfs for all cts
+  # Input: presence df list
+  # Return: list of df containing the number of ages for each gene, for each ct
+
 CreateCountDfs <- function(ct_df_list) {
   gene_count_dfs <- list()
   for (ct in names(ct_df_list)) {
@@ -226,6 +269,9 @@ CreateCountDfs <- function(ct_df_list) {
 }
 
 # Plot count dfs for each ct
+  # Input: the count df of one ct
+  # Return: bar plot of how many genes are shared among how many groups
+
 PlotCountDfCt <- function(ct_df) {
   ct_plot <- ggplot(ct_df, aes(age_count, fill=as.factor(age_count))) +
     geom_bar() +
@@ -248,6 +294,9 @@ PlotCountDfCt <- function(ct_df) {
 }
 
 # Plot all count dfs for all cts
+  # Input: main directory where to save the plots, the list of count dfs
+  # Return: nothing, saves the plot instead
+
 PlotCountCt <- function(main_dir, gene_count_dfs) {
   plot_path <- paste0(main_dir, "Num_DEGs_across_ages/")
   dir.create(plot_path, showWarnings = F, recursive = T)
