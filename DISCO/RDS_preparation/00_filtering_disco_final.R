@@ -1,3 +1,15 @@
+# Author: Aura Zelco
+# Brief description:
+    # This script is used to filter the initial DISCO SeuratObject v1.0, as downloaded from the DISCO database
+# Brief procedure:
+    # 1. Explore the metadata initally present in the DISCO object,a dn filters the initial SeuratObject until only projects with cortical samples and both sexes are present
+    # 2. Filter cts for DEGs analysis steps
+    # 3. Info for SCENIC Pipeline
+      # 3.1 Highest Variable Genes
+
+# OBS: this script requires visual inspection and manually-entered information, therefore should be opened in a R environment/IDE (e.g. RStudio). 
+
+# Imports necessary libraries
 library(Seurat)
 library(SeuratObject)
 library(ggplot2)
@@ -8,13 +20,18 @@ library(dplyr)
 library(matrixStats)
 library(stringr)
 library(purrr)
+
+
+
+# Defines a custom function, used to subset using exclusion rather than inclusion criteria
 `%!in%` <- Negate(`%in%`)
 
+# Defines the main directories
 disco_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/"
-maindir <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/SCENIC/"
+disco_scenic <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/SCENIC/"
 
 
-##################################### Filter original DISCO v1.0 dataset
+##################################### 1. Filter original DISCO v1.0 dataset
 
 # load the dataset
 disco_brain <- readRDS(paste0(disco_path, "brainV1.0.rds"))
@@ -27,31 +44,34 @@ DimPlot(disco_brain, reduction = "umap", group.by = "anatomical_site") # remove 
 DimPlot(disco_brain, reduction = "umap", group.by = "disease")
 DimPlot(disco_brain, reduction = "umap", group.by = "tissue") # all brain
 DimPlot(disco_brain, reduction = "umap", group.by = "platform") # 10x3'v2 and 10x3'v3
-DimPlot(disco_brain, reduction = "umap", group.by = "gender") # F, M, NA
+DimPlot(disco_brain, reduction = "umap", group.by = "gender") # F, M, NA -> the database refers to the sex as gender -> if not in the original metadata, form hereafter we used the word sex
 DimPlot(disco_brain, reduction = "umap", group.by = "race") # Caucasian, NA
 
 allmisscols <- sapply(disco_brain@meta.data, function(x) all(is.na(x) | x == '' ))
 allmisscols # -> these columns have NAs, so cannot be plotted
 
+# explore XISt expression -> XIST is a gene expressed only in females
 FeaturePlot(disco_brain, features = "XIST", split.by = "gender")
 
+# subsets the object so only samples with known sex data are kept
 disco_FM <- subset(disco_brain, subset = gender ==  c("F","M"))
 
+# Plots UMAPs to explore the sex and the age groups
 DimPlot(disco_FM, reduction = "umap", group.by = "gender")
 DimPlot(disco_FM, reduction = "umap", group.by = "age")
 
-
+# saves to a df the information about the cells per sample
 samples_cell_num <- as.data.frame(table(disco_FM$sample))
 colnames(samples_cell_num) <- c("samples", "count")
 samples_cell_num$percent <- samples_cell_num$count * 100 / sum(samples_cell_num$count)
 
+# creates NA columns which are then later replaced with the corresponding information
 samples_cell_num$sex <- rep(NA, length(samples_cell_num$samples))
 samples_cell_num$age <- rep(NA, length(samples_cell_num$samples))
 samples_cell_num$proj <- rep(NA, length(samples_cell_num$samples))
 samples_cell_num$platform <- rep(NA, length(samples_cell_num$samples))
 
-
-
+# replacement of NAs with metadata
 for (sample in samples_cell_num$samples) {
   samples_cell_num[which(samples_cell_num$samples==sample), "proj"] <- unique(disco_FM@meta.data[which(disco_FM@meta.data$sample == sample), "project_id"])
   samples_cell_num[which(samples_cell_num$samples==sample), "sex"] <- unique(disco_FM@meta.data[which(disco_FM@meta.data$sample == sample), "gender"])
@@ -59,14 +79,15 @@ for (sample in samples_cell_num$samples) {
   samples_cell_num[which(samples_cell_num$samples==sample), "platform"] <- unique(disco_FM@meta.data[which(disco_FM@meta.data$sample == sample), "platform"])
 }
 
+# changes column types to factor
 col_factors <- c("samples", 
                  "sex",                          
                  "age",
                  "proj"
 )
-
 samples_cell_num[col_factors] <- lapply(samples_cell_num[col_factors], as.factor)  
 
+# information about sequencing platform used and saves plot to the original directory
 ggplot(samples_cell_num,aes(samples, count, fill=proj))+
   geom_bar(stat="identity") +
   facet_wrap(~sex*platform, scales="free_x", dir="v") + 
@@ -79,32 +100,29 @@ ggplot(samples_cell_num,aes(samples, count, fill=proj))+
         axis.ticks.x=element_blank(),
         axis.title.y = element_text(size=12, face="bold", colour = "black"),
         legend.position = "bottom")
+ggsave(paste0(disco_path, "DISCO_FM/samples_counts.png"))
 
+# number of F and M in all projects
 sum(samples_cell_num$sex=="F") # 28
 sum(samples_cell_num$sex=="M") # 75
 
-ggsave(paste0(disco_path, "DISCO_FM/samples_counts.png"))
-
+# generate FeaturePlot to confirm difference in expression of XIST 
 FeaturePlot(disco_FM, features = "XIST", split.by = "gender", reduction = "umap")
-
 ggsave(paste0(disco_path, "DISCO_FM/xist_exp.png"))
 
-celltype_sample <- paste(disco_FM@meta.data$sample, disco_FM@meta.data$ct, sep="_")
+# creates a new metadata column
+disco_FM@meta.data$ct_sample <- paste(disco_FM@meta.data$sample, disco_FM@meta.data$ct, sep="_")
 
-disco_FM@meta.data$ct_sample <- celltype_sample
 
+# creates a new df, with information about how many cells per celltype 
 celltype_num <- as.data.frame(table(disco_FM$ct_sample))
 colnames(celltype_num) <- c("name", "freq")
-library(tidyr)
 celltype_num <- separate(celltype_num, name, into = c("sample", "ct"), sep = "_")
-
-
 celltype_num$sex <- rep(NA, length(celltype_num$sample))
 celltype_num$age <- rep(NA, length(celltype_num$sample))
 celltype_num$proj <- rep(NA, length(celltype_num$sample))
 celltype_num$platform <- rep(NA, length(celltype_num$sample))
 celltype_num$anatomic_tissue <- rep(NA, length(celltype_num$sample))
-
 for (sample in celltype_num$sample) {
   celltype_num[which(celltype_num$sample==sample), "proj"] <- unique(disco@meta.data[which(disco@meta.data$sample == sample), "project_id"])
   celltype_num[which(celltype_num$sample==sample), "sex"] <- unique(disco@meta.data[which(disco@meta.data$sample == sample), "gender"])
@@ -112,7 +130,6 @@ for (sample in celltype_num$sample) {
   celltype_num[which(celltype_num$sample==sample), "platform"] <- unique(disco@meta.data[which(disco@meta.data$sample == sample), "platform"])
   celltype_num[which(celltype_num$sample==sample), "anatomic_tissue"] <- unique(disco@meta.data[which(disco@meta.data$sample == sample), "anatomical_site"])
 }
-
 col_factors <- c("sample", 
                  "ct",
                  "sex",                          
@@ -121,26 +138,11 @@ col_factors <- c("sample",
                  "platform",
                  "anatomic_tissue"
 )
-
 celltype_num[col_factors] <- lapply(celltype_num[col_factors], as.factor)  
-
+# saves the df
 write.csv(celltype_num, paste0(disco_path, "celltype_num.csv"))
 
-ggplot(celltype_num,aes(sample, freq, fill=proj))+
-  geom_bar(stat="identity") +
-  facet_wrap(~sex*platform, scales="free_x", dir="v") + 
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        axis.text.x = element_blank(),
-        axis.title.x = element_blank(), 
-        axis.ticks.x=element_blank(),
-        axis.title.y = element_text(size=12, face="bold", colour = "black"),
-        legend.position = "bottom")
-
-# same as before!
-
+# generates plot and saves it 
 ggplot(celltype_num, aes(ct, freq, fill=ct)) + 
   geom_bar(stat="identity", position="stack") +
   facet_wrap(~sex, scales="free_x") + 
@@ -153,13 +155,16 @@ ggplot(celltype_num, aes(ct, freq, fill=ct)) +
         axis.ticks.x=element_blank(),
         axis.title.y = element_text(size=12, face="bold", colour = "black"),
         legend.position = "bottom")
-
 ggsave(paste0(disco_path, "DISCO_FM/ct_counts.png"))
 
+# saves the filtered object
 saveRDS(disco_FM, paste0(disco_path, "DISCOv1.0_FM/disco_FM.rds"))
 
+
+# imports filtered object
 disco <- readRDS(paste0(disco_path, "brainV1.0_all_FM.rds"))
 
+# imports the last df with the metadata information
 celltype_num <- read.csv(paste0(disco_path, "celltype_num.csv"))
 celltype_num[,1] <- NULL
 col_factors <- c("sample", 
@@ -172,31 +177,31 @@ col_factors <- c("sample",
 )
 celltype_num[col_factors] <- lapply(celltype_num[col_factors], as.factor)  
 
-
+# initializes an empty vector to contain the complete projects
 keep_proj <- vector()
 
+# for loop which checks which projects have both sexes, and saves the project id to the keep_project vector
 for (proj in levels(celltype_num$proj)) {
   if (length(unique(celltype_num[which(celltype_num$proj==proj), "sex"])) == 2) {
     keep_proj <- c(keep_proj, proj)
   }
 }
 
+# subsets the Seurat Object again, keeping only the projects with both sexes and with sampling not from the midbrain -> only cortical samples are kept
 disco_filt <- subset(disco, subset =  project_id %in% keep_proj & anatomical_site != "midbrain")
 
+# removes the previous Seurat object to free memory
 rm(disco)
 
+# repeats the same as above, creates df to check number of cells per sample and per celltype
 celltype_num <- as.data.frame(table(disco_filt$ct_sample))
 colnames(celltype_num) <- c("name", "freq")
-library(tidyr)
 celltype_num <- separate(celltype_num, name, into = c("sample", "ct"), sep = "_")
-
-
 celltype_num$sex <- rep(NA, length(celltype_num$sample))
 celltype_num$age <- rep(NA, length(celltype_num$sample))
 celltype_num$proj <- rep(NA, length(celltype_num$sample))
 celltype_num$platform <- rep(NA, length(celltype_num$sample))
 celltype_num$anatomic_tissue <- rep(NA, length(celltype_num$sample))
-
 for (sample in celltype_num$sample) {
   celltype_num[which(celltype_num$sample==sample), "proj"] <- unique(disco_filt@meta.data[which(disco_filt@meta.data$sample == sample), "project_id"])
   celltype_num[which(celltype_num$sample==sample), "sex"] <- unique(disco_filt@meta.data[which(disco_filt@meta.data$sample == sample), "gender"])
@@ -204,7 +209,6 @@ for (sample in celltype_num$sample) {
   celltype_num[which(celltype_num$sample==sample), "platform"] <- unique(disco_filt@meta.data[which(disco_filt@meta.data$sample == sample), "platform"])
   celltype_num[which(celltype_num$sample==sample), "anatomic_tissue"] <- unique(disco_filt@meta.data[which(disco_filt@meta.data$sample == sample), "anatomical_site"])
 }
-
 col_factors <- c("sample", 
                  "ct",
                  "sex",                          
@@ -213,9 +217,7 @@ col_factors <- c("sample",
                  "platform",
                  "anatomic_tissue"
 )
-
 celltype_num[col_factors] <- lapply(celltype_num[col_factors], as.factor)  
-
 write.csv(celltype_num, paste0(disco_path, "celltype_num_filt.csv"))
 
 ggplot(celltype_num,aes(sample, freq, fill=proj))+
@@ -244,16 +246,18 @@ ggplot(celltype_num,aes(sample, freq, fill=anatomic_tissue))+
         axis.title.y = element_text(size=12, face="bold", colour = "black"),
         legend.position = "bottom")
 
+
+# creates new metadata, so the samples can be more easily divided
 project_sex <- paste(disco_filt@meta.data$project_id, disco_filt@meta.data$gender, sep="_")
 disco_filt@meta.data$proj_sex <- project_sex
 
 proj_sex_ct <- paste(disco_filt@meta.data$proj_sex, disco_filt@meta.data$ct, sep="_")
 disco_filt@meta.data$proj_sex_ct <- proj_sex_ct
 
+# saves the newly filtered object to anew RDS -> this is the final object we worked with from now on
 saveRDS(disco_filt, paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
-disco_filt <- readRDS(paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
-
+# fixes some discrepancies in the metadata
 disco_filt@meta.data$sex_ct <- paste(disco_filt@meta.data$gender, disco_filt@meta.data$ct, sep="_")
 disco_filt@meta.data[which(is.na(disco_filt@meta.data$disease)), "disease"] <- "Normal"
 disco_filt@meta.data$proj_disease <- paste(disco_filt@meta.data$project_id, disco_filt@meta.data$disease, sep="_")
@@ -264,10 +268,11 @@ disco_filt@meta.data[which(disco_filt@meta.data$disease=="neurosurgical disease"
 disco_filt@meta.data$proj_sex_disease_ct <- paste(disco_filt@meta.data$project_id, disco_filt@meta.data$gender, disco_filt@meta.data$disease, disco_filt@meta.data$ct, sep="_")
 
 
-##################################### Filter cts for DEGs analysis steps
+##################################### 2. Filter cts for DEGs analysis steps
 
 disco_filt <- readRDS(paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
+# extract the number of cells per combination of project, sex, disease condition and celltype
 num_proj_sex_disease_ct <- as.data.frame(table(disco_filt$proj_sex_disease_ct))
 num_proj_sex_disease_ct <- separate(num_proj_sex_disease_ct, Var1, into = c("proj", "sex" , "disease", "ct"), sep = "_")
 
@@ -279,6 +284,8 @@ col_factors <- c("proj",
 num_proj_sex_disease_ct[col_factors] <- lapply(num_proj_sex_disease_ct[col_factors], as.factor)  
 names(num_proj_sex_disease_ct)[names(num_proj_sex_disease_ct) == 'Freq'] <- "count"
 
+# filters the above df to check which celltypes contain less than a custom threshold number of cells
+# then removes also the counterpart sex if only one of the 2 is less than the threshold
 FiltDF <- function(df, disease, min_num_cells) {
   `%!in%` <- Negate(`%in%`)
   df <- droplevels(df)
@@ -295,12 +302,14 @@ FiltDF <- function(df, disease, min_num_cells) {
   return(df_filt)
 }
 
+# splits the dfs in three subsets, one per disease condition
 num_normal <- subset(num_proj_sex_disease_ct, disease == "Normal")
 num_AD <- subset(num_proj_sex_disease_ct, disease == "Alzheimer's disease")
 num_MS <- subset(num_proj_sex_disease_ct, disease == "Multiple Sclerosis")
 
 min_num_cells <- c(10,50,100)
 
+# saves the cSV outputs for the three thresholds
 for (min_cells in min_num_cells) {
   num_normal_filt <- FiltDF(num_normal, "Normal", min_cells)
   num_AD_filt <- FiltDF(num_AD, "AD", min_cells)
@@ -314,6 +323,7 @@ for (min_cells in min_num_cells) {
             row.names = F)
 }
 
+# and the corresponding plots
 for (min_cells in min_num_cells) {
   for (id in levels(num_proj_sex_disease_ct$proj)) {
     pdf(paste0(disco_path, "DEGs/outputs/", id, "_filt_counts_", min_cells, ".pdf"), 10, 15)
@@ -335,9 +345,12 @@ for (min_cells in min_num_cells) {
   }
 }
 
+# updates the RDS
 saveRDS(disco_filt, paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
-##################################### INFO FOR SCENIC PIPELINE
+##################################### 3. Info for SCENIC Pipeline
+
+# Plots the cell counts so that we could check which threshold to use to create the SCENIC input matrices
 
 disco_filt <- readRDS(paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
@@ -396,7 +409,9 @@ for (dis_type in unique(num_proj_sex_ct$disease)) {
 
 saveRDS(disco_filt, paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
-######## HIGHEST VARIABLE GENES - 2022.10.18
+######## 3.1 Highest Variable Genes
+
+# Extract the expression matrix to then later use in the SCENIC pipeline
 
 disco_filt <- readRDS(paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
@@ -404,12 +419,13 @@ disco_filt@meta.data$proj_sex_disease_ct_sample <- paste(disco_filt@meta.data$pr
 
 Idents(disco_filt) <- "proj_sex_disease_ct_sample"
 
-expr_mat_all <- GetAssayData(disco_filt[["RNA"]], slot="data")
+expr_mat_all <- GetAssayData(disco_filt[["RNA"]], slot="data") # -> gene as rows, cells as columns, values are the RNA expression counts
 
 Idents(disco_filt) <- "proj_sex_disease_ct"
 
 cell_info <- data.frame()
 
+# creates a df containing metadata associated with the cell barcodes -> used later to create the randomly sampled matrices
 for (i in unique(disco_filt@meta.data$proj_sex_disease_ct)) {
   print(i)
   cell_id <- WhichCells(disco_filt, idents = i)
@@ -426,10 +442,14 @@ saveRDS(disco_filt, paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
 rm(disco_filt)
 
+# transform the expression matrix into a df -> computationally intense step
 expr_mat_all <- as.data.frame(as.matrix(expr_mat_all))
+# calculates the standard deviation for each gene 
 expr_mat_all$SD <- rowSds(as.matrix(expr_mat_all))
+# keeps genes with SD higher than 0 
 expr_mat_all <- expr_mat_all[which(expr_mat_all$SD > 0), ]
 
+# another filtering 0 -> aim is to find the 2000 most variable genes 0> the top genes with highest SD
 if (nrow(expr_mat_all) * 0.25 > 2000) {
   expr_mat_all <- expr_mat_all[which(expr_mat_all$SD > quantile(expr_mat_all$SD)[4]), ]
 } else {
@@ -438,7 +458,9 @@ if (nrow(expr_mat_all) * 0.25 > 2000) {
 
 # order df in descending order
 expr_mat_all <- expr_mat_all[order(-expr_mat_all$SD),] 
+# keeps only top 2000
 expr_mat_all <- expr_mat_all[1:2000, ]
+# adds Genes as an extra column
 expr_mat_all <- cbind("Genes" = rownames(expr_mat_all), expr_mat_all)
 rownames(expr_mat_all) <- NULL
 
@@ -628,7 +650,7 @@ names(df_list) <- df_list_n
 df_list100 <- df_list
 df_list100 <- remove_dfs(df_list100, 100)
 
-sub_disease <- list.dirs(maindir, recursive=FALSE, full.names = FALSE)
+sub_disease <- list.dirs(disco_scenic, recursive=FALSE, full.names = FALSE)
 
 dfs_split <- list("Alzheimer's disease" = vector(), 
                   "Multiple Sclerosis" = vector(),
@@ -696,9 +718,9 @@ rand_sample <- function(group_list, num_sampling, num_cells, main, dis_type) {
 }
 
 
-norm_sampled <- rand_sample(norm, 3, 100, maindir, sub_disease[3])
-ad_sampled <- rand_sample(ad, 3, 100, maindir, sub_disease[1])
-ms_sampled <- rand_sample(ms, 3, 100, maindir, sub_disease[2])
+norm_sampled <- rand_sample(norm, 3, 100, disco_scenic, sub_disease[3])
+ad_sampled <- rand_sample(ad, 3, 100, disco_scenic, sub_disease[1])
+ms_sampled <- rand_sample(ms, 3, 100, disco_scenic, sub_disease[2])
 
 
 ############ For 02C_Conservation
@@ -827,12 +849,6 @@ write.csv(tot_genes, paste0(disco_path, "DEGs/tot_genes_ct.csv"))
 
 
 ##### Saving separated expr_mtx for each disease -> done on KJEMPEFURU
-
-library(Seurat)
-library(SeuratObject)
-library(tidyr)
-library(dplyr)
-library(matrixStats)
 
 
 disco_path_server <- "/Home/ii/auraz/data/DISCO/Seurat/"
