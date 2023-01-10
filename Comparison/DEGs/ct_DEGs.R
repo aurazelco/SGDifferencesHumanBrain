@@ -1,7 +1,19 @@
+# Author: Aura Zelco
+# Brief description:
+    # This script is used for comparusing the DEGs from the DEG analysis across multiple datasets and ages
+# Brief procedure:
+    # 1. Reads all DEG csv files from all the dofferent datasets (in this case 2)
+    # 2. Manually combines the annotations to be able to compare at a general level the different celltypes
+    # 3. Plots presence heatmaps (yes/no, not the expression) across all ages, for each celltype
+    # 4. Plots how many genes are found in all age groups, in all but one, etc
+# OBS: since there is a need for manual input, it is recommended to run this script in a R environment/IDE (e.g. Rstudio)
+
 source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison/DEGs/ct_DEGs_func.R")
 
 main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs/outputs/"
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/"
+main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/"
+
 
 sub_disease <- list.dirs(main_DISCO, full.names = F, recursive = F)
 sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)[-1]
@@ -9,8 +21,9 @@ sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)[-1]
 disco <- ImportDataset(main_DISCO, sub_disease)
 UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes")
 
+# disco[[2]] and UCSC[[2]] can be used to manually create unified_annotation
 
-common_annotation <- c("CXCL14 IN" = "Interneurons",
+unified_annotation <- c("CXCL14 IN" = "Interneurons",
               "EC" = "Endothelial cells",
               "fibrous astrocyte"  = "Astrocytes",
               "L2_3 EN" = "Excitatory neurons", 
@@ -20,7 +33,7 @@ common_annotation <- c("CXCL14 IN" = "Interneurons",
               "L5b EN" = "Excitatory neurons",
               "L6 EN" = "Excitatory neurons",                
               "microglia" = "Microglia", 
-              "oligodendrocyte" =  "Oligodendrocytes",      
+              "Oligodendrocyte" =  "Oligodendrocytes",      
               "OPC" = "OPCs",                  
               "PLCH1 L4_5 EN" = "Excitatory neurons", 
               "protoplasmic astrocyte" = "Astrocytes",
@@ -39,30 +52,31 @@ common_annotation <- c("CXCL14 IN" = "Interneurons",
               "Excitatory neurons"  = "Excitatory neurons",
               "Interneurons"   = "Interneurons",     
               "Microglia"  = "Microglia",         
-              "Oligodendrocytes" = "Oligodendrocyte",
+              "Oligodendrocytes" = "Oligodendrocytes",
               "OPCs" = "OPCs",            
               "Unknown" = "Unknown",           
              "Vascular cells" = "Vascular cells",     
              "Dorsal progenitors"  = "Dorsal progenitors" ,   
              "Ventral progenitors" = "Ventral progenitors")
-names(common_annotation) <- tolower(names(common_annotation))
+names(unified_annotation) <- tolower(names(unified_annotation))
 
-sexes <- CreateSexDf(c(UCSC[[1]], disco[[1]]))
+age_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
+               "Velmeshev_2022_2nd_trimester",           
+               "Velmeshev_2022_3rd_trimester", 
+               "Velmeshev_2022_0_1_years",                
+               "Velmeshev_2022_1_2_years",            
+               "Velmeshev_2022_2_4_years",  
+               "Velmeshev_2022_10_20_years",      
+               "Velmeshev_2022_Adult",
+               "Normal",   
+               "Alzheimer's disease", 
+               "Multiple Sclerosis"
+)
 
-ggplot(sexes[["OPCs"]], aes(age, gene_id, fill=presence)) +
-  geom_tile(color="#D3D3D3") +
-  coord_fixed() +
-  #facet_wrap(~sex, nrow = 2) +
-  labs(x="Developmental Ages", y="Genes", fill="Genes found") +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        panel.spacing.x=unit(0, "lines"),
-        plot.title = element_text(size=12, face="bold", colour = "black"),
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_text(size=12, face="bold", colour = "black"),
-        axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
-        axis.ticks.x=element_blank(),
-        axis.text.y = element_blank(),
-        legend.position = "right", 
-        legend.title = element_text(size=12, face="bold", colour = "black"))
+# Heatmaps of presence of genes (yes/no) across all ages, for each ct
+sexes <- CreateSexDf(c(UCSC[[1]], disco[[1]]), unified_annotation)
+PlotCts(main_comparison, sexes, age_order)
+
+# Count of how genes are shared among ages, for each ct
+gene_counts <- CreateCountDfs(sexes)
+PlotCountCt(main_comparison, gene_counts)
