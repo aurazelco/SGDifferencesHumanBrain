@@ -1,3 +1,16 @@
+# Author: Aura Zelco
+# Brief description:
+  # This script is used to generate bar plots based on PubMed publication data
+# Brief procedure:
+  # 1. Reads the corresponding csv files (in this case 2)
+  # 2. merges the dataframes so both information are present in the final csv
+  # 3. generate the plots
+  # 4. generate a composite plot
+  # 5. saves said pot as PDF
+
+# OBS: since there is a need for manual input, it is recommended to run this script in a R environment/IDE (e.g. Rstudio)
+
+
 library(ggplot2)
 library(ggpubr)
 `%!in%` <- Negate(`%in%`)
