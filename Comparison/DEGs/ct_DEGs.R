@@ -8,6 +8,8 @@
     # 4. Plots how many genes are found in all age groups, in all but one, etc
 # OBS: since there is a need for manual input, it is recommended to run this script in a R environment/IDE (e.g. RStudio)
 
+#---------------------------------------------------------------------------------------------------
+
 # sources the script containing all functions run here
 source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison/DEGs/ct_DEGs_func.R")
 
