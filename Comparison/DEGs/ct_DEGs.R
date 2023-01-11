@@ -26,7 +26,8 @@ sub_disease <- list.dirs(main_DISCO, full.names = F, recursive = F)
 sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)[-1]
 
 # Import all the CSVs from the different ages/conditions - slightly different file tree structure requires a different approach for UCSC
-disco <- ImportDataset(main_DISCO, sub_disease)
+disco_projs <- c("GSE157827", "GSE174367", "PRJNA544731")
+disco <- ImportDataset(main_DISCO, sub_disease, individual_projs = disco_projs)
 UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes")
 
 # disco[[2]] and UCSC[[2]] can be used to manually create unified_annotation, as done below
@@ -72,7 +73,7 @@ unified_annotation <- c("CXCL14 IN" = "Interneurons",
 names(unified_annotation) <- tolower(names(unified_annotation))
 
 # defines the order in which to organize the presence heatmaps, so the groups are in developmental order, with the last groups as diseases
-age_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
+condition_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
                "Velmeshev_2022_2nd_trimester",           
                "Velmeshev_2022_3rd_trimester", 
                "Velmeshev_2022_0_1_years",                
@@ -80,14 +81,22 @@ age_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
                "Velmeshev_2022_2_4_years",  
                "Velmeshev_2022_10_20_years",      
                "Velmeshev_2022_Adult",
-               "Normal",   
-               "Alzheimer's disease", 
-               "Multiple Sclerosis"
+               "Normal_GSE157827",              
+               "Normal_GSE174367",               
+               "Normal_PRJNA544731", 
+               "Alzheimer's disease_GSE157827",
+               "Alzheimer's disease_GSE174367",
+               "Multiple Sclerosis_PRJNA544731" 
 )
 
 # Heatmaps of presence of genes (yes/no) across all ages, for each ct
 sexes <- CreateSexDf(c(UCSC[[1]], disco[[1]]), unified_annotation)
-PlotCts(main_comparison, sexes, age_order)
+PlotCts(main_comparison, sexes, condition_order)
+
+# Heatmaps specifically for the two datasets from the second trimester, all cts
+trim_2nd <- CreateConditionDf(c(UCSC[[1]], disco[[1]]), unified_annotation, condition_order[1:2])
+PlotAcrossConditions(main_comparison, trim_2nd, "trimester_2nd")
+
 
 # Count of how genes are shared among ages, for each ct
 gene_counts <- CreateCountDfs(sexes)
