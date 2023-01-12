@@ -31,7 +31,7 @@ We used SCENIC to run a Gene Regulatory Network (GRN) analysis, followed their p
 The scripts below were used to execute the SCENIC pipeline and plot the results:
 * [SCENIC_analysis_DISCO.sh](SCENIC/SCENIC_analysis_DISCO.sh) - bash script which reads the .csv files in the input folder, generate GRNBoos2  .tsv results in a second folder and finally combines the original .csv and the .tsv file to predict regulons using cisTarget - more information [here](#scenic_analysis)
 * [SCENIC_merge_DISCO.sh](SCENIC/SCENIC_merge_DISCO.sh) - bash script which takes the individual .csv files for each project and sex combination, and merges them, in order to obtain one .csv file per project and sex - more information [here](#scenic_merge)
-* [check_SCENIC_results.R](SCENIC/check_SCENIC_results_DISCO.R), [check_SCENIC_results_func.R](SCENIC/check_SCENIC_results_func.R) -  R script to check the results from the SCENIC, more specifically to plot the overlap among runs, the overlap with [scGRNom results](https://genomemedicine.biomedcentral.com/articles/10.1186/s13073-021-00908-9), and to plot the expression of the transcription factors (TFs) and targets (TGs) in the cell types. 
+* [check_SCENIC_results.R](SCENIC/check_SCENIC_results_DISCO.R) -  R script to check the results from the SCENIC, more specifically to plot the overlap among runs, the overlap with [scGRNom results](https://genomemedicine.biomedcentral.com/articles/10.1186/s13073-021-00908-9), and to plot the expression of the transcription factors (TFs) and targets (TGs) in the cell types. 
 
 Additionally, in this folder the [scenic requirements](SCENIC/scenic_requirements.txt) file can be found, which was extracted from the conda environemt in which SCENIC was run. 
 

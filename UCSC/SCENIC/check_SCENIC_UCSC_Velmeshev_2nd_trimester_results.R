@@ -1,6 +1,8 @@
 main_Velm_2nd <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/SCENIC/Velmeshev_2022_2nd_trimester/"
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/SCENIC/check_SCENIC_results_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/SCENIC/check_SCENIC_results_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/SCENIC/plot_high_variable_genes_func.R")
+
 
 ########## Important files
 
@@ -82,7 +84,7 @@ HmpSCENICAll(main_Velm_2nd, F, Velm_2nd_final, Velm_2nd_markers, ct_order)
 
 #####  TFs and TGs expression in SeuratObjects
 
-Velm_2nd_scenic <- SCENICresultsSeurat(main_Velm_2nd, F, "1_GRN", proj_order = "no")
+Velm_2nd_scenic <- ImportSCENICresults(main_Velm_2nd, F, "1_GRN", proj_order = "no")
 SCENICTfTg(main_Velm_2nd, F, Velm_2nd_scenic, Velm_2nd_final, ct_order)
 SCENICTfTg(main_Velm_2nd, F, Velm_2nd_scenic, Velm_2nd_final, ct_order, 100)
 
@@ -98,17 +100,18 @@ SCENICPlotGRN(main_Velm_2nd, F, Velm_2nd_tg_list, "Target")
 #####  Regulons
 
 # Velm_2nd
-Velm_2nd_auc <- SCENICresultsSeurat(main_Velm_2nd, F, "3_AUCell", proj_order = "yes")
+Velm_2nd_auc <- ImportSCENICresults(main_Velm_2nd, F, "3_AUCell", proj_order = "yes")
 Velm_2nd_reg_list <- SCENICExtractRegulons(Velm_2nd_auc, F)
 SCENICPlotRegulons(main_Velm_2nd, F, Velm_2nd_reg_list)
 
 ########## Number of TF-TG pairs between F and M of same project
-Velm_2nd_overlapTFTG <- SCENICOverlapTfTg(Velm_2nd_scenic, F, "Velmeshev")
+Velm_2nd_overlapTFTG <- SCENICOverlapTfTg(Velm_2nd_scenic, F, analysis_type = "Velmeshev")
 SCENICPlotOverlapTfTg(main_Velm_2nd, F, Velm_2nd_overlapTFTG)
+Velm_2nd_overlapTFTG <- SCENICOverlapTfTg(Velm_2nd_scenic, F, threshold = 10000,  analysis_type = "Velmeshev")
+SCENICPlotOverlapTfTg(main_Velm_2nd, F, Velm_2nd_overlapTFTG, threshold = 10000)
+
 
 #####  Gene Variability
-
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/SCENIC/plot_high_variable_genes_func.R")
 
 cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/Velmeshev_2022_2nd_trimester/cell_info_Velmeshev_2022_2nd_trimester.csv")
 cell_info$X <- NULL

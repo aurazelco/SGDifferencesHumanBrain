@@ -1,21 +1,40 @@
-library(ggplot2)
-library(readxl)
-library(stringr)
-library(stringi)
-library(tidyr)
-library(reshape2)
-library(Seurat)
-library(SeuratObject)
-library(ggpubr)
-library(S4Vectors)
-library(purrr)
-library(dplyr)
-library(Seurat)
-library(matrixStats)
+# Author: Aura Zelco
+# Brief description:
+  # This script is used for comparing the DEGs from the DEG analysis across multiple datasets (different ages/disease conditions)
+# Documentation abbreviations:
+  # F and M: females and males
+  # ct: celltype
+  # df: dataframe
+  # hmps: heatmaps
+  # TF: transcription factor
+  # Tg/TG: target
+
+# OBS: this script is sourced in the several check_SCENIC_*_results.R
+
+#---------------------------------------------------------------------------------------------------
+
+# 0. Import Libraries
+library(ggplot2) # to plot
+library(readxl) # to read xlsx files
+library(stringr) # to modfiy strings
+library(stringi) # to modfiy strings
+library(tidyr) # to tidy up dfs
+library(reshape2) # to re-organize dfs
+library(Seurat) # to create a single-cell object
+library(SeuratObject) # to create a single-cell object
+library(ggpubr) # combine multiple plots into a figure
+library(S4Vectors) # 
+library(purrr) # 
+library(dplyr) # to modify tables
+library(matrixStats) # to calculate rapidly some metrics in a matrix
 
 ################################## Check randomly sampled SCENIC inputs
 
-SCENICInputSeurat <- function(main_dir, dis_type, run_v) {
+# 1. Imports expression matrices used as input for SCENIC, to check if the cells were distanced enough to be separating even with only 100 in each celltype
+  # Input: main directory where SCENIC inputs and outputs are found, if there is any sub-folder in the file tree, and which of the three runs we are importing
+  # Return: a list of F and M expression matrices from a single sampling to be used to build the SeuratObjects
+
+SCENICInput <- function(main_dir, dis_type, run_v) {
   if (dis_type!=F) {
     input_dfs_path <-  paste0(main_dir, dis_type, "/0_input_dfs/sampled_100_cells_all")
   } else {
@@ -31,53 +50,33 @@ SCENICInputSeurat <- function(main_dir, dis_type, run_v) {
   names(input_dfs) <- str_remove_all(names(input_dfs), ".csv")
   only_1 <- names(input_dfs)[which(grepl(run_v, names(input_dfs)))]
   input_dfs <- input_dfs[only_1]
-  #names(input_dfs) <- str_remove_all(names(input_dfs), "_1")
   for (id in names(input_dfs)) {
-    #colnames(input_dfs[[id]]) <- str_replace_all(colnames(input_dfs[[id]]), "[.]", "-")
     rownames(input_dfs[[id]]) <- input_dfs[[id]]$Genes
     input_dfs[[id]]$Genes <- NULL
-  #  sub_info <- subset(cell_info_df, cell_id %in% colnames(input_dfs[[id]])[-1])
-  #  ct_info <- sub_info$ct
-  #  colnames(input_dfs[[id]]) <- c("Genes", ct_info)
   }
   return(input_dfs)
 }
 
-# runs the Seurat clustering from expression matrix (follows tutorial)
+# 2. Runs the Seurat clustering from expression matrix (follows tutorial)
+  # Input: the list fo expression matrices created before, the corresponding metadata and which one fo the elements in the list to be created 
+  # Return: the SeuratObject, ready ot be clustered once the plots generated in this function are evaluated
+
 SCENICSeuratPlots <- function(expr_matrix_list, metadata_id, id) {
   id_seurat <- CreateSeuratObject(as.matrix(expr_matrix_list[[id]]), project = id,
                                     assay = "RNA", meta.data = metadata_id)
-  # The [[ operator can add columns to object metadata. This is a great place to stash QC stats
   id_seurat[["percent.mt"]] <- PercentageFeatureSet(id_seurat, pattern = "^MT-")
-  # Visualize QC metrics as a violin plot
-  #VlnPlot(id_seurat, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
-  # FeatureScatter is typically used to visualize feature-feature relationships, but can be used
-  # for anything calculated by the object, i.e. columns in object metadata, PC scores etc.
-  #plot1 <- FeatureScatter(id_seurat, feature1 = "nCount_RNA", feature2 = "percent.mt")
-  #plot2 <- FeatureScatter(id_seurat, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
-  #plot1 + plot2
-  #id_seurat <- subset(id_seurat, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
   id_seurat <- subset(id_seurat, subset = percent.mt < 5)
   id_seurat <- NormalizeData(id_seurat)
   id_seurat <- FindVariableFeatures(id_seurat, selection.method = "vst", nfeatures = 2000)
   # Identify the 10 most highly variable genes
   top10 <- head(VariableFeatures(id_seurat), 10)
-  # plot variable features with and without labels
-  #plot1 <- VariableFeaturePlot(id_seurat)
-  #plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
-  #plot1 + plot2
   all.genes <- rownames(id_seurat)
   id_seurat <- ScaleData(id_seurat, features = all.genes)
   id_seurat <- RunPCA(id_seurat, features = VariableFeatures(object = id_seurat))
   # Examine and visualize PCA results a few different ways
   print(id_seurat[["pca"]], dims = 1:5, nfeatures = 5)
   VizDimLoadings(id_seurat, dims = 1:2, reduction = "pca")
-  #DimPlot(id_seurat, reduction = "pca") 
-  #DimHeatmap(id_seurat, dims = 1, cells = 500, balanced = TRUE)
   p1 <- DimHeatmap(id_seurat, dims = 1:15, cells = 500, balanced = TRUE)
-  # NOTE: This process can take a long time for big datasets, comment out for expediency. More
-  # approximate techniques such as those implemented in ElbowPlot() can be used to reduce
-  # computation time
   id_seurat <- JackStraw(id_seurat, num.replicate = 100)
   id_seurat <- ScoreJackStraw(id_seurat, dims = 1:20)
   p2 <- JackStrawPlot(id_seurat, dims = 1:15)
@@ -90,22 +89,25 @@ SCENICSeuratPlots <- function(expr_matrix_list, metadata_id, id) {
   return(id_seurat)
 }
 
-# after deciding the number of PCAs to use, plots the final UMAP
+# 3. Runs UMAP on the SeuratObject to define cell clusters
+  # Input: main directory where to save UMAP plots, if there is any sub-folder in the file tree, the SeuratObject, the number of dimensions to use to run th UMAP clustering,
+    # the order to display the celltypes, if we have to save the UMAP (see following function), and the UMAP plot filename
+  # Return: the SeuratObject clustered and ready for analysis
+
 SCENICClustering <- function(main_dir, dis_type, id_seurat, cluster_num, ct_ordered, plot_flag = "no", file_out_name) {
   id_seurat <- FindNeighbors(id_seurat, dims = 1:cluster_num)
   id_seurat <- FindClusters(id_seurat, resolution = 0.5)
-  # Look at cluster IDs of the first 5 cells
-  #head(Idents(id_seurat), 5)
-  # If you haven't installed UMAP, you can do so via reticulate::py_install(packages =
-  # 'umap-learn')
   id_seurat <- RunUMAP(id_seurat, dims = 1:cluster_num)
-  # note that you can set `label = TRUE` or use the LabelClusters function to help label
-  # individual clusters
   if (plot_flag == "yes") {
     SCENICUmap(main_dir, dis_type, id_seurat, ct_ordered, file_out_name)
   }
   return(id_seurat)
 }
+
+# 4. Plots the UMAP with the celltype annotation
+  # Input: main directory where to save UMAP plots, if there is any sub-folder in the file tree, the SeuratObject, 
+    # the order to display the celltypes, if we have to save the UMAP (see following function), and the UMAP plot filename
+  # Return: nothing, saves the plot instead
 
 SCENICUmap <- function (main_dir, dis_type, id_seurat, ct_ordered, file_out_name) {
   if (dis_type!=F) {
@@ -123,6 +125,10 @@ SCENICUmap <- function (main_dir, dis_type, id_seurat, ct_ordered, file_out_name
   dev.off()
 }
 
+# 5. Finds the markers genes for the celltypes, to double-check that the celltypes are indeed distinct even if 100 cells/ct are used to build the SeuratObject
+  # Input: main directory where to save UMAP plots, if there is any sub-folder in the file tree, the SeuratObject, and the output filename
+  # Return: nothing, saves the CSV files instead
+
 SCENICMarkers <- function (main_dir, dis_type, id_seurat, file_out_name) {
   Idents(id_seurat) <- "ct"
   ct_markers <- FindAllMarkers(id_seurat, 
@@ -137,6 +143,21 @@ SCENICMarkers <- function (main_dir, dis_type, id_seurat, file_out_name) {
   write.csv(ct_markers, file = paste0(csv_path, file_out_name, "_markers.csv"),
             row.names = TRUE)
 }
+
+# 6. Filters the genes based on  p-value and fold-change thresholds
+  # Input: gene marker df, the p-value and FC thresholds
+  # Return: the filtered df
+
+Filter_gene <- function(order.gene.df, pval, FC) {
+  logFC <- log2(1/FC)
+  gene.sig <- order.gene.df[  order.gene.df[["p_val"]] <= pval
+                              & order.gene.df[["avg_log2FC"]] >= logFC, ]
+  return(gene.sig)
+}
+
+# 7. Imports the CSV gene marker files, in order to be plotted into an hmp
+  # Input: main directory where to save UMAP plots, if there is any sub-folder in the file tree, the threshold for the p-value and the fold-change
+  # Return: list of gene marker CSV files
 
 SCENICInputMarkers <- function(main_dir, dis_type, pval, FC) {
   if (dis_type!=F) {
@@ -169,6 +190,10 @@ SCENICInputMarkers <- function(main_dir, dis_type, pval, FC) {
   return(markers_v)
 }
 
+# 8. Generate a new table with only the top 10 marker genes for each ct
+  # Input: the markers for a specific SeuratObject, if there is any sub-folder in the file tree (if so, there is additional information in the metadata)
+  # Return: a df with the top 10 genes for each ct
+
 SCENICtop10genes <- function(input_markers, dis_type) {
   top10 <- data.frame()
   for (v in names(input_markers)) {
@@ -196,14 +221,12 @@ SCENICtop10genes <- function(input_markers, dis_type) {
 }
 
 
-Filter_gene <- function(order.gene.df, pval, FC) {
-  logFC <- log2(1/FC)
-  gene.sig <- order.gene.df[  order.gene.df[["p_val"]] <= pval
-                              & order.gene.df[["avg_log2FC"]] >= logFC, ]
-  return(gene.sig)
-}
+# 9. Generates a heatmap displaying the top 10 markers for each ct
+  # Input: main directory where to save UMAP plots, if there is any sub-folder in the file tree, the SeuratObject, the top10 df, the order of the ct, 
+    # and if to follow the order or not (sometimes the SeuratObject has issues with the ct order)
+  # Return: nothing, saves the plot instead
 
-HmpSCENIC <- function(main_dir, dis_type, input_seurat, top10, ct_ordered, ord_level="yes") {
+HmpSCENIC <- function(main_dir, dis_type, input_seurat, top10, ct_ordered, ord_levels="yes") {
   if (dis_type!=F) {
     plot_path <- paste0(main_dir, dis_type, "/plots/Seurat/")
   } else {
@@ -218,7 +241,7 @@ HmpSCENIC <- function(main_dir, dis_type, input_seurat, top10, ct_ordered, ord_l
       topgenes <- topgenes[order(topgenes$ct), ]
       hmp_top_order <- ct_ordered[which(ct_ordered %in% unique(topgenes$ct))]
       Idents(input_seurat[[run_v]][[file]]) <- "ct"
-      if (ord_level=="yes") {
+      if (ord_levels=="yes") {
         levels(input_seurat[[run_v]][[file]]) <- hmp_top_order
       }
       hmp_top <- DoHeatmap(input_seurat[[run_v]][[file]], features = topgenes$genes, group.by = "ident", angle = 90, size = 3)
@@ -229,7 +252,12 @@ HmpSCENIC <- function(main_dir, dis_type, input_seurat, top10, ct_ordered, ord_l
   }
 }
 
-HmpSCENICAll <- function(main_dir, dis_type, input_seurat, markers, ct_ordered, ord_level="yes") {
+# 10. Generates a heatmap displaying all the markers for each ct
+  # Input: main directory where to save UMAP plots, if there is any sub-folder in the file tree, the SeuratObject, the markers df, the order of the ct, 
+    # and if to follow the order or not (sometimes the SeuratObject has issues with the ct order)
+  # Return: nothing, saves the plot instead
+
+HmpSCENICAll <- function(main_dir, dis_type, input_seurat, markers, ct_ordered, ord_levels="yes") {
   if (dis_type!=F) {
     plot_path <- paste0(main_dir, dis_type, "/plots/Seurat/")
   } else {
@@ -244,7 +272,7 @@ HmpSCENICAll <- function(main_dir, dis_type, input_seurat, markers, ct_ordered, 
       file_markers <- file_markers[order(file_markers$cluster), ]
       hmp_top_order <- ct_ordered[which(ct_ordered %in% unique(file_markers$cluster))]
       Idents(input_seurat[[run_v]][[file]]) <- "ct"
-      if (ord_level=="yes") {
+      if (ord_levels=="yes") {
         levels(input_seurat[[run_v]][[file]]) <- hmp_top_order
       }
       hmp_top <- DoHeatmap(input_seurat[[run_v]][[file]], features = file_markers$gene, group.by = "ident", angle = 90, size = 3)
@@ -253,10 +281,16 @@ HmpSCENICAll <- function(main_dir, dis_type, input_seurat, markers, ct_ordered, 
       dev.off()
     }
   }
-  #return(hmp_top)
 }
 
-SCENICresultsSeurat <- function(main_dir, dis_type, res_folder, proj_order = "no") {
+################################## Check SCENIC outputs in the SeuratObjects
+
+# 11. Imports the SCENIC outputs, either from the GRNBoost2 or from the AUCell steps
+  # Input: main directory where to save UMAP plots, if there is any sub-folder in the file tree, which SCENIC output to import, 
+    # and if we should follow the project order or not
+  # Return: lists of SCENIC outputs
+
+ImportSCENICresults <- function(main_dir, dis_type, res_folder, proj_order = "no") {
   if (dis_type!=F) {
     all_path <- paste0(main_dir, dis_type, "/", res_folder, "/sampled_100_cells_all/")
     projs <- c("GSE157827", "GSE174367", "PRJNA544731")
@@ -321,7 +355,12 @@ SCENICresultsSeurat <- function(main_dir, dis_type, res_folder, proj_order = "no
   return(all2)
 }
 
-SCENICTfTg <- function(main_dir, dis_type, scenic_all, input_seurat, ct_ordered, cutoff = "no", ord_levels="yes") {
+# 12. Generates a heatmap displaying the expression of either all the TFs/Tgs or only the top x in the SeuratObject built form the SCENIC inputs
+  # Input: main directory where to save UMAP plots, if there is any sub-folder in the file tree, scenic GRN list, the SeuratObject, the order of the cts,
+    # if we have to use a cutoff or not, and if we have to follow the order of the cts (sometimes the SeuratObject has issues with the ct order)
+  # Return: nothing, saves the plot instead
+
+TfTgSeuratExpression <- function(main_dir, dis_type, scenic_all, input_seurat, ct_ordered, cutoff = "no", ord_levels="yes") {
   if (dis_type!=F) {
     plot_path <- paste0(main_dir, dis_type, "/plots/Seurat/")
   } else {
@@ -357,6 +396,10 @@ SCENICTfTg <- function(main_dir, dis_type, scenic_all, input_seurat, ct_ordered,
 }
 
 ################################## Check TF and targets presence in GRNBoost2 outputs
+
+# 13. Generates a df which contain information about how many TFs/Tgs are found in each run for each sex
+  # Input: the GRN output, if there is any sub-folder in the file tree, which parametr to analyze (TF or targets), how many TF/targets to plot
+  # Return: TF or target df
 
 SCENICExtractGRN <- function(grn_out, dis_type, obj, cutoff) {
   grn_filt <- list()
@@ -400,6 +443,57 @@ SCENICExtractGRN <- function(grn_out, dis_type, obj, cutoff) {
   return(grns)
 }
 
+# 14. Generates and saves the plots for the TF/target expression in the runs and comapres the sexes
+  # Input: main directory where to save the plots, if there is any sub-folder in the file tree, scenic GRN list, if TF or targets are analyzed
+  # Return: nothing, saves the plots instead
+
+SCENICPlotGRN <- function(main_dir, dis_type, obj_grn, obj) {
+  if (dis_type!=F) {
+    plot_path <- paste0(main_dir, dis_type, "/plots/TF_TG/")
+    dir.create(plot_path, showWarnings = F, recursive = T)
+    grnplot <- GRNPlot(obj_grn, obj, T)
+  } else {
+    plot_path <- paste0(main_dir, "plots/TF_TG/")
+    dir.create(plot_path, showWarnings = F, recursive = T)
+    grnplot <- GRNPlot(obj_grn, obj)
+  }
+  pdf(paste0(plot_path, "hmp_", obj, ".pdf"))
+  print(grnplot)
+  dev.off()
+}
+
+# 15. Generates a heatmap displaying the rpesence of TF/targets in the three runs, F v M
+  # Input: TF/target presnece df, TF or target to be analyzed, if the projects should be faceted
+  # Return: presence heatmap
+
+GRNPlot <- function(grn_data, obj, proj_facet=F) {
+  grnplot <- ggplot(grn_data, aes(run, factor(grn_id, levels = rev(levels(factor(grn_id)))), fill=presence)) +
+    geom_tile(color="#D3D3D3") +
+    coord_fixed() +
+    labs(x="Runs", y=obj, fill=paste0(obj, " found")) +
+    {if (proj_facet) facet_wrap(~proj+sex, nrow = 1) } +
+    {if (proj_facet==F) facet_wrap(~sex) } +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          panel.spacing.x=unit(0, "lines"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.x = element_text(size=12, face="bold", colour = "black"),
+          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
+          axis.ticks.x=element_blank(),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          legend.position = "right", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+  return(grnplot)
+}
+
+
+################################## Plots the TFs and Targets expression in the original SeuratObject, split by celltypes and sex
+
+# 16. Generates and saves to a CSV files which TF/targets are different between F and M
+  # Input: the GRN output, if there is any sub-folder in the file tree, which parameter to analyze (TF or targets), how many TF/targets to plot
+  # Return: nothing, saves the CSV to the output path
 
 ExtractDiffGRN <- function(main_dir, dis_type, grns, obj) {
   if (dis_type!=F) {
@@ -413,6 +507,10 @@ ExtractDiffGRN <- function(main_dir, dis_type, grns, obj) {
   }
   write.csv(grn_diff, paste0(out_path, "different_", obj, "_between_sexes.csv"))
 }
+
+# 17. Generates the different TF/target df for the DISCO datasets - multiple projects
+  # Input: the GRN output
+  # Return: the dataframe with the sex-biased TF/target
 
 DISCOGRN <- function(grns) {
   grn_diff <- data.frame()
@@ -443,6 +541,10 @@ DISCOGRN <- function(grns) {
   return(grn_diff)
 }
 
+# 18. Generates the different TF/target df for the UCSC dataset
+  # Input: the GRN output
+  # Return: the dataframe with the sex-biased TF/target
+
 UCSCGRN <- function(grns) {
   gene_id <- vector()
   F_counts <- vector()
@@ -468,72 +570,42 @@ UCSCGRN <- function(grns) {
   return(data.frame(gene_id, F_counts, M_counts, higher_expr))
 }
 
-# Plot RdigePlots of unique TFs and TGs
-RidgeTFTG <- function(main_dir, seurat_obj, shared_features, obj_ident, obj) {
-  if (length(shared_features)==0) {
+# 19. Plot RdigePlots of sex-biased TFs and TGs
+  # Input: main directory where to save the ridgeplots, the SeuratObject, the sex-biased TF or targets, 
+    # how to group the cells in the SeuratObject (ct), and if TF or targets
+  # Return:nothing, saves the plots instead
+
+RidgeTFTG <- function(main_dir, seurat_obj, sex_biased_obj, obj_ident, obj) {
+  if (length(sex_biased_obj)==0) {
     print(paste0("No unique ", obj, "s found"))
   } else {
     out_path <- paste0(main_dir, "plots/TF_TG/")
     dir.create(out_path, showWarnings = F, recursive = T)
-    if (length(shared_features)==1) {
+    if (length(sex_biased_obj)==1) {
       pdf(paste0(out_path, obj, "_ridgeplot.pdf"))
-      print(RidgePlot(seurat_obj, assay = "RNA", features = shared_features, group.by = obj_ident))
+      print(RidgePlot(seurat_obj, assay = "RNA", features = sex_biased_obj, group.by = obj_ident))
       dev.off()
-    } else if (length(shared_features)>20) {
-      shared_features_list <- split(shared_features, ceiling(seq_along(shared_features)/20))
-      for (i in names(shared_features_list)) {
+    } else if (length(sex_biased_obj)>20) {
+      sex_biased_obj_list <- split(sex_biased_obj, ceiling(seq_along(sex_biased_obj)/10))
+      for (i in names(sex_biased_obj_list)) {
         pdf(paste0(out_path, obj, "_ridgeplot_", i, ".pdf"), width = 10)
-        print(RidgePlot(seurat_obj, assay = "RNA", features = shared_features_list[[i]], group.by = obj_ident, stack = T))
+        print(RidgePlot(seurat_obj, assay = "RNA", features = sex_biased_obj_list[[i]], group.by = obj_ident, stack = T))
         dev.off()
       }
     } else {
       pdf(paste0(out_path, obj, "_ridgeplot.pdf"), width = 10)
-      print(RidgePlot(seurat_obj, assay = "RNA", features = shared_features, group.by = obj_ident, stack = T))
+      print(RidgePlot(seurat_obj, assay = "RNA", features = sex_biased_obj, group.by = obj_ident, stack = T))
       dev.off()
     }
   }
 }
 
 
-
-SCENICPlotGRN <- function(main_dir, dis_type, obj_grn, obj) {
-  if (dis_type!=F) {
-    plot_path <- paste0(main_dir, dis_type, "/plots/TF_TG/")
-    dir.create(plot_path, showWarnings = F, recursive = T)
-    grnplot <- GRNPlot(obj_grn, obj, T)
-  } else {
-    plot_path <- paste0(main_dir, "plots/TF_TG/")
-    dir.create(plot_path, showWarnings = F, recursive = T)
-    grnplot <- GRNPlot(obj_grn, obj)
-  }
-  pdf(paste0(plot_path, "hmp_", obj, ".pdf"))
-  print(grnplot)
-  dev.off()
-}
-
-GRNPlot <- function(grn_data, obj, proj_facet=F) {
-  grnplot <- ggplot(grn_data, aes(run, factor(grn_id, levels = rev(levels(factor(grn_id)))), fill=presence)) +
-    geom_tile(color="#D3D3D3") +
-    coord_fixed() +
-    labs(x="Runs", y=obj, fill=paste0(obj, " found")) +
-    {if (proj_facet) facet_wrap(~proj+sex, nrow = 1) } +
-    {if (proj_facet==F) facet_wrap(~sex) } +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          panel.background = element_blank(), 
-          panel.spacing.x=unit(0, "lines"),
-          plot.title = element_text(size=12, face="bold", colour = "black"),
-          axis.line = element_line(colour = "black"),
-          axis.title.x = element_text(size=12, face="bold", colour = "black"),
-          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
-          axis.ticks.x=element_blank(),
-          axis.title.y = element_text(size=12, face="bold", colour = "black"),
-          legend.position = "right", 
-          legend.title = element_text(size=12, face="bold", colour = "black"))
-  return(grnplot)
-}
-
 ################################## Check regulons presence in AUCell outputs
+
+# 20. Genertaes a df with the presence of regulons across the runs and F v M
+  # Input: the AUCell output, if there is any sub-folder in the file tree
+  # Return: list of regulons presence dfs
 
 SCENICExtractRegulons <- function(aucell_out, dis_type) {
   if (dis_type!=F) {
@@ -592,6 +664,10 @@ SCENICExtractRegulons <- function(aucell_out, dis_type) {
   return(regulons)
 }
 
+# 21. Generates and saves a heatmap displaying the presence of regulons across the runs and F v M
+  # Input: main directory where to save the plots, if there is any sub-folder in the file tree, list of regulons presence dfs
+  # Return: nothing, saves the plot instead
+
 SCENICPlotRegulons <- function(main_dir, dis_type, regulons) {
   if (dis_type!=F) {
     plot_path <- paste0(main_dir, dis_type, "/plots/Regulons/")
@@ -611,6 +687,10 @@ SCENICPlotRegulons <- function(main_dir, dis_type, regulons) {
     dev.off()
   }
 }
+
+# 22. Generates a heatmap displaying the presence of regulons across the runs and F v M
+# Input: presence regulons df, id for the title (used if sub-groups are present)
+# Return: plot
 
 RegulonsPlot <- function(reg_data, id) {
   regplot <- ggplot(reg_data, aes(run, factor(regulon_id, levels = rev(levels(factor(regulon_id)))), fill=presence)) +
@@ -633,7 +713,11 @@ RegulonsPlot <- function(reg_data, id) {
   return(regplot)
 }
 
-################################## Check output from individual cts and all
+################################## Check output from individual cts and all - only on DISCO
+
+# 23. Imports the GRN outputs when the celltypes were ran separately
+# Input: main directory where to save the plots, if there is any sub-folder in the file tree
+# Return: list of ct GRN outputs
 
 SCENICct <- function(main_dir, dis_type) {
   ct_path <- paste0(main_dir, dis_type, "/1_GRN/sampled_100_cells/")
@@ -654,6 +738,10 @@ SCENICct <- function(main_dir, dis_type) {
   return(cts_sort)
 }
 
+# 24. Imports the GRN outputs when the celltypes were ran together
+# Input: main directory where to save the plots, if there is any sub-folder in the file tree
+# Return: list of GRN outputs
+
 SCENICall <- function(main_dir, dis_type) {
   all_path <- paste0(main_dir, dis_type, "/1_GRN/sampled_100_cells_all/")
   all_files <- list.files(path = all_path, pattern = "\\.tsv$",full.names = T)
@@ -673,11 +761,20 @@ SCENICall <- function(main_dir, dis_type) {
   return(alls_sort)
 }
 
+# 25. Imports both cts and all GRN outputs and combines them in a list
+  # Input: main directory where to save the plots, if there is any sub-folder in the file tree
+  # Return: list of ct GRN and all GRN outputs combined in a list
+
 SCENICoverlap <- function(main_dir, dis_type) {
   cts_sort <- SCENICct(main_dir, dis_type)
   alls_sort <- SCENICall(main_dir, dis_type)
   return(list(cts_sort, alls_sort))
 }
+
+# 26. Plots the % of overlap among runs, either in the all output or in each ct
+  # Input: main directory where to save the plots, if there is any sub-folder in the file tree, sorted list of both types of runs, the threshold of how many pairs to overlap,
+    # the order of the celltypes
+  # Return: nothing, saves the plot instead
 
 PlotOverlapRuns <- function(main_dir, dis_type, sort_list, top_list, ct_list) {
   dir.create(paste0(main_dir, dis_type, "/plots/Overlap"), showWarnings = F, recursive = T)
@@ -766,6 +863,11 @@ PlotOverlapRuns <- function(main_dir, dis_type, sort_list, top_list, ct_list) {
 }
 
 ################################## Check overlap with scGRNom
+
+# 27. Plots the overlap between the single ct runs and the results from scGRNom
+  # Input: main directory where to save the plots, if there is any sub-folder in the file tree, sorted list of both types of runs, the pairs from scGRNom,
+    # the common annotation vector, sorted comparison
+  # Return: nothing, saves plot instead
 
 PlotscGRNomOverlap <- function(main_dir, dis_type, sort_list, top_scGRNom, ct_scGRNom, flag) {
   dir.create(paste0(main_dir, dis_type, "/plots/scGRNom"), showWarnings = F, recursive = T)
@@ -937,139 +1039,13 @@ PlotscGRNomOverlap <- function(main_dir, dis_type, sort_list, top_scGRNom, ct_sc
   }
 }
 
-################################## Check expression of TFs and TGs in original data
-
-
-#SCENICresults <- function(main_dir, dis_type) {
-#  dir.create(paste0(main_dir, dis_type, "/plots"), showWarnings = F, recursive = T)
-#  all_path <- paste0(main_dir, dis_type, "/1_GRN/sampled_100_cells_all/")
-#  all_files <- list.files(path = all_path, pattern = "\\.tsv$",full.names = T)
-#  all <- lapply(all_files,function(x) {
-#    read.table(file = x, 
-#               sep = '\t', 
-#               header = TRUE)
-#  })
-#  names(all) <- list.files(path = all_path, pattern = "\\.tsv$",full.names = F)
-#  only_1 <- names(all)[which(grepl("_1", names(all)))]
-#  all_1 <- all[only_1]
-#  names(all_1) <- str_remove_all(names(all_1), "_1.tsv")
-#  all_sort <- lapply(1:length(names(all_1)), function(x) all_1[[x]][order(-all_1[[x]]$importance),])
-#  names(all_sort) <- names(all_1)
-#  return(all_sort)
-#}
-
-SCENICInput <- function(main_dir, dis_type, cell_info_df) {
-  input_dfs_path <-  paste0(main_dir, dis_type, "/0_input_dfs/sampled_100_cells_all")
-  input_dfs_files <- list.files(path = input_dfs_path, full.names = T)
-  input_dfs <- lapply(input_dfs_files,function(x) {
-    read.table(file = x, 
-               sep = ',', 
-               header = TRUE)
-  })
-  names(input_dfs) <- list.files(path = input_dfs_path, full.names = F)
-  names(input_dfs) <- str_remove_all(names(input_dfs), ".csv")
-  only_1 <- names(input_dfs)[which(grepl("_1", names(input_dfs)))]
-  input_dfs <- input_dfs[only_1]
-  names(input_dfs) <- str_remove_all(names(input_dfs), "_1")
-  for (id in names(input_dfs)) {
-    colnames(input_dfs[[id]]) <- str_replace_all(colnames(input_dfs[[id]]), "[.]", "-")
-    sub_info <- subset(cell_info_df, cell_id %in% colnames(input_dfs[[id]])[-1])
-    ct_info <- sub_info$ct
-    colnames(input_dfs[[id]]) <- c("Genes", ct_info)
-  }
-  return(input_dfs)
-}
-
-PlotTfTg <- function(main_dir, dis_type, all_sort, input_dfs, ct_ordered, top_TF){
-  dir.create(paste0(main_dir, dis_type, "/plots/TF_TG"), showWarnings = F, recursive = T)
-  for (id in names(all_sort)) {
-    for (k in top_TF) {
-      tf_id <- all_sort[[id]][1:k, "TF"]
-      sub_tf <- subset(input_dfs[[id]], Genes %in% tf_id)
-      sub_tf <-  melt(sub_tf, id.vars = "Genes")
-      colnames(sub_tf) <- c("TF", "ct", "value")
-      sub_tf$ct <- as.character(sub_tf$ct)
-      sub_tf$ct <- str_remove_all(sub_tf$ct, "[.][:digit:]+")
-      sub_tf[c("TF", "ct")] <- lapply(sub_tf[c("TF", "ct")], as.factor)
-      sub_tf_order <- ct_ordered[which(ct_ordered %in% levels(sub_tf$ct))]
-      sub_tf$ct <- factor(sub_tf$ct, sub_tf_order)
-      sub_tf <- sub_tf[order(sub_tf$ct), ]
-      sub_tf$log2_value <- log2(sub_tf$value)
-      sub_tf[which(sub_tf$log2_value=="-Inf"),"log2_value"] <- 0
-      pdf(paste0(main_dir, dis_type, "/plots/TF_TG/TFs_hmp_",k, "_top_", id, ".pdf"))
-      print(
-        #ggplot(sub_tf, aes(ct, TF, fill=log2_value, color="")) +
-        ggplot(sub_tf, aes(ct, TF, fill=log2_value)) +
-          geom_tile(color="#D3D3D3") + 
-          coord_fixed() +
-          scale_fill_gradient2(low="blue", high="red", mid = "white", na.value = "#D3D3D3") +
-          #scale_colour_manual(values=NA) + 
-          #guides(colour=guide_legend("NA", override.aes=list(fill="#D3D3D3"))) +
-          labs(y="TFs", fill="Log2 RNA Expression", title=id) +
-          theme(panel.grid.major = element_blank(), 
-                panel.grid.minor = element_blank(),
-                panel.background = element_blank(), 
-                plot.title = element_text(size=12, face="bold", colour = "black"),
-                axis.line = element_line(colour = "black"),
-                axis.title.x = element_blank(),
-                axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
-                axis.ticks.x=element_blank(),
-                axis.title.y = element_text(size=12, face="bold", colour = "black"),
-                legend.position = "right", 
-                legend.title = element_text(size=12, face="bold", colour = "black"))
-      )
-      dev.off()
-      tg_id <- all_sort[[id]][1:k, "target"]
-      sub_tg <- subset(input_dfs[[id]], Genes %in% tg_id)
-      if (nrow(sub_tg) > 0) {
-        sub_tg <- melt(sub_tg, id.vars = "Genes")
-        colnames(sub_tg) <- c("TG", "ct", "value")
-        sub_tg$ct <- as.character(sub_tg$ct)
-        sub_tg$ct <- str_remove_all(sub_tg$ct, "[.][:digit:]+")
-        sub_tg[c("TG", "ct")] <- lapply(sub_tg[c("TG", "ct")], as.factor)
-        sub_tg_order <- ct_ordered[which(ct_ordered %in% levels(sub_tg$ct))]
-        sub_tg$ct <- factor(sub_tg$ct, sub_tg_order)
-        sub_tg <- sub_tg[order(sub_tg$ct), ]
-        sub_tg$log2_value <- log2(sub_tg$value)
-        sub_tg[which(sub_tg$log2_value=="-Inf"),"log2_value"] <- 0
-        if (k==100) {
-          pdf(paste0(main_dir, dis_type, "/plots/TF_TG/TGs_hmp_",k, "_top_", id, ".pdf"),
-              height=11)
-        } else {
-          pdf(paste0(main_dir, dis_type, "/plots/TF_TG/TGs_hmp_",k, "_top_", id, ".pdf"),
-              height=15)
-        }
-        print(
-          #ggplot(sub_tg, aes(ct, TG, fill=log2_value, colour="")) +
-          ggplot(sub_tg, aes(ct, TG, fill=log2_value)) +
-            geom_tile(color="#D3D3D3") + 
-            coord_fixed() +
-            scale_fill_gradient2(low="blue", high="red", mid = "white", na.value = "#D3D3D3") +
-            #scale_colour_manual(values=NA) + 
-            #guides(colour=guide_legend("NA", override.aes=list(fill="#D3D3D3"))) +
-            labs(y="TGs", fill="Log2 RNA Expression", title=id) +
-            theme(panel.grid.major = element_blank(), 
-                  panel.grid.minor = element_blank(),
-                  panel.background = element_blank(), 
-                  plot.title = element_text(size=12, face="bold", colour = "black"),
-                  axis.line = element_line(colour = "black"),
-                  axis.title.x = element_blank(),
-                  axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
-                  axis.ticks.x=element_blank(),
-                  axis.title.y = element_text(size=12, face="bold", colour = "black"),
-                  legend.position = "right", 
-                  legend.title = element_text(size=12, face="bold", colour = "black"))
-        )
-        dev.off()
-      }
-    }
-  }
-}
-
-
 ################################## Check number of TF-TG pairs between M and F within the same project
 
-SCENICAddTFTG <- function(all_grn, dis_type) {
+# 28. Creates the TF-target pairs from the GRN outputs
+  # Input: grn output, if there is any sub-folder in the file tree
+  # Return: grn output with added column in all element of list
+
+GRNpairs <- function(all_grn, dis_type) {
   if (dis_type!=F) {
     for (proj_id in names(all_grn)) {
       for (run in names(all_grn[[proj_id]])) {
@@ -1086,8 +1062,12 @@ SCENICAddTFTG <- function(all_grn, dis_type) {
   return(all_grn)
 }
 
-SCENICOverlapTfTg <-  function(all_grn, dis_type, analysis_type="no") {
-  all_grn <- SCENICAddTFTG(all_grn, dis_type)
+# 29. Calculates overlap of TF-target pairs between one run of one sex and the three runs of the other sex
+  # Input: GRN output, if there is any sub-folder in the file tree, a cutoff for how many pairs to compare, and if Velmehsev, change the sex values
+  # Return: list of pair count dfs
+
+SCENICOverlapTfTg <-  function(all_grn, dis_type=F, threshold="no", analysis_type="no") {
+  all_grn <- GRNpairs(all_grn, dis_type)
   id <- vector()
   overlap <- vector()
   count <- vector()
@@ -1106,31 +1086,42 @@ SCENICOverlapTfTg <-  function(all_grn, dis_type, analysis_type="no") {
       for (proj_id in names(all_grn)) {
         only_1 <- names(all_grn[[proj_id]])[which(grepl(sex, names(all_grn[[proj_id]])))]
         sex_proj <- all_grn[[proj_id]][only_1]
-        common_pairs <- sapply(sex_proj, "[", c("pairs"))
-        common_pairs <- unique(unlist(common_pairs))
         other_sex <- sexes[which(sexes!=sex)]
         other_sex_proj <- names(all_grn[[proj_id]])[which(grepl(other_sex, names(all_grn[[proj_id]])))]
         other_sex_proj <- all_grn[[proj_id]][other_sex_proj]
+        if (threshold=="no") {
+          common_pairs <- sapply(sex_proj, "[", c("pairs"))
+          common_pairs <- unique(unlist(common_pairs))
+        } else {
+          sex_proj <- do.call(rbind, sex_proj)
+          common_pairs <- sex_proj[order(-sex_proj$importance),"pairs"]
+          common_pairs <- unique(common_pairs)[1:threshold]
+        }
         sex_pairs <- sapply(other_sex_proj, "[[", c("pairs"))
-        sex_pairs[[sex]] <- common_pairs 
+        sex_pairs[[sex]] <- common_pairs
         sex_pairs <- as.data.frame(t(table(unlist(sex_pairs))))
         sex_pairs[,1] <- NULL
         colnames(sex_pairs) <- c("pairs", "count")
         for (k in 1:length(unique(sex_pairs$count))) {
-          id <- c(id, paste0(proj_id,stri_replace_last_fixed(sex, "_", "")))
+          id <- c(id, paste0(proj_id, stri_replace_last_fixed(sex, "_", "")))
           overlap <- c(overlap, k-1)
           count <- c(count, sum(sex_pairs$count==k))
         }
       }  
-      tot_k <- length(unique(sex_pairs$count)) - 1
     } else {
       only_1 <- names(all_grn)[which(grepl(sex, names(all_grn)))]
       sex_df <- all_grn[only_1]
-      common_pairs <- sapply(sex_df, "[", c("pairs"))
-      common_pairs <- unique(unlist(common_pairs))
       other_sex <- sexes[which(sexes!=sex)]
       other_sex_df <- names(all_grn)[which(grepl(other_sex, names(all_grn)))]
       other_sex_df <- all_grn[other_sex_df]
+      if (threshold=="no") {
+      common_pairs <- sapply(sex_df, "[", c("pairs"))
+      common_pairs <- unique(unlist(common_pairs))
+      } else {
+        sex_df <- do.call(rbind, sex_df)
+        common_pairs <- sex_df[order(-sex_df$importance),"pairs"]
+        common_pairs <- unique(common_pairs)[1:threshold]
+      }
       sex_pairs <- sapply(other_sex_df, "[", c("pairs"))
       sex_pairs[[sex]] <- common_pairs 
       sex_pairs <- as.data.frame(t(table(unlist(sex_pairs))))
@@ -1141,8 +1132,8 @@ SCENICOverlapTfTg <-  function(all_grn, dis_type, analysis_type="no") {
         overlap <- c(overlap, k-1)
         count <- c(count, sum(sex_pairs$count==k))
       }
-    tot_k <- length(unique(sex_pairs$count)) - 1
     }
+    tot_k <- length(unique(sex_pairs$count)) - 1
   }
   df_counts <- data.frame(id, overlap, count)
   df_counts[which(df_counts$overlap==0), "overlap"] <- "None"
@@ -1156,8 +1147,11 @@ SCENICOverlapTfTg <-  function(all_grn, dis_type, analysis_type="no") {
   return(df_counts)
 }
 
+# 30. Plots the number of overlapping TF/target pairs both as bar lot and %
+  # Input: main directory where to save the plots, if there is any sub-folder in the file tree, the overlap counts df, if any threshold was used
+  # Return: nothing, saves the plot instead
 
-SCENICPlotOverlapTfTg <- function(main_dir, dis_type, df_counts) {
+SCENICPlotOverlapTfTg <- function(main_dir, dis_type, df_counts, threshold = F) {
   if (dis_type!=F) {
     plot_path <- paste0(main_dir, dis_type, "/plots/TF_TG/")
   } else {
@@ -1193,96 +1187,13 @@ SCENICPlotOverlapTfTg <- function(main_dir, dis_type, df_counts) {
           legend.position = "right", 
           legend.title = element_text(size=12, face="bold", colour = "black"))
   TfTgplots <- ggarrange(p_dodge, p_fill, common.legend = T, legend = "bottom")
-  pdf(paste0(plot_path, "pairs_overlap_among sexes.pdf"))
-  print(TfTgplots)
-  dev.off()
+  if (threshold!=F) {
+    pdf(paste0(plot_path, "pairs_overlap_among sexes_thresh_", threshold, ".pdf"))
+    print(TfTgplots)
+    dev.off()
+  } else {
+    pdf(paste0(plot_path, "pairs_overlap_among sexes.pdf"))
+    print(TfTgplots)
+    dev.off()
+  }
 }
-
-
-###########################################################################################################
-###########################################################################################################
-###########################################################################################################
-###########################################################################################################
-###########################################################################################################
-
-
-################ OLDER SCRIPTS AND PLOTS
-
-########## Plot cell types back to umap/tsne
-
-##### Solution 1 - create a Seurat object for each expression matrix
-
-# Normal
-
-#runs <- c( "_1", "_2", "_3")
-
-#all_norm <- list()
-#for (v in runs) {
-#  norm_input_seurat <- SCENICInputSeurat(main, sub_disease[3], v)
-#  norm_seurat_list <- list()
-#  for (norm_id in names(norm_input_seurat)) {
-#    metadata_id <- cell_info[which(cell_info$cell_id %in% colnames(norm_input_seurat[[norm_id]])),]
-#    rownames(metadata_id) <- metadata_id$cell_id
-#    metadata_id$cell_id <- NULL
-#    norm_seurat <- SCENICSeuratPlots(norm_input_seurat, metadata_id, norm_id)
-#    norm_seurat_list <- append(norm_seurat_list, list(norm_seurat))
-#  }
-#  names(norm_seurat_list) <- names(norm_input_seurat)
-#  all_norm <- append(all_norm, list(norm_seurat_list))
-#}
-#names(all_norm) <- runs
-
-#k_clusters <- list("_1" = c(15, 15, 10, 10, 10, 12),
-#                   "_2" = c(12, 10, 10, 10, 12, 15),
-#                   "_3" = c(15, 10, 10, 10, 12, 12))
-
-#all_norm_final <- list()
-#for (v in runs) { 
-#  norm_seurat_list <- all_norm[[v]]
-#  names(k_clusters[[v]]) <- names(norm_seurat_list)
-#  for (norm_id in names(norm_seurat_list)) {
-#    all_norm_final[[v]][[norm_id]] <- SCENICClustering(main, sub_disease[3], norm_seurat_list[[norm_id]], k_clusters[[v]][[norm_id]], ct_order)
-# if also need to plot the UMAPs
-# all_norm2[[v]][[norm_id]] <- SCENICClustering(main, sub_disease[3], norm_seurat_list[[norm_id]], k_clusters[[v]][[norm_id]], ct_order, "yes")
-#  SCENICMarkers(main, sub_disease[3], all_norm[[v]][[norm_id]])
-#  }
-#}
-#rm(all_norm)
-
-#saveRDS(all_norm_final, paste0(main, sub_disease[3], "/seurat_files.rds"))
-
-#all_norm_final <- readRDS(paste0(main, sub_disease[3], "/seurat_files.rds"))
-
-##### Solution 2 - subset from original disco 
-
-#meta_id <- cell_info[which(cell_info$cell_id %in% colnames(norm_input_seurat[[1]])),]
-#rownames(meta_id) <- meta_id$cell_id
-#meta_id$cell_id <- NULL
-
-
-#disco_filt <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
-
-#disco_filt$cell_id <- rownames(disco_filt@meta.data)
-#disco_filt@meta.data$ct <- str_replace_all(disco_filt@meta.data$ct, "/", "_")
-
-#for (norm_id in names(norm_input_seurat)) {
-#  metadata_id <- cell_info[which(cell_info$cell_id %in% colnames(norm_input_seurat[[norm_id]])),]
-#  rownames(metadata_id) <- metadata_id$cell_id
-#  metadata_id$cell_id <- NULL
-#  id_sub <- subset(disco_filt, cell_id %in% rownames(metadata_id))
-#  umap_id_sub <- DimPlot(id_sub, reduction = "umap", group.by = "ct")
-#  umap_order <- ct_order[which(ct_order %in% levels(umap_id_sub$data$ct))]
-#  umap_id_sub$data$ct <- factor(umap_id_sub$data$ct, umap_order)
-#  umap_id_sub$data <- umap_id_sub$data[order(umap_id_sub$data$ct), ]
-#  pdf(paste0(main, sub_disease[3], "/3_plots/UMAP_", norm_id, "_disco_subset.pdf"))
-#  print(umap_id_sub  + labs(title = norm_id))
-#  dev.off()
-#}
-
-
-########## Heatmap expression of SCENIC TFs and TGs 
-
-#top_TFs <- c(100, 200)
-#norm_sort <- SCENICresultsSeurat(main, sub_disease[3], "1_GRN")
-#norm_input <- SCENICInput(main, sub_disease[3], cell_info)
-#PlotTfTg(main, sub_disease[3], norm_sort, norm_input, ct_order, top_TFs)

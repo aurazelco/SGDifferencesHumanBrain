@@ -1,6 +1,7 @@
 main_Velm_3rd <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/SCENIC/Velmeshev_2022_3rd_trimester/"
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/SCENIC/check_SCENIC_results_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/SCENIC/check_SCENIC_results_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/SCENIC/plot_high_variable_genes_func.R")
 
 ########## Important files
 
@@ -31,7 +32,7 @@ runs <- c( "_1", "_2", "_3")
   
 Velm_3rd <- list()
 for (v in runs) {
-  Velm_3rd_input_seurat <- SCENICInputSeurat(main_Velm_3rd, F, v)
+  Velm_3rd_input_seurat <- SCENICInput(main_Velm_3rd, F, v)
   Velm_3rd_seurat_list <- list()
   for (Velm_3rd_id in names(Velm_3rd_input_seurat)) {
     colnames(Velm_3rd_input_seurat[[Velm_3rd_id]]) <- str_replace_all(colnames(Velm_3rd_input_seurat[[Velm_3rd_id]]), "\\.", "-")
@@ -81,7 +82,7 @@ HmpSCENIC(main_Velm_3rd, F, Velm_3rd_final, Velm_3rd_10, ct_order)
 
 #####  TFs and TGs expression in SeuratObjects
 
-Velm_3rd_scenic <- SCENICresultsSeurat(main_Velm_3rd, F, "1_GRN", proj_order = "no")
+Velm_3rd_scenic <- ImportSCENICresults(main_Velm_3rd, F, "1_GRN", proj_order = "no")
 #SCENICTfTg(main_Velm_3rd, F, Velm_3rd_scenic, Velm_3rd_final, ct_order)
 SCENICTfTg(main_Velm_3rd, F, Velm_3rd_scenic, Velm_3rd_final, ct_order, 100)
 
@@ -108,17 +109,18 @@ RidgeTFTG(main_Velm_3rd, Velm_3rd_trim, Velm_3rd_trim_tg$gene_id, "ct_sex", "Tar
 #####  Regulons
 
 # Velm_3rd
-Velm_3rd_auc <- SCENICresultsSeurat(main_Velm_3rd, F, "3_AUCell", proj_order = "yes")
+Velm_3rd_auc <- ImportSCENICresults(main_Velm_3rd, F, "3_AUCell", proj_order = "yes")
 Velm_3rd_reg_list <- SCENICExtractRegulons(Velm_3rd_auc, F)
 SCENICPlotRegulons(main_Velm_3rd, F, Velm_3rd_reg_list)
 
 ########## Number of TF-TG pairs between F and M of same project
-Velm_3rd_overlapTFTG <- SCENICOverlapTfTg(Velm_3rd_scenic, F, "Velmeshev")
+Velm_3rd_overlapTFTG <- SCENICOverlapTfTg(Velm_3rd_scenic, F, analysis_type = "Velmeshev")
 SCENICPlotOverlapTfTg(main_Velm_3rd, F, Velm_3rd_overlapTFTG)
+Velm_3rd_overlapTFTG <- SCENICOverlapTfTg(Velm_3rd_scenic, F, threshold = 10000,  analysis_type = "Velmeshev")
+SCENICPlotOverlapTfTg(main_Velm_3rd, F, Velm_3rd_overlapTFTG, threshold = 10000)
+
 
 #####  Gene Variability
-
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/SCENIC/plot_high_variable_genes_func.R")
 
 cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/Velmeshev_2022_3rd_trimester/cell_info_Velmeshev_2022_3rd_trimester.csv")
 cell_info$X <- NULL

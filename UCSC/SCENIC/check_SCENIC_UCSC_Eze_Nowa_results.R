@@ -1,6 +1,7 @@
 main_Eze_Nowa <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/SCENIC/Eze_Nowakowski_integrated_2nd_trimester/"
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/SCENIC/check_SCENIC_results_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/SCENIC/check_SCENIC_results_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/SCENIC/plot_high_variable_genes_func.R")
 
 ########## Important files
 
@@ -25,7 +26,7 @@ runs <- c( "_1", "_2", "_3")
 
 eze_nowa <- list()
 for (v in runs) {
-  eze_nowa_input_seurat <- SCENICInputSeurat(main_Eze_Nowa, F, v)
+  eze_nowa_input_seurat <- SCENICInput(main_Eze_Nowa, F, v)
   eze_nowa_seurat_list <- list()
   for (eze_nowa_id in names(eze_nowa_input_seurat)) {
     metadata_id <- cell_info[which(cell_info$cell_id %in% colnames(eze_nowa_input_seurat[[eze_nowa_id]])),]
@@ -73,7 +74,7 @@ HmpSCENICAll(main_Eze_Nowa, F, eze_nowa_final, eze_nowa_markers, ct_order)
 
 #####  TFs and TGs expression in SeuratObjects
 
-eze_nowa_scenic <- SCENICresultsSeurat(main_Eze_Nowa, F, "1_GRN", proj_order = "no")
+eze_nowa_scenic <- ImportSCENICresults(main_Eze_Nowa, F, "1_GRN", proj_order = "no")
 SCENICTfTg(main_Eze_Nowa, F, eze_nowa_scenic, eze_nowa_final, ct_order)
 SCENICTfTg(main_Eze_Nowa, F, eze_nowa_scenic, eze_nowa_final, ct_order, 100)
 
@@ -100,17 +101,18 @@ RidgeTFTG(main_Eze_Nowa, eze_nowa, eze_nowa_tg$gene_id, "ct_sex", "Target")
 #####  Regulons
 
 # eze_nowa
-eze_nowa_auc <- SCENICresultsSeurat(main_Eze_Nowa, F, "3_AUCell", proj_order = "yes")
+eze_nowa_auc <- ImportSCENICresults(main_Eze_Nowa, F, "3_AUCell", proj_order = "yes")
 eze_nowa_reg_list <- SCENICExtractRegulons(eze_nowa_auc, F)
 SCENICPlotRegulons(main_Eze_Nowa, F, eze_nowa_reg_list)
 
 ########## Number of TF-TG pairs between F and M of same project
 eze_nowa_overlapTFTG <- SCENICOverlapTfTg(eze_nowa_scenic, F)
 SCENICPlotOverlapTfTg(main_Eze_Nowa, F, eze_nowa_overlapTFTG)
+eze_nowa_overlapTFTG <- SCENICOverlapTfTg(eze_nowa_scenic, F, threshold = 10000)
+SCENICPlotOverlapTfTg(main_Eze_Nowa, F, eze_nowa_overlapTFTG, threshold = 10000)
+
 
 #####  Gene Variability
-
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/SCENIC/plot_high_variable_genes_func.R")
 
 main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/SCENIC/Eze_Nowakowski_integrated_2nd_trimester/"
 

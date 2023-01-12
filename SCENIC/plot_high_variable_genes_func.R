@@ -1,7 +1,29 @@
-library(tidyr)
-library(matrixStats)
-library(dplyr)
-library(ggplot2)
+# Author: Aura Zelco
+# Brief description:
+  # This script is used to plot the gene variability, F v M
+# Brief procedure:
+  # 1. Reads all DEG CSV files from all the different datasets (in this case 2 - DISCO and UCSC)
+  # 2. Manually combines the annotations to be able to compare at a general level the different celltypes
+  # 3. Plots presence heatmaps (yes/no, not the expression) across all ages, for each celltype
+  # 4. Plots how many genes are found in all age groups, in all but one, etc
+# Documentation abbreviations:
+  # F and M: females and males
+  # ct: celltype
+  # df: dataframe
+
+# OBS: this script is sourced in the several check_SCENIC_*_results.R
+
+#---------------------------------------------------------------------------------------------------
+
+# 0. Import Libraries
+library(tidyr) # to tidy up dfs
+library(matrixStats) # to calculate rapidly some metrics in a matrix
+library(dplyr) # to modify tables
+library(ggplot2) # to plot
+
+# 1. Calculates the standard deviation for each sex separately
+  # Input: the file with the barcodes of the cells and the corresponding metadata, the expression matrix of the top 2000 most variable genes
+  # Return: list of dfs, one per each ct
 
 CalculateSexSD <- function(cell_info_df, top_2000_df) {
   top_list <- list()
@@ -26,6 +48,10 @@ CalculateSexSD <- function(cell_info_df, top_2000_df) {
   names(top_list) <- top_names
   return(top_list)
 }
+
+# 2. Plots the Sd of each ct, F v M
+  # Input: main directory where to save the plots, list of dfs, one per each ct
+  # Return: nothing, saves plot instead
 
 PlotSexSD <- function(main_dir, top_list) {
   plot_path <- paste0(main_dir, "plots/Gene_Variability/")
@@ -55,6 +81,9 @@ PlotSexSD <- function(main_dir, top_list) {
   }
 }
 
+# 3. Calculates the standard deviation for each sex separately and saves the corresponding plot
+# Input: the file with the barcodes of the cells and the corresponding metadata, the expression matrix of the top 2000 most variable genes
+# Return: nothing, saves plots instead
 
 SexSD <- function(main_dir, cell_info_df, top_2000_df) {
   top_ct <-CalculateSexSD(cell_info_df, top_2000_df)
