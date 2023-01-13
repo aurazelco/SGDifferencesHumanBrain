@@ -135,6 +135,9 @@ Velm_2nd_trim@meta.data$ct_sex <- paste(Velm_2nd_trim@meta.data$cluster_final, V
 
 Velm_2nd_trim_tf <- read.csv(paste0(main_Velm_2nd_furu, "5_outputs/different_TF_between_sexes.csv"))
 RidgeTFTG(main_Velm_2nd_furu, Velm_2nd_trim, Velm_2nd_trim_tf$gene_id, "ct_sex", "TF")
+RidgeTFTG(main_Velm_2nd_furu, Velm_2nd_trim, Velm_2nd_trim_tf$gene_id, "sex", "TF")
 
 Velm_2nd_trim_tg <- read.csv(paste0(main_Velm_2nd_furu, "5_outputs/different_Target_between_sexes.csv"))
 RidgeTFTG(main_Velm_2nd_furu, Velm_2nd_trim, Velm_2nd_trim_tg$gene_id, "ct_sex", "Target")
+RidgeTFTG(main_Velm_2nd_furu, Velm_2nd_trim, Velm_2nd_trim_tg$gene_id, "sex", "Target")
+

@@ -338,20 +338,24 @@ if (length(unique(norm_tf$projs))>1) {
   norm_projs <- SplitObject(norm, split.by = "project_id")
   for (proj in names(norm_projs)) {
     print(proj)
-    RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm_projs[[proj]], norm_tf$gene_id, "ct_sex", paste("TF", proj, sep = "_"))
+    RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm_projs[[proj]], norm_tf[which(norm_tf$projs==proj), "gene_id"], "ct_sex", paste("TF", proj, sep = "_"))
+    RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm_projs[[proj]], norm_tf[which(norm_tf$projs==proj), "gene_id"], "gender", paste("TF", proj, sep = "_"))
   }
 } else {
   RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm, norm_tf$gene_id, "ct_sex", "TF")
+  RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm, norm_tf$gene_id, "gender", "TF")
 }
 
 if (length(unique(norm_tg$projs))>1) {
   norm_projs <- SplitObject(norm, split.by = "project_id")
   for (proj in names(norm_projs)) {
     print(proj)
-    RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm_projs[[proj]], norm_tg$gene_id, "ct_sex", paste("Target", proj, sep = "_"))
+    RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm_projs[[proj]], norm_tg[which(norm_tg$projs==proj), "gene_id"], "ct_sex", paste("Target", proj, sep = "_"))
+    RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm_projs[[proj]], norm_tg[which(norm_tg$projs==proj), "gene_id"], "gender", paste("Target", proj, sep = "_"))
   }
 } else {
   RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm, norm_tg$gene_id, "ct_sex", "Target")
+  RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm, norm_tg$gene_id, "gender", "Target")
 }
 
 
@@ -366,20 +370,24 @@ if (length(unique(ad_tf$projs))>1) {
   ad_projs <- SplitObject(ad, split.by = "project_id")
   for (proj in names(ad_projs)) {
     print(proj)
-    RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad_projs[[proj]], ad_tf$gene_id, "ct_sex", paste("TF", proj, sep = "_"))
+    RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad_projs[[proj]], ad_tf[which(ad_tf$projs==proj), "gene_id"], "ct_sex", paste("TF", proj, sep = "_"))
+    RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad_projs[[proj]], ad_tf[which(ad_tf$projs==proj), "gene_id"], "gender", paste("TF", proj, sep = "_"))
   }
 } else {
   RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad, ad_tf$gene_id, "ct_sex", "TF")
+  RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad, ad_tf$gene_id, "gender", "TF")
 }
 
 if (length(unique(ad_tg$projs))>1) {
   ad_projs <- SplitObject(ad, split.by = "project_id")
   for (proj in names(ad_projs)) {
     print(proj)
-    RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad_projs[[proj]], ad_tg$gene_id, "ct_sex", paste("Target", proj, sep = "_"))
+    RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad_projs[[proj]], ad_tg[which(ad_tg$projs==proj), "gene_id"], "ct_sex", paste("Target", proj, sep = "_"))
+    RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad_projs[[proj]], ad_tg[which(ad_tg$projs==proj), "gene_id"], "gender", paste("Target", proj, sep = "_"))
   }
 } else {
   RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad, ad_tg$gene_id, "ct_sex", "Target")
+  RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad, ad_tg$gene_id, "gender", "Target")
 }
 
 
@@ -395,20 +403,24 @@ if (length(unique(ms_tf$projs))>1) {
   ms_projs <- SplitObject(ms, split.by = "project_id")
   for (proj in names(ms_projs)) {
     print(proj)
-    RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms_projs[[proj]], ms_tf$gene_id, "ct_sex", paste("TF", proj, sep = "_"))
+    RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms_projs[[proj]], ms_tf[which(ms_tf$projs==proj), "gene_id"], "ct_sex", paste("TF", proj, sep = "_"))
+    RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms_projs[[proj]], ms_tf[which(ms_tf$projs==proj), "gene_id"], "gender", paste("TF", proj, sep = "_"))
   }
 } else {
   RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms, ms_tf$gene_id, "ct_sex", "TF")
+  RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms, ms_tf$gene_id, "gender", "TF")
 }
 
 if (length(unique(ms_tg$projs))>1) {
   ms_projs <- SplitObject(ms, split.by = "project_id")
   for (proj in names(ms_projs)) {
     print(proj)
-    RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms_projs[[proj]], ms_tg$gene_id, "ct_sex", paste("Target", proj, sep = "_"))
+    RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms_projs[[proj]], ms_tg[which(ms_tg$projs==proj), "gene_id"], "ct_sex", paste("Target", proj, sep = "_"))
+    RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms_projs[[proj]], ms_tg[which(ms_tg$projs==proj), "gene_id"], "gender", paste("Target", proj, sep = "_"))
   }
 } else {
   RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms, ms_tg$gene_id, "ct_sex", "Target")
+  RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms, ms_tg$gene_id, "gender", "Target")
 }
 
 

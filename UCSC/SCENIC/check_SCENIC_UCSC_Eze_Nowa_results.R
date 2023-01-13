@@ -93,9 +93,11 @@ eze_nowa@meta.data$ct_sex <- paste(eze_nowa@meta.data$cluster_final, eze_nowa@me
 
 eze_nowa_tf <- read.csv(paste0(main_Eze_Nowa, "5_outputs/different_TF_between_sexes.csv"))
 RidgeTFTG(main_Eze_Nowa, eze_nowa, eze_nowa_tf$gene_id, "ct_sex", "TF")
+RidgeTFTG(main_Eze_Nowa, eze_nowa, eze_nowa_tf$gene_id, "sex", "TF")
 
 eze_nowa_tg <- read.csv(paste0(main_Eze_Nowa, "5_outputs/different_Target_between_sexes.csv"))
 RidgeTFTG(main_Eze_Nowa, eze_nowa, eze_nowa_tg$gene_id, "ct_sex", "Target")
+RidgeTFTG(main_Eze_Nowa, eze_nowa, eze_nowa_tg$gene_id, "sex", "Target")
 
 
 #####  Regulons

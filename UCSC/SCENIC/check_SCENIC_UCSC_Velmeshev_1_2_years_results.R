@@ -101,9 +101,11 @@ Velm_2nd_year@meta.data$ct_sex <- paste(Velm_2nd_year@meta.data$cluster_final, V
 
 Velm_2nd_year_tf <- read.csv(paste0(main_Velm_2nd_year, "5_outputs/different_TF_between_sexes.csv"))
 RidgeTFTG(main_Velm_2nd_year, Velm_2nd_year, Velm_2nd_year_tf$gene_id, "ct_sex", "TF")
+RidgeTFTG(main_Velm_2nd_year, Velm_2nd_year, Velm_2nd_year_tf$gene_id, "sex", "TF")
 
 Velm_2nd_year_tg <- read.csv(paste0(main_Velm_2nd_year, "5_outputs/different_Target_between_sexes.csv"))
 RidgeTFTG(main_Velm_2nd_year, Velm_2nd_year, Velm_2nd_year_tg$gene_id, "ct_sex", "Target")
+RidgeTFTG(main_Velm_2nd_year, Velm_2nd_year, Velm_2nd_year_tg$gene_id, "sex", "Target")
 
 
 #####  Regulons

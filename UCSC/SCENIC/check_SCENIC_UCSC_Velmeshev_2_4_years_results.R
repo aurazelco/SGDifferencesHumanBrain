@@ -107,9 +107,11 @@ Velm_2_4_years@meta.data$ct_sex <- paste(Velm_2_4_years@meta.data$cluster_final,
 
 Velm_2_4_years_tf <- read.csv(paste0(main_Velm_2_4_years, "5_outputs/different_TF_between_sexes.csv"))
 RidgeTFTG(main_Velm_2_4_years, Velm_2_4_years, Velm_2_4_years_tf$gene_id, "ct_sex", "TF")
+RidgeTFTG(main_Velm_2_4_years, Velm_2_4_years, Velm_2_4_years_tf$gene_id, "sex", "TF")
 
 Velm_2_4_years_tg <- read.csv(paste0(main_Velm_2_4_years, "5_outputs/different_Target_between_sexes.csv"))
 RidgeTFTG(main_Velm_2_4_years, Velm_2_4_years, Velm_2_4_years_tg$gene_id, "ct_sex", "Target")
+RidgeTFTG(main_Velm_2_4_years, Velm_2_4_years, Velm_2_4_years_tg$gene_id, "sex", "Target")
 
 
 

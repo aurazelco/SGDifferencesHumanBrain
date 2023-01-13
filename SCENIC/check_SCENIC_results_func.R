@@ -582,18 +582,37 @@ RidgeTFTG <- function(main_dir, seurat_obj, sex_biased_obj, obj_ident, obj) {
     out_path <- paste0(main_dir, "plots/TF_TG/")
     dir.create(out_path, showWarnings = F, recursive = T)
     if (length(sex_biased_obj)==1) {
-      pdf(paste0(out_path, obj, "_ridgeplot.pdf"))
+      if (obj_ident=="sex" | obj_ident=="gender") {
+        plot_title <- paste0(out_path, obj, "_ridgeplot_sex.pdf")
+      } else {
+        plot_title <- paste0(out_path, obj, "_ridgeplot.pdf")
+      }
+      pdf(plot_title)
       print(RidgePlot(seurat_obj, assay = "RNA", features = sex_biased_obj, group.by = obj_ident))
       dev.off()
-    } else if (length(sex_biased_obj)>20) {
+    } else if (length(sex_biased_obj)>10) {
       sex_biased_obj_list <- split(sex_biased_obj, ceiling(seq_along(sex_biased_obj)/10))
       for (i in names(sex_biased_obj_list)) {
-        pdf(paste0(out_path, obj, "_ridgeplot_", i, ".pdf"), width = 10)
-        print(RidgePlot(seurat_obj, assay = "RNA", features = sex_biased_obj_list[[i]], group.by = obj_ident, stack = T))
+        if (obj_ident=="sex" | obj_ident=="gender") {
+          plot_title <- paste0(out_path, obj, "_ridgeplot_sex_", i, ".pdf")
+        } else {
+          plot_title <- paste0(out_path, obj, "_ridgeplot_", i, ".pdf")
+        }
+        pdf(plot_title, width = 10)
+        if (length(sex_biased_obj_list[[i]])>1) {
+          print(RidgePlot(seurat_obj, assay = "RNA", features = sex_biased_obj_list[[i]], group.by = obj_ident, stack = T))
+        } else {
+          print(RidgePlot(seurat_obj, assay = "RNA", features = sex_biased_obj_list[[i]], group.by = obj_ident))
+        }
         dev.off()
       }
     } else {
-      pdf(paste0(out_path, obj, "_ridgeplot.pdf"), width = 10)
+      if (obj_ident=="sex" | obj_ident=="gender") {
+        plot_title <- paste0(out_path, obj, "_ridgeplot_sex.pdf")
+      } else {
+        plot_title <- paste0(out_path, obj, "_ridgeplot.pdf")
+      }
+      pdf(plot_title, width = 10)
       print(RidgePlot(seurat_obj, assay = "RNA", features = sex_biased_obj, group.by = obj_ident, stack = T))
       dev.off()
     }
