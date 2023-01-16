@@ -1,11 +1,12 @@
 # Author: Aura Zelco
 # Brief description:
-    # This script is used for comparing the DEGs from the DEG analysis across multiple datasets (different ages/disease conditions)
+  # This script is used for comparing the DEGs from the DEG analysis across multiple datasets (different ages/disease conditions)
 # Brief procedure:
-    # 1. Reads all DEG CSV files from all the different datasets (in this case 2 - DISCO and UCSC)
-    # 2. Manually combines the annotations to be able to compare at a general level the different celltypes
-    # 3. Plots presence heatmaps (yes/no, not the expression) across all ages, for each celltype
-    # 4. Plots how many genes are found in all age groups, in all but one, etc
+  # 1. Reads all DEG CSV files from all the different datasets (in this case 2 - DISCO and UCSC)
+  # 2. Manually combines the annotations to be able to compare at a general level the different celltypes
+  # 3. Plots presence heatmaps (yes/no, not the expression) across all ages, for each celltype
+  # 4. Plots how many genes are found in all age groups, in all but one, etc
+  # 5. Plots the total number of DEGs per ct across all conditions 
 # Documentation abbreviations:
   # deg: differentially expressed genes
   # F and M: females and males
@@ -457,7 +458,7 @@ CreateCountDfs <- function(ct_df_list) {
   # Input: the count df of one ct
   # Return: bar plot of how many genes are shared among how many groups
 
-PlotCountDfCt <- function(ct_df) {
+PlotNumSharedGenesCt <- function(ct_df) {
   ct_plot <- ggplot(ct_df, aes(condition_count, fill=as.factor(condition_count))) +
     geom_bar() +
     facet_wrap(~sex, scales = "free") +
@@ -482,14 +483,76 @@ PlotCountDfCt <- function(ct_df) {
   # Input: main directory where to save the plots, the list of count dfs
   # Return: nothing, saves the plot instead
 
-PlotCountCt <- function(main_dir, gene_count_dfs) {
-  plot_path <- paste0(main_dir, "Num_DEGs_across_conditions/")
+PlotNumSharedGenes <- function(main_dir, gene_count_dfs) {
+  plot_path <- paste0(main_dir, "Num_Shared_DEGs_across_conditions/")
   dir.create(plot_path, showWarnings = F, recursive = T)
   for (ct in names(gene_count_dfs)) {
     print(ct)
-    ct_plot <- PlotCountDfCt(gene_count_dfs[[ct]])
+    ct_plot <- PlotNumSharedGenesCt(gene_count_dfs[[ct]])
     pdf(paste0(plot_path, ct, ".pdf"))
     print(ct_plot)
+    dev.off()
+  }
+}
+
+# 18. Count DEGs for each ct in each age
+  # Input: list of presence dfs, one per each ct, order of the condition
+  # Return: dataframe with num of DEGs for each ct and condition
+
+NumDEGsAcrossConditions <- function(ct_df_list, condition_ordered) {
+  ct <- vector()
+  condition <- vector()
+  count_degs <- vector()
+  for (ct_id in names(ct_df_list)) {
+    sub_ct <- sexes[[ct_id]]
+    for (cond in unique(sub_ct$condition)) {
+      ct <- c(ct, ct_id)
+      condition <- c(condition, cond)
+      count_degs <- c(count_degs, nrow(sub_ct[which(sub_ct$condition==cond & sub_ct$presence=="yes"), ]))
+    }
+  }
+  num_deg_df <- data.frame(ct, condition, count_degs)
+  condition_ordered <- condition_ordered[which(condition_ordered %in% unique(num_deg_df$condition))]
+  num_deg_df$condition <- factor(num_deg_df$condition, condition_ordered)
+  num_deg_df <- num_deg_df[order(num_deg_df$condition), ]
+  return(num_deg_df)
+}
+
+
+# 19. Plot the total num of DEGs per ct
+  # Input: dataframe with num of DEGs of one ct
+  # Return: plot
+
+PlotNumDEGsCt <- function(ct_degs) {
+  ct_deg_plot <- ggplot(ct_degs, aes(condition, count_degs, fill=condition)) +
+    geom_bar(stat = "identity") +
+    labs(y="Total num of DEGs", fill="Conditions") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          panel.spacing.x=unit(0, "lines"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          axis.text.y = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
+          axis.title.x = element_blank(),
+          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+          legend.position = "bottom", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+  return(ct_deg_plot)
+}
+
+# 20. Plot the total num of DEGs per ct for all cts
+  # Input: main directory where to save the plots, the dataframe with num of DEGs for each ct and condition
+  # Return: nothing, saves the plot instead
+
+PlotNumDEGs <- function(main_dir, num_degs_ct) {
+  plot_path <- paste0(main_dir, "Num_Total_DEGs_across_conditions/")
+  dir.create(plot_path, showWarnings = F, recursive = T)
+  for (ct_id in unique(num_degs_ct$ct)) {
+    print(ct_id)
+    pdf(paste0(plot_path, ct_id, ".pdf"))
+    print(PlotNumDEGsCt(num_degs_ct[which(num_degs_ct$ct==ct_id),]))
     dev.off()
   }
 }

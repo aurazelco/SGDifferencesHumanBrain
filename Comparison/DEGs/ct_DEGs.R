@@ -6,6 +6,7 @@
     # 2. Manually combines the annotations to be able to compare at a general level the different celltypes
     # 3. Plots presence heatmaps (yes/no, not the expression) across all ages, for each celltype
     # 4. Plots how many genes are found in all age groups, in all but one, etc
+    # 5. Plots the total number of DEGs per ct across all conditions 
 # OBS: since there is a need for manual input, it is recommended to run this script in a R environment/IDE (e.g. RStudio)
 
 #---------------------------------------------------------------------------------------------------
@@ -97,7 +98,10 @@ PlotCts(main_comparison, sexes, condition_order)
 trim_2nd <- CreateConditionDf(c(UCSC[[1]], disco[[1]]), unified_annotation, condition_order[1:2])
 PlotAcrossConditions(main_comparison, trim_2nd, "trimester_2nd")
 
-
 # Count of how genes are shared among ages, for each ct
 gene_counts <- CreateCountDfs(sexes)
-PlotCountCt(main_comparison, gene_counts)
+PlotNumSharedGenes(main_comparison, gene_counts)
+
+# Count number of DEGs per ct across ages
+num_deg <- NumDEGsAcrossConditions(sexes, condition_order)
+PlotNumDEGs(main_comparison, num_deg)

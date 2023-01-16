@@ -266,11 +266,15 @@ SCENICPlotOverlapTfTg(main_DISCO, sub_disease[3], norm_overlapTFTG, threshold = 
 
 # AD
 ad_scenic <- ImportSCENICresults(main_DISCO, sub_disease[1], "1_GRN", "yes")
+ad_overlapTFTG <- SCENICOverlapTfTg(ad_scenic, sub_disease[1])
+SCENICPlotOverlapTfTg(main_DISCO, sub_disease[1], ad_overlapTFTG)
 ad_overlapTFTG <- SCENICOverlapTfTg(ad_scenic, sub_disease[1], threshold = 10000)
 SCENICPlotOverlapTfTg(main_DISCO, sub_disease[1], ad_overlapTFTG, threshold = 10000)
 
 # MS
 ms_scenic <- ImportSCENICresults(main_DISCO, sub_disease[2], "1_GRN", "yes")
+ms_overlapTFTG <- SCENICOverlapTfTg(ms_scenic, sub_disease[2])
+SCENICPlotOverlapTfTg(main_DISCO, sub_disease[2], ms_overlapTFTG)
 ms_overlapTFTG <- SCENICOverlapTfTg(ms_scenic, sub_disease[2], threshold = 10000)
 SCENICPlotOverlapTfTg(main_DISCO, sub_disease[2], ms_overlapTFTG, threshold = 10000)
 
