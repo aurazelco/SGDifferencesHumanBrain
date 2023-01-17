@@ -86,7 +86,9 @@ DfFrac <- function(main_dir,  cons_df, threshold, out_name, all_df, ct_ordered) 
     cons_filt <- subset(cons_df, rowSums(cons_df[, c(5:10)])>=threshold)
   } else if (out_name == "SAGD") {
     cons_filt <- subset(cons_df, rowSums(cons_df[, c(2:22)])>=threshold)
-  }
+  } else if (out_name == "ENSEMBL") {
+    cons_filt <- subset(cons_df, rowSums(cons_df[, c(2:ncol(cons_df))])>=threshold)
+  } 
   fr_all_F <- AllFrac(cons_filt, genes_df, names(df_F), "F")
   fr_all_M <- AllFrac(cons_filt, genes_df, names(df_M), "M")
   fr_F <- SexFrac(cons_filt, df_F, "F")

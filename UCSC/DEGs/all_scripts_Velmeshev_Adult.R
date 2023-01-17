@@ -155,48 +155,40 @@ for (sp in seq(5,10)) {
 conserved <- conserved %>% distinct(gene_name, .keep_all = TRUE)
 
 # SAGD CONSERVATION
+SAGD <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/extra_files/Sexassociatedgene_Padj0.05_PMID30380119.csv")
+SAGD <- SAGD[, c(2,4)]
+SAGD[which(SAGD[,"Symbol"]==''), "Symbol"]  <- NA
+SAGD <- drop_na(SAGD)
+SAGD$Symbol <- toupper(SAGD$Symbol)
+SAGD$dupl <- paste(SAGD$Symbol, SAGD$Species, sep="_")
+SAGD_drop <- SAGD %>% distinct(dupl, .keep_all = TRUE)
+SAGD_drop <- SAGD_drop[, c(1,2)]
 
+SAGD_df <- data.frame(unique(SAGD_drop$Symbol))
+colnames(SAGD_df) <- c("gene_name")
+
+for (sp in SAGD_drop$Species) {
+  SAGD_df[, sp] <- rep(0, length.out = length(SAGD_df$gene))
+}
+
+for (gene in SAGD_df$gene_name) {
+  species <- SAGD_drop[which(SAGD_drop$Symbol==gene), "Species"]
+  if (length(species) > 0 ) {
+    for (sp in species) {
+      SAGD_df[which(SAGD_df$gene_name==gene), sp] <- 1
+    }
+  }
+}
+names(SAGD_df)[names(SAGD_df) == 'gene'] <- 'gene_name'
+
+write.csv(SAGD_df, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/extra_files/SAGD_filt.csv")
 SAGD_df <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/extra_files/SAGD_filt.csv")
-SAGD_df$X <- NULL
+SAGD_df[,1] <- NULL
 
-#SAGD <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/extra_files/Sexassociatedgene_Padj0.05_PMID30380119.csv")
-#SAGD <- SAGD[, c(2,4)]
-#SAGD[which(SAGD[,"Symbol"]==''), "Symbol"]  <- NA
-#SAGD <- drop_na(SAGD)
-#SAGD$Symbol <- toupper(SAGD$Symbol)
-#SAGD$dupl <- paste(SAGD$Symbol, SAGD$Species, sep="_")
-#SAGD_drop <- SAGD %>% distinct(dupl, .keep_all = TRUE)
-#SAGD_drop <- SAGD_drop[, c(1,2)]
+# ENSEMBL 
 
-#SAGD_df <- data.frame(unique(SAGD_drop$Symbol))
-#colnames(SAGD_df) <- c("gene_name")
-
-#for (sp in SAGD_drop$Species) {
-#  SAGD_df[, sp] <- rep(0, length.out = length(SAGD_df$gene))
-#}
-
-#for (gene in SAGD_df$gene_name) {
-#  species <- SAGD_drop[which(SAGD_drop$Symbol==gene), "Species"]
-#  if (length(species) > 0 ) {
-#    for (sp in species) {
-#      SAGD_df[which(SAGD_df$gene_name==gene), sp] <- 1
-#    }
-#  }
-#}
-#names(SAGD_df)[names(SAGD_df) == 'gene'] <- 'gene_name'
-
-#write.csv(SAGD_df, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/extra_files/SAGD_filt.csv")
-
-# Read all DEGs from healthy patients, regardless of the sex
-
-
-
-
-#library(dplyr)
-#norm_deg_counts <- as.data.frame(normal_all_deg %>% 
-#                    group_by(cluster) %>%
-#                    summarise(tot_degs = length(cluster)))
-
+ensembl_mat <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs/extra_files/binary_mat_all_species.csv")
+names(ensembl_mat)[names(ensembl_mat) == 'X'] <- "gene_name"
 
 # all genes commonly expressed in the cts
 all_genes <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/Velmeshev_2022_Adult/tot_genes_ct_Velmeshev_2022_Adult.csv")
@@ -207,3 +199,4 @@ all_genes[col_factors] <- lapply(all_genes[col_factors], as.factor)
 
 ConservedFractions(main_local, conserved, 4, "Primates", all_genes, ct_order)
 ConservedFractions(main_local, SAGD_df, 4, "SAGD",  all_genes, ct_order)
+ConservedFractions(main_local, ensembl_mat, 4, "ENSEMBL",  all_genes, ct_order)
