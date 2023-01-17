@@ -10,7 +10,7 @@
   # df: dataframe
   # ds: dataset
   # ARE: androgen-response element
-# OBS: this script is sourced in ct_ARE.R
+# OBS: this script is sourced in Compare_ARE.R
 
 #---------------------------------------------------------------------------------------------------
 

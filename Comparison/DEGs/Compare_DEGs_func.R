@@ -15,7 +15,7 @@
   # ds: dataset
   # hmps: heatmaps
 
-# OBS: this script is sourced in ct_DEGs.R
+# OBS: this script is sourced in Compare_DEGs.R
 
 #---------------------------------------------------------------------------------------------------
 
