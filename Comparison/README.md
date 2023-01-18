@@ -12,4 +12,4 @@
 
 ## Brief description of the Functional_analysis scripts
 
-* [Compare_GO.R](Functional_analysis/Compare_GO.R), [Compare_GO_func.R](Functional_analysis/Compare_GO_func.R) - script to analyze and compare the GO results: 1) for each ct and condition, F v M; 2) for each ct, F and M separately across conditions. 
+* [Compare_Enrichment.R](Functional_analysis/Compare_Enrichment.R), [Compare_Enrichment_func.R](Functional_analysis/Compare_Enrichment_func.R) - script to analyze and compare the GO results: 1) for each ct and condition, F v M; 2) for each ct, F and M separately across conditions. 

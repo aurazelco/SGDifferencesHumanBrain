@@ -1,19 +1,28 @@
 # Author: Aura Zelco
 # Brief description:
-  # This script is used for comparing the DEGs from the DEG analysis across multiple datasets (different ages/disease conditions)
+  # This script is used to run the enrichment analysis on multiple databases/terms, all using the DEGs from the projects
 # Brief procedure:
-  # 1. Reads all DEG csv files from all the different datasets (in this case 2 - DISCO and UCSC)
-  # 2. Extract all genes, grouped by the common annotation and the condition
-  # 3. Calculates the GO results when comparing F vs M in aeach ct of a certain condition
-  # 4. Saves the corresponding plots and CSVs
-  # 5. Calculates the GO results when comparing Fs and Ms in each ct across conditions
-  # 6. Saves the corresponding plots and CSVs
+  # 1. Reads all DEG CSV files from all the different datasets (in this case 2 - DISCO and UCSC)
+  # 2. Extract the genes lists for all cts in all conditions
+  # 3. For each enrichments, compares F v M in each ct-condition combo and in each sex-ct combo across conditions
+    # clusterProfile:
+      # a. GO - Gene Ontology 
+      # b. KEGG - Kyoto Encyclopedia of Genes and Genomes
+      # c. DO - Disease Ontology
+      # d. DGN - DisGeNET
+    # enrichR:
+      # a. DSigDB
+      # b. GWAS_Catalog_2019
+    # disgenet2r:
+      # a. Curated DisGeNET
+  # 4. Saves the plots and CSV results
+
 # OBS: since there is a need for manual input, it is recommended to run this script in a R environment/IDE (e.g. RStudio)
 
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("~/Desktop/Lund_MSc/Thesis/scripts/Comparison/Functional_analysis/Compare_GO_func.R")
+source("~/Desktop/Lund_MSc/Thesis/scripts/Comparison/Functional_analysis/Compare_Enrichment_func.R")
 
 # sets the directories where to find the DEG csv files
 main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs/outputs/"
@@ -21,6 +30,14 @@ main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
 main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/"
+
+# Need to register for account before running this:
+disgenet_api_key <- get_disgenet_api_key(
+  email = "aura.zelco@gmail.com", 
+  password = "jyqwew-rAbgu3-qyvxuv" )
+
+# Sets the DisGENet API key
+Sys.setenv(DISGENET_API_KEY=disgenet_api_key )
 
 # Vectors to save the different sub-groups of DISCO and UCSC
 sub_disease <- list.dirs(main_DISCO, full.names = F, recursive = F)
@@ -95,10 +112,24 @@ condition_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
 # Combines all dataframes into one df
 sexes <- CreateSexDf(c(disco[[1]], UCSC[[1]]), unified_annotation)
 
-# Saves results, one plot and one CSV for each F v M comparison for each ct-condition combo
-CondCtSexGO(main_comparison, sexes, "BP")
+# Saves results, one plot and one CSV for each F v M comparison for each ct-condition combo - GO, KEGG, DO DisGeNET
+EnrichFvM(main_comparison, sexes, "GO", "BP")
+EnrichFvM(main_comparison, sexes, "KEGG")
+EnrichFvM(main_comparison, sexes, "DO")
+EnrichFvM(main_comparison, sexes, "DGN")
 
-# Saves results, one plot and one CSV for F and M separately of each ct across conditions
-CondCtGO(main_comparison, sexes, "BP", gene_thresh = 100, condition_order, rotate_x_axis = T)
 
+# Saves results, one plot and one CSV for F and M separately of each ct across conditions - GO, KEGG, DO DisGeNET
+EnrichCondition(main_comparison, sexes, "GO", "BP", gene_thresh = 100, condition_ordered = condition_order, rotate_x_axis = T)
+EnrichCondition(main_comparison, sexes, "KEGG", gene_thresh = 100, condition_ordered = condition_order, rotate_x_axis = T)
+EnrichCondition(main_comparison, sexes, "DO", gene_thresh = 100, condition_ordered = condition_order, rotate_x_axis = T)
+EnrichCondition(main_comparison, sexes, "DGN", gene_thresh = 100, condition_ordered = condition_order, rotate_x_axis = T)
 
+# DSigDB 
+EnrichOtherDB(main_comparison, sexes, "EnrichR",  "DSigDB", condition_order)
+
+# GWAS_Catalog_2019
+EnrichOtherDB(main_comparison, sexes, "EnrichR",  "GWAS_Catalog_2019", condition_order)
+
+# DisGeNET (CURATED)
+EnrichOtherDB(main_comparison, sexes, "DisGeNET2r",  "DisGeNET (CURATED)", condition_order)
