@@ -5,7 +5,8 @@ library(reshape2)
 library(ggplot2)
 library(stringr)
 library(scales)
-
+library(biomaRt)
+require(biomaRt)
 
 # 1. Import data
 ImportIntersectDE <- function(path, ext, row_col) {
@@ -34,8 +35,7 @@ ImportIntersectDE <- function(path, ext, row_col) {
 
 # 2. Function to get chromosome number from gene symbol - Pattama
 Annot.chr.name <- function(gene.list){
-  library("biomaRt")
-  require(biomaRt)
+  
   # define biomart object
   mart <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl",mirror = "uswest")
   Annot_idf <- getBM(attributes = c("hgnc_symbol",

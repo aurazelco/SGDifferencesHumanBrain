@@ -12,10 +12,10 @@
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison/DEGs/ct_DEGs_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison/DEGs/Compare_DEGs_func.R")
 
 # sets the directories where to find the DEG csv files
-main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs/outputs/"
+main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_common/outputs/"
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
@@ -98,10 +98,13 @@ PlotCts(main_comparison, sexes, condition_order)
 trim_2nd <- CreateConditionDf(c(UCSC[[1]], disco[[1]]), unified_annotation, condition_order[1:2])
 PlotAcrossConditions(main_comparison, trim_2nd, "trimester_2nd")
 
-# Count of how genes are shared among ages, for each ct
+# Count of how genes are shared among ages, for each ct and sex
 gene_counts <- CreateCountDfs(sexes)
 PlotNumSharedGenes(main_comparison, gene_counts)
+SaveSharedGenes(main_comparison, gene_counts, 0.75, 1)
 
-# Count number of DEGs per ct across ages
+# Count number of DEGs per ct across ages, for each ct and sex, and also create one faceted figure
 num_deg <- NumDEGsAcrossConditions(sexes, condition_order)
 PlotNumDEGs(main_comparison, num_deg)
+PlotNumDEGsFacets(main_comparison, num_deg)
+
