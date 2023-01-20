@@ -9,7 +9,7 @@ library(biomaRt)
 require(biomaRt)
 
 # 1. Import data
-ImportIntersectDE <- function(path, ext, row_col) {
+ImportDE <- function(path, ext, row_col) {
   if (missing(ext)) {
     deg_files <- list.files(path = path, pattern = "\\.csv$",full.names = TRUE)
     if (missing(row_col)) {
@@ -102,16 +102,17 @@ ExtractSexGenes <- function(chr_sex, chr) {
 ExtractGenes <- function(chr_list) {
   new_chr_list <- list()
   for (sex in names(chr_list)) {
-    df_sex <- as.data.frame(do.call(rbind, chr_list[[sex]]))
+    df_sex <- do.call(rbind, chr_list[[sex]])
     df_sex$ct <- rownames(df_sex)
     df_sex$ct <- str_remove_all(df_sex$ct, "\\.\\d+")
     rownames(df_sex) <- NULL
     df_sex <- df_sex[, -c(3)]
-    df_sex$chromosome_name <- str_replace_all(df_sex$chromosome_name, "\\d+", "Autosome")
-    df_sex$chromosome_name <- str_replace_all(df_sex$chromosome_name, "MT", "Autosome")
+    df_sex$chr_simplified <- df_sex$chromosome_name
+    df_sex$chr_simplified <- str_replace_all(df_sex$chr_simplified, "\\d+", "Autosome")
+    df_sex$chr_simplified <- str_replace_all(df_sex$chr_simplified, "MT", "Autosome")
     #col_factors <- c("ct", "Gene", "chromosome_name")
     #df_sex[col_factors] <- lapply(df_sex[col_factors], as.factor) 
-    mapped_genes <- unique(df_sex[, c("Gene", "chromosome_name")])
+    mapped_genes <- unique(df_sex[, c("Gene", "chromosome_name", "chr_simplified")])
     genes_names <- unique(df_sex$Gene)
     chr_mtx <- matrix(nrow = length(unique(df_sex$ct)), ncol=length(genes_names))
     rownames(chr_mtx) <- unique(df_sex$ct)
@@ -119,19 +120,22 @@ ExtractGenes <- function(chr_list) {
     for (i in rownames(chr_mtx)) {
       df_ct <- subset(df_sex, subset = ct == i)
       for (gene in colnames(chr_mtx)) {
-        if (gene %in% df_ct$Gene) {
-          chr_mtx[i, gene] <- "y"
-        } else {
-          chr_mtx[i, gene] <- "n"
-        }
+        chr_mtx[i, gene] <- ifelse(gene %in% df_ct$Gene, "y", "n")
+        #if (gene %in% df_ct$Gene) {
+        #  chr_mtx[i, gene] <- "y"
+        #} else {
+        #  chr_mtx[i, gene] <- "n"
+        #}
       }
     }
     #chr_mtx[rev(order(rowSums(chr_mtx))), ]
     chr_df <- reshape::melt.matrix(chr_mtx)
     colnames(chr_df) <- c("ct", "gene", "DEG")
     chr_df$chr_name <- rep(NA, length=nrow(chr_df))
+    chr_df$chr_simplified <- rep(NA, length=nrow(chr_df))
     for (gene in chr_df$gene) {
       chr_df[which(chr_df$gene == gene), "chr_name"] <- mapped_genes[which(mapped_genes$Gene == gene), "chromosome_name"]
+      chr_df[which(chr_df$gene == gene), "chr_simplified"] <- mapped_genes[which(mapped_genes$Gene == gene), "chr_simplified"]
     }
     chr_df$chr_name <- as.factor(chr_df$chr_name)
     new_chr_list <- append(new_chr_list, list(chr_df))
@@ -142,24 +146,29 @@ ExtractGenes <- function(chr_list) {
 
 # 8. Analyze each ct
 ProcessCt <- function(main_dir, dis_type, ext, row_col) {
-  path <- paste0(main_dir, dis_type, "/01B_num_DEGs")
+  out_path <- paste0(main_dir, dis_type, "/outputs/01C_num_chr/")
+  dir.create(out_path, showWarnings = F, recursive = T)
+  path <- paste0(main_dir, dis_type, "/outputs/01B_num_DEGs/")
   sub_ct <- list.dirs(path, recursive=FALSE, full.names = FALSE)
   df_F <- list()
   df_M <- list()
   names_F <- vector()
   names_M <- vector()
   for (ct in 1:length(sub_ct)) {
-    deg <- ImportIntersectDE(paste(path, sub_ct[ct], sep="/"))
+    deg <- ImportDE(paste(path, sub_ct[ct], sep="/"))
+    deg_filt <- list()
     for (k in 1:length(deg)) {
-      colnames(deg[[k]]) <- c("Gene")
+      df_filt <- as.data.frame(rownames(deg[[k]]))
+      colnames(df_filt) <- c("Gene")
+      deg_filt <- append(deg_filt, list(df_filt))
     }
-    names(deg) <- lapply(1:length(names(deg)), function(i) str_replace(names(deg)[i], "_intersected_genes", ""))
-    for (i in names(deg)) {
+    names(deg_filt) <- lapply(1:length(names(deg)), function(i) str_replace(names(deg)[i], "_filt", ""))
+    for (i in names(deg_filt)) {
       if (grepl("F", i, fixed=TRUE)){
-        df_F <- append(df_F, list(deg[[i]]))
+        df_F <- append(df_F, list(deg_filt[[i]]))
         names_F <- c(names_F, sub_ct[ct])
       } else {
-        df_M <- append(df_M, list(deg[[i]]))
+        df_M <- append(df_M, list(deg_filt[[i]]))
         names_M <- c(names_M, sub_ct[ct])
       }
     }
@@ -180,10 +189,8 @@ ProcessCt <- function(main_dir, dis_type, ext, row_col) {
   }
   names(chr_F) <- names(df_F)
   names(chr_M) <- names(df_M)
-  dir.create(paste(main_dir, dis_type, "01C_num_chr", sep="/"), showWarnings = FALSE)
-  output_path <- paste(main_dir, dis_type, "01C_num_chr", sep="/")
-  num_chrF <- num_chr_order(chr_F, output_path, "F")
-  num_chrM <- num_chr_order(chr_M, output_path, "M")
+  num_chrF <- num_chr_order(chr_F, out_path, "F")
+  num_chrM <- num_chr_order(chr_M, out_path, "M")
   #num_chr_list <- list(num_chrF, num_chrM)
   #names(num_chr_list) <- c("F", "M")
   return(list("F" = chr_F, "M" = chr_M))
@@ -191,11 +198,13 @@ ProcessCt <- function(main_dir, dis_type, ext, row_col) {
 
 # 9. Plot heatmap of sex-genes across cts
 PlotSexHeatmap <- function(main_dir, dis_type, chr_sex, chr, sex, ct_ordered) {
+  out_path <- paste0(main_dir, dis_type, "/outputs/01C_num_chr/")
+  dir.create(out_path, showWarnings = F, recursive = T)
   sexdf <- ExtractSexGenes(chr_sex, chr)
   dis_ct_ordered <- ct_ordered[which(ct_ordered %in% levels(sexdf$ct))]
   sexdf$ct <- factor(sexdf$ct, dis_ct_ordered)
   sexdf <- sexdf[order(sexdf$ct), ]
-  pdf(paste0(main_dir, dis_type,  "/01C_num_chr/", chr, "genes_heatmap_in_", sex, ".pdf"))
+  pdf(paste0(out_path, chr, "_genes_heatmap_in_", sex, ".pdf"))
   print(
     ggplot(sexdf, aes(ct, gene)) +
       geom_tile(aes(fill=DEG), color = "light grey") + 
@@ -226,7 +235,8 @@ PlotSexHmp <- function(main_dir, dis_type, chr_sex_list, ct_ordered) {
 
 # 11. Retrieve p-values from Fisher's test done in 02A_Fisher
 ExtractPval <- function(main_dir, dis_type, sex) {
-  pval <- read.csv(paste0(main_dir, dis_type, "/02A_Fisher_sex_genes/", sex, "_Fisher_results_v2.csv"))
+  in_path <- paste0(main_dir, dis_type, "/outputs/02A_Fisher_sex_genes/")
+  pval <- read.csv(paste0(in_path, sex, "_Fisher_results.csv"))
   names(pval)[names(pval) == 'X.1'] <- 'ct'
   #pval$ct <- as.factor(pval$ct)
   pval$signX <- rep(NA, length(pval$X_enriched_pval))
@@ -254,19 +264,21 @@ AddPval <- function(df, pvalX, pvalY) {
 
 # 13. Plot Heatmap of all DEGs, with hierarchy of chromosome origin
 PlotGeneralHeatmap <- function(main_dir, dis_type, chr_sex_list, ct_ordered) {
+  out_path <- paste0(main_dir, dis_type, "/outputs/01C_num_chr/")
+  dir.create(out_path, showWarnings = F, recursive = T)
   df_sex_list <- ExtractGenes(chr_sex_list) 
   for (sex in names(df_sex_list)) {
     dis_ct_ordered <- ct_ordered[which(ct_ordered %in% levels(df_sex_list[[sex]]$ct))]
     df_sex_list[[sex]]$ct <- factor(df_sex_list[[sex]]$ct, dis_ct_ordered)
     df_sex_list[[sex]] <- df_sex_list[[sex]][order(df_sex_list[[sex]]$ct), ]
-    pdf(paste0(main_dir, dis_type,  "/01C_num_chr/", "all_degs_heatmap_in_", sex, ".pdf"))
+    pdf(paste0(out_path, "all_degs_heatmap_in_", sex, ".pdf"))
     print(
       ggplot(df_sex_list[[sex]], aes(ct, gene)) +
         geom_tile(aes(fill=DEG)) + 
         scale_fill_manual(values = c("y" =  "#F8766D", "n"= "#00BFC4")) +
         scale_color_manual(values = c("y" =  "#F8766D", "n"= "#00BFC4")) +
         labs(x = "Cell types", y = paste0(sex, " DEGs"), fill = "Expressed", main = sex) +
-        facet_wrap(~chr_name, scales = "free") +
+        facet_wrap(~chr_simplified, scales = "free") +
         theme(panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
               panel.background = element_blank(), 
@@ -286,25 +298,27 @@ PlotGeneralHeatmap <- function(main_dir, dis_type, chr_sex_list, ct_ordered) {
 }
 
 # 14. Plot the fraction of enriched DEGs per chromosome, including or not the Fisher p-value
-PlotNumChr <- function(main_dir, dis_type, num_chr_genes, ct_ordered, pval_file=FALSE) {
+PlotNumChr <- function(main_dir, dis_type, num_chr_genes, ct_ordered, pval_file=F) {
+  out_path <- paste0(main_dir, dis_type, "/outputs/01C_num_chr/")
+  dir.create(out_path, showWarnings = F, recursive = T)
   sexes <- c("F", "M")
   col_palette <- hue_pal()(3)
-  path <- paste0(main_dir, dis_type,  "/01C_num_chr/")
   for (sex in sexes) {
     if (pval_file) {
+      pval_flag <- T
       pval <- ExtractPval(main_dir, dis_type, sex)
       pvalX <- pval[which(pval$X_enriched_pval <= 0.05), ]
       pvalY <- pval[which(pval$Y_enriched_pval <= 0.05), ]
       if (nrow(pvalX) == 0 & nrow(pvalY) == 0) {
-        pval_file <- FALSE
-      }
+        pval_flag <- F
+      } 
     } else {
       pvalX <- data.frame()
       pvalX$ct <- vector()
       pvalY <- data.frame()
       pvalY$ct <- vector()
-    }
-    df <- read.csv(paste0(path, sex, "_num_chr.csv"))
+      }
+    df <- read.csv(paste0(out_path, sex, "_num_chr.csv"))
     df[,1] <- NULL
     col_factors <- c("ct", "chr")
     df[col_factors] <- lapply(df[col_factors], as.factor) 
@@ -318,7 +332,7 @@ PlotNumChr <- function(main_dir, dis_type, num_chr_genes, ct_ordered, pval_file=
     dis_ct_ordered <- ct_ordered[which(ct_ordered %in% levels(df$ct))]
     df$ct <- factor(df$ct, dis_ct_ordered)
     df <- df[order(df$ct), ]
-    pdf(paste0(path, sex, "_num_chr.pdf"))
+    pdf(paste0(out_path, sex, "_num_chr.pdf"))
     print(
       ggplot(df[which(df$perc>0),], aes(ct, perc, fill=chr)) +
         geom_bar(stat='identity', position=position_dodge2(width = 0.9, preserve = "single")) +
@@ -328,10 +342,10 @@ PlotNumChr <- function(main_dir, dis_type, num_chr_genes, ct_ordered, pval_file=
                                      "Autosome"= col_palette[2])) +
         #{if (length(pvalX$ct)>0) geom_text(size=8, x = pvalX$ct, y = df[which(pvalX$ct %in% df$ct & df$chr=="X"), "perc"] + 0.2, label=pvalX$signX)} +
         #{if (length(pvalY$ct)>0) geom_text(size=8, x = pvalY$ct, y = df[which(pvalY$ct %in% df$ct & df$chr=="Y"), "perc"] + 0.2, label=pvalY$signY)} + 
-        {if (pval_file) geom_text(aes(x = ct, y = perc, label = pval_fisher, fontface = "bold"), nudge_x = 0.15, nudge_y = 0.1)} +
-        {if (pval_file) annotate("text",x= length(levels(df$ct))/2,y=max(df$perc) + 0.2,label="Significance: *: X-chr, #: Y-chr")} +
-        {if (pval_file) coord_cartesian(clip="off") } +
-        {if (pval_file==F) annotate("text", x = length(levels(df$ct))/2, y=max(df$perc), fontface = "bold", label = "NS", colour = "black")} +
+        {if (pval_flag) geom_text(aes(x = ct, y = perc, label = pval_fisher, fontface = "bold"), nudge_x = 0.15, nudge_y = 0.1)} +
+        {if (pval_flag) annotate("text",x= length(levels(df$ct))/2,y=max(df$perc) + 0.2,label="Significance: *: X-chr, #: Y-chr")} +
+        {if (pval_flag) coord_cartesian(clip="off") } +
+        {if (pval_flag==F) annotate("text", x = length(levels(df$ct))/2, y=max(df$perc), fontface = "bold", label = "NS", colour = "black")} +
         theme(panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
               panel.background = element_blank(), 
@@ -343,22 +357,22 @@ PlotNumChr <- function(main_dir, dis_type, num_chr_genes, ct_ordered, pval_file=
               legend.position = "bottom", 
               legend.title = element_text(size=12, face="bold", colour = "black"))
     )
-    dev.off()
+  dev.off()
   }
 }
 
-# 15. Saves to CSv output the DEGs from one sex shared by al least 50% of the ct
-ExtractSharedGenes <- function(main_dir, dis_type, chr_sex_list) {
-  output_path <- paste(main_dir, dis_type, "01C_num_chr", sep="/")
-  dir.create(output_path, showWarnings = F, recursive = T)
-  df_sex_list <- ExtractGenes(chr_sex_list) 
+# 15. Saves to CSV output the DEGs from one sex shared by al least 50% of the ct
+ExtractSharedGenes <- function(main_dir, dis_type, chr_sex_list, min_shared=0.75) {
+  out_path <- paste0(main_dir, dis_type, "/outputs/01C_num_chr/")
+  dir.create(out_path, showWarnings = F, recursive = T)
+  df_sex_list <- ExtractGenes(chr_sex_list)
   for (sex in names(df_sex_list)) {
     shared_genes <- data.frame()
-    thresh <- ceiling(length(levels(df_sex_list[[sex]]$ct)) / 2)
+    thresh <- ceiling(length(levels(df_sex_list[[sex]]$ct)) * min_shared)
     for (gene in unique(df_sex_list[[sex]]$gene)) {
       if (sum(df_sex_list[[sex]][which(df_sex_list[[sex]]$gene==gene), "DEG"]=="y") >= thresh)
-        shared_genes <- rbind(shared_genes, df_sex_list[[sex]][which(df_sex_list[[sex]]$gene==gene & df_sex_list[[sex]]$DEG=="y"), c("ct", "gene", "chr_name")])
+        shared_genes <- rbind(shared_genes, df_sex_list[[sex]][which(df_sex_list[[sex]]$gene==gene & df_sex_list[[sex]]$DEG=="y"), c("ct", "gene", "chr_name", "chr_simplified")])
     }
-    write.csv(shared_genes, paste0(output_path, "/", sex, "_shared_genes.csv"))
+    write.csv(shared_genes, paste0(out_path, "/", sex, "_shared_genes.csv"))
   }
 }

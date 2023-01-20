@@ -189,13 +189,6 @@ ConservedFractions(main, ensembl_mat, 4, "ENSEMBL",  all_genes, ct_order)
 
 source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs/01C_num_chr_func.R")
 
-# as used in 02A_Fisher
-X_chr_genes <- 1848
-Y_chr_genes <- 431
-tot_genes <- 20000
-
-num_chr_genes <- list("X" = X_chr_genes, "Y" = Y_chr_genes, "Autosome" = (tot_genes - X_chr_genes - Y_chr_genes))
-
 chr_10_20_years <- ProcessCt(main_local)
 ExtractSharedGenes(main_local, chr_10_20_years)
 PlotGeneralHeatmap(main_local, chr_10_20_years, ct_order)
@@ -204,7 +197,15 @@ PlotSexHmp(main_local, chr_10_20_years, ct_order)
 
 ####### 02A_Fisher.R  -> not on the server
 
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs/01C_num_chr_func.R")
 source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs/02A_Fisher_func.R")
+
+# as used in 02A_Fisher
+X_chr_genes <- 1848
+Y_chr_genes <- 431
+tot_genes <- 20000
+
+num_chr_genes <- list("X" = X_chr_genes, "Y" = Y_chr_genes, "Autosome" = (tot_genes - X_chr_genes - Y_chr_genes))
 
 SexChr2(main_local, tot_genes, X_chr_genes, Y_chr_genes)
 PlotNumChr(main_local, num_chr_genes, ct_order, T)

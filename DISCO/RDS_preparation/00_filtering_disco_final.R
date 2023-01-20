@@ -319,14 +319,14 @@ for (min_cells in min_num_cells) {
   num_filt$name_subfolders <- str_replace_all(num_filt$ct, "/", "_")
   #print(nrow(num_filt))
   write.csv(num_filt, file = paste0(disco_path, 
-                                        "DEGs/outputs/final_filt_", min_cells, ".csv"),
+                                        "DEGs_common/outputs/final_filt_", min_cells, ".csv"),
             row.names = F)
 }
 
 # and the corresponding plots
 for (min_cells in min_num_cells) {
   for (id in levels(num_proj_sex_disease_ct$proj)) {
-    pdf(paste0(disco_path, "DEGs/outputs/", id, "_filt_counts_", min_cells, ".pdf"), 10, 15)
+    pdf(paste0(disco_path, "DEGs_common/outputs/", id, "_filt_counts_", min_cells, ".pdf"), 10, 15)
     print(ggplot(num_proj_sex_disease_ct[which(num_proj_sex_disease_ct$proj==id),], aes(disease, count, fill=sex)) +
             geom_bar(stat="identity", position = "dodge") + 
             labs(x="", y="Nuclei count", fill="Sex") +
@@ -357,10 +357,10 @@ disco_filt <- readRDS(paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 num_proj_sex <- as.data.frame(table(disco_filt$proj_sex_disease))
 num_proj_sex <- separate(num_proj_sex, Var1, into = c("proj", "sex", "disease"), sep = "_")
 names(num_proj_sex)[names(num_proj_sex) == 'Freq'] <- "count"
-write.csv(num_proj_sex, paste0(disco_path, "DEGs/num_proj_sex_disease.csv"))
+write.csv(num_proj_sex, paste0(disco_path, "DEGs_common/num_proj_sex_disease.csv"))
 
 for (dis_type in unique(num_proj_sex$disease)) {
-  pdf(paste0(disco_path, "DEGs/num_proj_sex_", dis_type,".pdf"))
+  pdf(paste0(disco_path, "DEGs_common/num_proj_sex_", dis_type,".pdf"))
   print(
     ggplot(num_proj_sex[which(num_proj_sex$disease==dis_type), ], aes(proj, count, fill=sex)) +
       geom_bar(stat="identity", position="dodge") +
@@ -382,10 +382,10 @@ for (dis_type in unique(num_proj_sex$disease)) {
 num_proj_sex_ct <- as.data.frame(table(disco_filt$proj_sex_disease_ct))
 num_proj_sex_ct <- separate(num_proj_sex_ct, Var1, into = c("proj", "sex", "disease", "ct"), sep = "_")
 names(num_proj_sex_ct)[names(num_proj_sex_ct) == 'Freq'] <- "count"
-write.csv(num_proj_sex_ct, paste0(disco_path, "DEGs/num_proj_sex_ct.csv"))
+write.csv(num_proj_sex_ct, paste0(disco_path, "DEGs_common/num_proj_sex_ct.csv"))
 
 for (dis_type in unique(num_proj_sex_ct$disease)) {
-  pdf(paste0(disco_path, "DEGs/num_proj_sex_", dis_type,"_ct.pdf"),
+  pdf(paste0(disco_path, "DEGs_common/num_proj_sex_", dis_type,"_ct.pdf"),
       width = 15, height = 18.75)
   print(
     ggplot(num_proj_sex_ct[which(num_proj_sex_ct$disease==dis_type), ], aes(proj, count, fill=sex)) +
@@ -436,7 +436,7 @@ for (i in unique(disco_filt@meta.data$proj_sex_disease_ct)) {
 cell_info <- separate(cell_info, cell_id, into = c("barcode", "sample"), sep = "--", remove = FALSE)
 
 write.csv(cell_info,
-          paste0(disco_path, "DEGs/cell_info.csv"))
+          paste0(disco_path, "DEGs_common/cell_info.csv"))
 
 saveRDS(disco_filt, paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
@@ -723,7 +723,7 @@ ad_sampled <- rand_sample(ad, 3, 100, disco_scenic, sub_disease[1])
 ms_sampled <- rand_sample(ms, 3, 100, disco_scenic, sub_disease[2])
 
 
-############ For 02C_Conservation
+############ For 02C_Conservation - DEgs_common
 
 disco_filt <- readRDS(paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
@@ -748,11 +748,11 @@ for (df_id in unique(cell_info$og_group)) {
 }
 names(df_list) <- df_list_n
 
-dfs_split <- list("Alzheimer'sdisease" = vector(), 
+dfs_split <- list("Alzheimer's disease" = vector(), 
                   "Multiple Sclerosis" = vector(),
                   "Normal"   = vector())
 
-sub_disease <- list.dirs(paste0(disco_path, "DEGs/outputs/"), recursive=FALSE, full.names = FALSE)
+sub_disease <- list.dirs(paste0(disco_path, "DEGs_common/outputs/"), recursive=FALSE, full.names = FALSE)
 
 for (dis_type in sub_disease) {
   dfs_split[[dis_type]] <- names(df_list)[which(grepl(dis_type, names(df_list)))]
@@ -845,7 +845,90 @@ colnames(tot_genes) <- c("disease", "sex", "ct", "genes")
 col_factors <- c("disease", "sex", "ct")
 tot_genes[col_factors] <- lapply(tot_genes[col_factors], as.factor) 
 
-write.csv(tot_genes, paste0(disco_path, "DEGs/tot_genes_ct.csv"))
+write.csv(tot_genes, paste0(disco_path, "DEGs_common/tot_genes_ct.csv"))
+
+############ For 02C_Conservation - DEGs_proj
+
+disco_filt <- readRDS(paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
+
+Idents(disco_filt) <- "proj_sex_disease_ct"
+
+expr_mat_all_cts <- GetAssayData(disco_filt[["RNA"]], slot="data")
+saveRDS(disco_filt, paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
+
+rm(disco_filt)
+expr_mat_all_cts <- as.data.frame(as.matrix(expr_mat_all_cts))
+
+cell_info <- read.csv(paste0(disco_path, "SCENIC/extra_files/cell_info.csv"))
+cell_info$X <- NULL
+
+df_list <- list()
+df_list_n <- vector()
+for (df_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==df_id), "cell_id"])
+  df_og_df <- expr_mat_all_cts[ , (names(expr_mat_all_cts) %in% og_cells)]
+  df_list <- append(df_list, list(df_og_df))
+  df_list_n <-  c(df_list_n, df_id)
+}
+names(df_list) <- df_list_n
+
+sub_projs <- list.dirs(paste0(disco_path, "DEGs_proj/"), recursive=FALSE, full.names = FALSE)[-1]
+
+dfs_split <- list()
+for (proj_type in sub_projs) {
+  dfs_split <- append(dfs_split, list(names(df_list)[which(grepl(proj_type, names(df_list)))]))
+}
+names(dfs_split) <- sub_projs
+
+
+dfs_proj_dis <- list()
+for (proj_id in sub_projs) {
+  sub_disease <- list.dirs(paste0(disco_path, "DEGs_proj/", proj_id), recursive=FALSE, full.names = FALSE)
+  proj_list <- list()
+  proj_tot <- df_list[dfs_split[[proj_id]]]
+  for (dis_type in sub_disease) {
+    proj_list <- append(proj_list, list(proj_tot[names(proj_tot)[which(grepl(dis_type, names(proj_tot)))]]))
+  }
+  names(proj_list) <- sub_disease
+  dfs_proj_dis <- append(dfs_proj_dis, list(proj_list))
+}
+names(dfs_proj_dis) <- sub_projs
+
+FiltDisDf <- function(df_list_dis) {
+  filt_names <- vector()
+  df_dis <- list()
+  for (k in names(df_list_dis)) {
+    if (!is.null(ncol(df_list_dis[[k]]))) {
+      df_dis <- append(df_dis, list(rownames(df_list_dis[[k]][which(rowSums(as.matrix(df_list_dis[[k]]))!=0),])))
+      filt_names <- c(filt_names, k)
+    }
+  }
+  names(df_dis) <- filt_names
+  cts <- vector()
+  genes <- vector()
+  for (id in names(df_dis)) {
+    cts <- c(cts, rep(id, length(df_dis[[id]])))
+    genes <- c(genes, df_dis[[id]])
+  }
+  tot_genes <- data.frame(cts, genes)
+  return(tot_genes)
+}
+
+tot_df <- list()
+for (proj_id in names(dfs_proj_dis)) {
+  for (dis_type in names(dfs_proj_dis[[proj_id]])) {
+    tot_df <- append(tot_df, list(FiltDisDf(dfs_proj_dis[[proj_id]][[dis_type]])))
+  }
+}
+tot_df <- do.call(rbind, tot_df)
+
+tot_df <- separate(tot_df, cts, into=c("proj", "sex", "disease", "ct"), sep ="_", remove = FALSE)
+colnames(tot_df)
+names(tot_df)[names(tot_df) == "cts"] <- "og"
+
+
+write.csv(tot_df, paste0(disco_path, "DEGs_proj/tot_genes_ct.csv"))
+
 
 
 ##### Saving separated expr_mtx for each disease -> done on KJEMPEFURU

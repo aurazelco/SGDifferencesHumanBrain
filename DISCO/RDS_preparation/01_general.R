@@ -1,10 +1,12 @@
-main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs/outputs/"
+######## COMMON DEGs
+
+
+main_common <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_common/outputs/"
+dir.create(main_common, showWarnings = F, recursive = T)
 
 library(ggplot2)
 
-####### MAIN
-
-num_filt <- read.csv(paste0(main, "final_filt.csv"))
+num_filt <- read.csv(paste0(main_common, "final_filt_100.csv"))
 num_filt[,1] <- NULL
 
 col_factors <- c("proj", "sex", "disease", "ct", "og", "idents")
@@ -35,15 +37,15 @@ num_filt$ct <- factor(num_filt$ct, levels=c(
   ))
 
 for (dis_type in levels(num_filt$disease)) {
-  dir.create(paste0(main, dis_type), showWarnings = F)
+  dir.create(paste0(main_common, dis_type), showWarnings = F)
 }
 
-sub_disease <- list.dirs(main, recursive=FALSE, full.names = FALSE)
+sub_disease <- list.dirs(main_common, recursive=FALSE, full.names = FALSE)
 
 # Plot number of cells per sex and ct
 for (dis_type in sub_disease) {
   filt_df <- subset(num_filt, disease == dis_type)
-  pdf(paste0(main, dis_type, "/num_ct_sex.pdf"))
+  pdf(paste0(main_common, dis_type, "/num_ct_sex.pdf"))
   print(
     ggplot(filt_df, aes(ct, count, fill=ct)) +
       geom_bar(stat="identity") +
@@ -61,7 +63,7 @@ for (dis_type in sub_disease) {
             legend.position = "bottom")
   )  
   dev.off()
-  pdf(paste0(main, dis_type, "/num_ct_sex_proj.pdf"))
+  pdf(paste0(main_common, dis_type, "/num_ct_sex_proj.pdf"))
   print(
     ggplot(filt_df, aes(ct, count, fill=ct)) +
       geom_bar(stat="identity") +
@@ -80,3 +82,23 @@ for (dis_type in sub_disease) {
   )
   dev.off()
 }
+
+######## DEGs on individual projects
+
+main_proj <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj/"
+dir.create(main_proj, showWarnings = F, recursive = T)
+
+# used the same one from the DEGs_common folder
+num_filt <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_common/outputs/final_filt_100.csv")
+
+col_factors <- c("proj", "sex", "disease", "ct", "og", "idents")
+num_filt[col_factors] <- lapply(num_filt[col_factors], as.factor)  
+
+for (proj in levels(num_filt$proj)) {
+  for (dis_type in unique(num_filt[which(num_filt$proj==proj), "disease"])) {
+    print(paste0(main_proj, proj, "/", dis_type, "/outputs"))
+    dir.create(paste0(main_proj, proj, "/", dis_type, "/outputs"), showWarnings = F, recursive = T)
+  }
+}
+
+# plots are made above and in RDS_preparation/00_filtering_disco
