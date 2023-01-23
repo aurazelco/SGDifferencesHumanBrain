@@ -1,0 +1,36 @@
+# Author: Aura Zelco
+# Brief description:
+  # This script is used to plot the DEGs from UCSC 2nd trimester and O'Brien as Venn diagrams
+# Brief procedure:
+  # 1. Reads all DEG csv files from all the different datasets
+  # 2. Imports the reference dataset - in this case O'Brien et al. 2019
+  # 3. Plots the resulting Venn diagrams, one for each sex
+# OBS: since there is a need for manual input, it is recommended to run this script in a R environment/IDE (e.g. RStudio)
+
+#---------------------------------------------------------------------------------------------------
+
+# sources the script containing all functions run here
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison/DEGs/Compare_DEGs_2nd_trimester_func.R")
+
+# sets the directories where to find the DEG csv files
+main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/"
+
+# set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
+main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/"
+
+# the 2nd_trimester folders are selected
+sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)
+sub_UCSC <- sub_UCSC[which(grepl("2nd_trimester", sub_UCSC))]
+
+# Import all the CSVs from the different sub-folders
+UCSC <- ImportDataset(main_UCSC, sub_UCSC)
+
+# Import the reference from the bioRXiv paper O'Brien et al. 2019
+obrien <- read_xlsx(paste0(main_comparison, "O'Brien_bioRXiv_2019_suppl.xlsx"), sheet = 2, skip = 1)
+colnames(obrien) <- str_replace_all(colnames(obrien), " ", "_")
+
+# Extract the Geens from each list and plots the Venn diagrams, one per sex
+Venn2ndTrim(main_comparison, obrien, 2, UCSC, "O'Brien", "_2nd_trimester")
+
+
+
