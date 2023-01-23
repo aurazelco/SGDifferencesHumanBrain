@@ -59,11 +59,25 @@ ImportDE <- function(path, ext, row_col) {
   return(deg)
 }
 
-# 2. Import All DEGs from F and M for all ct; slight different folder structure requires different inputs
-  # Input: directory where to find ct sub-folders, if UCSC or not, list of projects ids, the individual project id to look for, file extension, where to find row-names
+# 2. Function to filter out ns genes and too low FC, and order based on FC 
+  # Input: dataframe of DEGs
+  # Return: gene list of significant genes as data.frame
+
+Filter_gene <- function( order.gene.df, pval, FC) {
+  logFC <- log2(1/FC)
+  gene.sig <- order.gene.df[  order.gene.df[["p_val"]] <= pval
+                              & order.gene.df[["avg_log2FC"]] >= logFC, ]
+  
+  #If there are sig genes add index number for each sig gene
+  return(data.frame("Genes"=rownames(gene.sig)))
+}
+
+# 3. Import All DEGs from F and M for all ct; slight different folder structure requires different inputs
+  # Input: directory where to find ct sub-folders, if UCSC or not, list of projects ids, the individual project id to look for, 
+    # the threshold for p-value and Fc if unfiltered data are imported, file extension, where to find row-names
   # Return: list of 2 lists, one for F and one for M dfs
 
-ImportCt <- function(main_dir, UCSC_flag="no", individual_projs=vector(), single_proj="", ext, row_col) {
+ImportCt <- function(main_dir, UCSC_flag="no", individual_projs=vector(), single_proj="", pval, FC, ext, row_col) {
   if (length(individual_projs)==0) {
     path <- paste0(main_dir, "/01B_num_DEGs")
   } else {
@@ -96,8 +110,7 @@ ImportCt <- function(main_dir, UCSC_flag="no", individual_projs=vector(), single
             names_M <- c(names_M, sub_ct[ct])
           }
         } else {
-          deg_ct <- as.data.frame(rownames(deg[[i]]))
-          colnames(deg_ct) <- c("Genes")
+          deg_ct <- Filter_gene(deg[[i]], pval, FC)
           rownames(deg_ct) <- NULL
           if (grepl("F", i, fixed=TRUE)){
             df_F <- append(df_F, list(deg_ct))
@@ -132,11 +145,11 @@ ImportCt <- function(main_dir, UCSC_flag="no", individual_projs=vector(), single
   }
 }
 
-# 3. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
-  # Input: main directory, sub-folders list, if UCSC or not, list of projects ids
+# 4. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
+  # Input: main directory, sub-folders list, if UCSC or not, list of projects ids, the threshold for p-value and Fc if unfiltered data are imported
   # Return: list of condition lists, each containing ct lists divided in F and M
 
-ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_projs=vector()) {
+ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_projs=vector(), pval, FC) {
   ds_list <- list()
   ct_list <- vector()
   group_names <- vector()
@@ -148,7 +161,7 @@ ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_proj
         group_names <- c(group_names, folder)
       } else {
         for (single_proj in individual_projs) {
-          single_proj_list <- list(ImportCt(paste0(main_dir, folder), individual_projs = individual_projs, single_proj = single_proj))
+          single_proj_list <- list(ImportCt(paste0(main_dir, folder), individual_projs = individual_projs, single_proj = single_proj, pval, FC))
           if (single_proj_list!="empty") {
             ds_list <- append(ds_list, single_proj_list)
             ct_list <-c(ct_list, list.dirs(paste0(main_dir, folder, "/01A_DEGs"), recursive=FALSE, full.names = FALSE))
@@ -179,7 +192,7 @@ ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_proj
   return(list("genes"=ds_list, "ct"=unique(ct_list)))
 }
 
-# 4. Creates the df for the input ct so that we know if a DEG is found in a certain condition or not -> used to generate hmps
+# 5. Creates the df for the input ct so that we know if a DEG is found in a certain condition or not -> used to generate hmps
   # Input: list of ct dfs, which sex and ct to analyze
   # Return: df with info whether each gene is present in all condition groups in which the ct is found
 
@@ -200,7 +213,7 @@ CreatePresenceCtDf <- function(sex_dfs, sex, ct) {
   return(ct_sex)
 }
 
-# 5. Creates all PresenceDfs for all cts
+# 6. Creates all PresenceDfs for all cts
   # Input: list of lists, each list corresponding to a specific condition-sex-ct combination
   # Return: list of ct dfs, with information on presence of each gene across all conditions
 
@@ -220,7 +233,7 @@ CreatePresenceDf <- function(sex_dfs) {
   }
 }
 
-# 6. Groups cts according to common annotation, then creates the presence dfs
+# 7. Groups cts according to common annotation, then creates the presence dfs
   # Input: list of lists generated from ImportDatasets, here combined in a vector, and the named vector used to harmonize the annotation
   # Return: list of presence dfs, one per each ct
 
@@ -252,7 +265,7 @@ CreateSexDf <- function(list_ds, common_annot) {
   return(ct_df_list)
 }
 
-# 7. Plots the heatmap for a certain ct and sex combo
+# 8. Plots the heatmap for a certain ct and sex combo
   # Input: presence df, which sex to plot, and the order in which to plot the conditions
   # Return: heatmap plot
 
@@ -293,7 +306,7 @@ PlotDEGsConditions <- function(ct_df, sex, condition_ordered) {
   return(ct_plot)
 }
 
-# 8. Generates the presence hmps for each ct, putting together F and M from the same ct and saving it as a pdf
+# 9. Generates the presence hmps for each ct, putting together F and M from the same ct and saving it as a pdf
   # Input: main directory where to save the plots, the list of presence dfs, and the order in which to plot the conditions
   # Return: nothing, saves the plot instead
 
@@ -311,9 +324,9 @@ PlotCts <- function(main_dir, ct_df_list, condition_ordered) {
   }
 }
 
-# 9. Creates the df for the input sex so that we know if a DEG is found in a certain ct or not in the condition of interest -> used to generate hmps
-# Input: list of ct dfs, which sex to analyze
-# Return: df with info whether each gene is present in the cts of the condition of interest
+# 10. Creates the df for the input sex so that we know if a DEG is found in a certain ct or not in the condition of interest -> used to generate hmps
+  # Input: list of ct dfs, which sex to analyze
+  # Return: df with info whether each gene is present in the cts of the condition of interest
 
 CreatePresenceConditionSexDf <- function(sex_dfs, sex) {
   ct_sex <-(rep(unique(sex_dfs[[sex]]$gene_id), length(unique(sex_dfs[[sex]]$common_annot))))
@@ -331,9 +344,9 @@ CreatePresenceConditionSexDf <- function(sex_dfs, sex) {
   return(ct_sex)
 }
 
-# 10. Creates the presence dfs for both sexes, across all cts
-# Input: lists of dfs, one per sex with in each all cts
-# Return: df with the presence info
+# 11. Creates the presence dfs for both sexes, across all cts
+  # Input: lists of dfs, one per sex with in each all cts
+  # Return: df with the presence info
 
 CreatePresenceConditionDf <- function(sex_dfs) {
   if (all(unique(sex_dfs[["F"]][,"common_annot"]) %in% unique(sex_dfs[["M"]][,"common_annot"]))) {
@@ -345,9 +358,9 @@ CreatePresenceConditionDf <- function(sex_dfs) {
   }
 }
 
-# 11. Groups cts according to common annotation, then creates the presence dfs
-# Input: list of lists generated from ImportDatasets, here combined in a vector, and the named vector used to harmonize the annotation
-# Return: df with the presnece info for both sexes
+# 12. Groups cts according to common annotation, then creates the presence dfs
+  # Input: list of lists generated from ImportDatasets, here combined in a vector, and the named vector used to harmonize the annotation
+  # Return: df with the presnece info for both sexes
 
 CreateConditionDf <- function(list_ds, common_annot, condition_filt) {
   all <- unlist(list_ds[condition_filt], recursive = F)
@@ -378,9 +391,9 @@ CreateConditionDf <- function(list_ds, common_annot, condition_filt) {
   return(condition_df_presence)
 }
 
-# 12. Generate the plot for one sex of the DEGs across all cts in specific condition
-# Input: condition presence sex df
-# Return: plot
+# 13. Generate the plot for one sex of the DEGs across all cts in specific condition
+  # Input: condition presence sex df
+  # Return: plot
 
 PlotAcrossConditionsSex <- function(condition_df_presence_sex, sex) {
   condition_df_presence_sex <- separate(condition_df_presence_sex, ct_condition, into = c("ct", "condition"), remove = F, sep="-")
@@ -414,9 +427,9 @@ PlotAcrossConditionsSex <- function(condition_df_presence_sex, sex) {
           legend.title = element_text(size=12, face="bold", colour = "black"))
   return(plot_cond)
 }
-# 13. Generates the presence hmps for each ct, putting together F and M from the same ct and saving it as a pdf
-# Input: main directory where to save the plots, the list of presence dfs, and the order in which to plot the conditions
-# Return: nothing, saves the plot instead
+# 14. Generates the presence hmps for each ct, putting together F and M from the same ct and saving it as a pdf
+  # Input: main directory where to save the plots, the list of presence dfs, and the order in which to plot the conditions
+  # Return: nothing, saves the plot instead
 
 PlotAcrossConditions <- function(main_dir, condition_df_presence, obj_name) {
   plot_path <- paste0(main_dir, "Hmp_DEGs_across_conditions/")
@@ -429,7 +442,7 @@ PlotAcrossConditions <- function(main_dir, condition_df_presence, obj_name) {
   dev.off()
 }
 
-# 14. Creates dfs which counts in how many conditions we find each gene, per sex and ct combo
+# 15. Creates dfs which counts in how many conditions we find each gene, per sex and ct combo
   # Input: ct df obtained previously, and the sex to analyze
   # Return: df containing for each gene the number of conditions which had that gene in their DEGs
 
@@ -445,7 +458,7 @@ GroupsSharingGenes <- function(ct_df, sex_id) {
   return(data.frame(gene_id, sex, condition_count))
 }
 
-# 15. Create Count Dfs for all cts
+# 16. Create Count Dfs for all cts
   # Input: presence df list
   # Return: list of df containing the number of conditions for each gene, for each ct
 
@@ -460,7 +473,7 @@ CreateCountDfs <- function(ct_df_list) {
   return(gene_count_dfs)
 }
 
-# 16. Plot count dfs for each ct
+# 17. Plot count dfs for each ct
   # Input: the count df of one ct
   # Return: bar plot of how many genes are shared among how many groups
 
@@ -485,7 +498,7 @@ PlotNumSharedGenesCt <- function(ct_df) {
   return(ct_plot)
 }
 
-# 17. Plot all count dfs for all cts
+# 18. Plot all count dfs for all cts
   # Input: main directory where to save the plots, the list of count dfs
   # Return: nothing, saves the plot instead
 
@@ -501,7 +514,7 @@ PlotNumSharedGenes <- function(main_dir, gene_count_dfs) {
   }
 }
 
-# 18. Extract the genes shared among a minimum percentage of conditions
+# 19. Extract the genes shared among a minimum percentage of conditions
   # Input: the list of count dfs
   # Return: the list of filtered genes (of which cts that are shared across more than 1 condition)
 
@@ -517,7 +530,7 @@ ExtractSharedGenes <- function(gene_count_dfs, min_sharing=0.75, min_num_cond=1)
 }
 
 
-# 19. Function to get chromosome number from gene symbol
+# 20. Function to get chromosome number from gene symbol
   # Input: the genes as vector
   # Return: the annotated genes
 
@@ -534,7 +547,7 @@ Annot.chr.name <- function(gene.list){
   return(Annot_df)
 }
 
-# 20. Map genes from intersected genes against chromosome
+# 21. Map genes from intersected genes against chromosome
   # Input: the list of filtered genes, the annotated genes
   # Return: merged dataframe
 
@@ -543,7 +556,7 @@ map_chr <- function(gene_count_filt, Annot_df){
   return(map_chr_df)
 }
 
-# 21. Saves the annotated shared genes to a CSV file 
+# 22. Saves the annotated shared genes to a CSV file 
   # Input: main directory where to save the CSV file, the list of filtered genes
   # Return: nothing, saves the CSV file instead
 
@@ -564,7 +577,7 @@ SaveSharedGenes <- function(main_dir, gene_count_dfs, min_sharing=0.75, min_num_
 }
 
 
-# 19. Count DEGs for each ct in each age
+# 23. Count DEGs for each ct in each age
   # Input: list of presence dfs, one per each ct, order of the condition
   # Return: dataframe with num of DEGs for each ct and condition
 
@@ -594,7 +607,7 @@ NumDEGsAcrossConditions <- function(ct_df_list, condition_ordered) {
 }
 
 
-# 20. Plot the total num of DEGs per ct
+# 24. Plot the total num of DEGs per ct
   # Input: dataframe with num of DEGs of one ct
   # Return: plot
 
@@ -622,7 +635,7 @@ PlotNumDEGsCt <- function(ct_degs) {
   return(ct_deg_plot)
 }
 
-# 21. Plot the total num of DEGs per ct for all cts
+# 25. Plot the total num of DEGs per ct for all cts
   # Input: main directory where to save the plots, the dataframe with num of DEGs for each ct and condition
   # Return: nothing, saves the plot instead
 
@@ -637,7 +650,7 @@ PlotNumDEGs <- function(main_dir, num_degs_ct) {
   }
 }
 
-# 22. Plots the total number of DEGs across conditions, faceted by ct and sex
+# 26. Plots the total number of DEGs across conditions, faceted by ct and sex
   # Input: main directory where to save the plots, the dataframe with num of DEGs for each ct and condition
   # Return: nothing, saves the plot instead
 
@@ -670,7 +683,7 @@ PlotNumDEGsFacets <- function(main_dir, num_degs_ct) {
   dev.off()
 }
 
-# 23. Plot the num of shared genes between one condition and all others
+# 27. Plot the num of shared genes between one condition and all others
   # Input: main directory where to save the plots, list of presence dfs, one per each ct, and the order in which to plot the conditions
   # Return: plot
 

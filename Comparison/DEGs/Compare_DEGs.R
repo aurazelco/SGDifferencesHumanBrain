@@ -27,9 +27,13 @@ sub_disease <- list.dirs(main_DISCO, full.names = F, recursive = F)
 # the first folder "exta_files" is excluded
 sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)[-1]
 
+# Threshold to filter the DEGs
+pvalue_thresh <- 0.05
+FC_thresh <- 1.2
+
 # Import all the CSVs from the different ages/conditions - slightly different file tree structure requires a different approach for UCSC
 disco_projs <- c("GSE157827", "GSE174367", "PRJNA544731")
-disco <- ImportDataset(main_DISCO, sub_disease, individual_projs = disco_projs)
+disco <- ImportDataset(main_DISCO, sub_disease, individual_projs = disco_projs, pval = pvalue_thresh, FC = FC_thresh)
 UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes")
 
 # disco[[2]] and UCSC[[2]] can be used to manually create unified_annotation, as done below
