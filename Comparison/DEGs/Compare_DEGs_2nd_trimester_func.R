@@ -1,6 +1,6 @@
 # Author: Aura Zelco
 # Brief description:
-  # This script is used for comparing the DEGs from the DEG analysis across multiple datasets (different ages/disease conditions)
+  # This script is used to plot the DEGs from UCSC 2nd trimester and O'Brien as Venn diagrams
 # Brief procedure:
   # 1. Reads all DEG csv files from all the different datasets
   # 2. Imports the reference dataset - in this case O'Brien et al. 2019

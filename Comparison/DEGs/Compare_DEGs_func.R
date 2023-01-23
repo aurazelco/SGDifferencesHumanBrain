@@ -7,6 +7,7 @@
   # 3. Plots presence heatmaps (yes/no, not the expression) across all ages, for each celltype
   # 4. Plots how many genes are found in all age groups, in all but one, etc
   # 5. Plots the total number of DEGs per ct across all conditions 
+  # 6. Plots the number of overlapping genes between a specific condition and all others, divided by ct and sex
 # Documentation abbreviations:
   # deg: differentially expressed genes
   # F and M: females and males
@@ -27,8 +28,8 @@ library(stringr) # to modify and harmonize names
 library(ggplot2) # to plot
 library(tidyr) # to clean and re-organize dfs
 library(ggpubr) # to assemble plots together before saving
-# library(heatmaply) # create the heatmaps with heirchical clustering
 library(biomaRt) # to query to which chromosome the shared genes belong to
+library(scales) # to set the palette to be used in the PlotDEGsOverlap function
 
 # 1. Import data for each ct
   # Input: CSV files
@@ -669,3 +670,70 @@ PlotNumDEGsFacets <- function(main_dir, num_degs_ct) {
   dev.off()
 }
 
+# 23. Plot the num of shared genes between one condition and all others
+  # Input: main directory where to save the plots, list of presence dfs, one per each ct, and the order in which to plot the conditions
+  # Return: plot
+
+PlotDEGsOverlap <- function(main_dir, ct_df_list, condition_ordered) {
+  plot_path <- paste0(main_dir, "DEGs_Overlap_across_conditions/")
+  dir.create(plot_path, showWarnings = F, recursive = T)
+  filt_df <- do.call(rbind, ct_df_list)
+  filt_df$presence <- ifelse(filt_df$presence=="yes", 1, 0)
+  filt_df$ct <- gsub('\\..*', '', rownames(filt_df))
+  for (sex_id in c("F", "M")) {
+    print(sex_id)
+    sex_df <- subset(filt_df, sex==sex_id & presence==1)
+    ct_vec <- vector()
+    comp_list <- list()
+    ct_names <- vector()
+    for (ct in unique(sex_df$ct)) {
+      if (length(unique(sex_df[which(sex_df$ct==ct), "condition"]))>1) {
+        ct_names <- c(ct_names, ct)
+        print(ct)
+        ct_cond <- condition_ordered[which(condition_ordered %in% unique(sex_df[which(sex_df$ct==ct), "condition"]))]
+        ct_df <- data.frame()
+        for (cond in ct_cond) {
+          ref_genes <- sex_df[which(sex_df$ct==ct & sex_df$condition==cond), "gene_id"]
+          comp_vec <- vector()
+          num_common_genes <- vector()
+          for (other_cond  in ct_cond[!ct_cond == cond]) {
+            comp_vec <- c(comp_vec, paste(cond, other_cond, sep = " - "))
+            num_common_genes <- c(num_common_genes, length(intersect(ref_genes, sex_df[which(sex_df$ct==ct & sex_df$condition==other_cond), "gene_id"])))
+          }
+          ct_df <- rbind(ct_df, data.frame(comp_vec, num_common_genes))
+        }
+        comp_list <- append(comp_list, list(ct_df))
+      }
+    }
+    names(comp_list) <- ct_names
+    for (ct_id in names(comp_list)) {
+      ct_df <- comp_list[[ct_id]]
+      colnames(ct_df) <- c("comparison", "genes_num")
+      ct_df <- separate(ct_df, comparison, into = c("ref_cond", "other_cond"), remove = F, sep = " - ")
+      ct_df$ref_cond <- factor(ct_df$ref_cond, condition_order[which(condition_order %in% unique(ct_df$ref_cond))])
+      ct_df$other_cond <- factor(ct_df$other_cond, condition_order[which(condition_order %in% unique(ct_df$other_cond))])
+      cond_palette <- hue_pal()(length(levels(ct_df$ref_cond)))
+      names(cond_palette) <- levels(ct_df$ref_cond)
+      pdf(paste0(plot_path, ct_id, "_", sex_id, ".pdf"), width = 15)
+      print(
+        ggplot(ct_df, aes(other_cond, genes_num, fill=other_cond)) +
+          geom_bar(stat = "identity") +
+          facet_wrap(~ref_cond, scales = "free") +
+          labs(x="", y="Number of shared genes", fill="Developmental conditions", title = paste(ct_id, sex_id, sep = " - ")) +
+          fill_palette(cond_palette) +
+          theme(panel.grid.major = element_blank(), 
+                panel.grid.minor = element_blank(),
+                panel.background = element_blank(), 
+                panel.spacing.x=unit(0, "lines"),
+                plot.title = element_text(size=12, face="bold", colour = "black"),
+                axis.line = element_line(colour = "black"),
+                axis.title.y = element_text(size=12, face="bold", colour = "black"),
+                axis.text.y = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
+                axis.text.x = element_blank(),
+                legend.position = "bottom", 
+                legend.title = element_text(size=12, face="bold", colour = "black"))
+      )
+      dev.off()
+    }
+  }
+}

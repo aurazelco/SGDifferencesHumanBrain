@@ -7,6 +7,7 @@
     # 3. Plots presence heatmaps (yes/no, not the expression) across all ages, for each celltype
     # 4. Plots how many genes are found in all age groups, in all but one, etc
     # 5. Plots the total number of DEGs per ct across all conditions 
+    # 6. Plots the number of overlapping genes between a specific condition and all others, divided by ct and sex
 # OBS: since there is a need for manual input, it is recommended to run this script in a R environment/IDE (e.g. RStudio)
 
 #---------------------------------------------------------------------------------------------------
@@ -94,42 +95,6 @@ condition_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
 sexes <- CreateSexDf(c(UCSC[[1]], disco[[1]]), unified_annotation)
 PlotCts(main_comparison, sexes, condition_order)
 
-#test1 <- sexes[[1]][which(sexes[[1]]$sex=="F"),c(1,2,4)]
-#test1$condition <- factor(test1$condition, condition_order[which(condition_order %in% colnames(test2))])
-#test1$presence <- ifelse(test1$presence=="yes", 1, 0)
-#test2 <- reshape::cast(test1, gene_id~condition, value = 'presence')
-#hc.cols <- hclust(dist(t(test2)))
-
-#heatmap(
-#  as.matrix(test2),
-#  Rowv=NA,
-#  Colv = as.dendrogram(hclust(dist(t(test2))))
-#)
-
-
-ggplot(sexes[[1]], aes(condition, gene_id, fill=presence)) +
-  geom_tile() +
-  scale_fill_manual(values = c("yes"="#F8766D",
-                               "no"="#00BFC4"),
-                    guide = guide_legend(reverse = TRUE)) +
-  labs(x="Developmental conditions", y="Genes", fill="Genes found", title = "X") +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        panel.spacing.x=unit(0, "lines"),
-        plot.title = element_text(size=12, face="bold", colour = "black"),
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_text(size=12, face="bold", colour = "black"),
-        axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
-        axis.ticks.x=element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        legend.position = "right", 
-        legend.title = element_text(size=12, face="bold", colour = "black"))
-
-
-
-
 # Heatmaps specifically for the two datasets from the second trimester, all cts
 trim_2nd <- CreateConditionDf(c(UCSC[[1]], disco[[1]]), unified_annotation, condition_order[1:2])
 PlotAcrossConditions(main_comparison, trim_2nd, "trimester_2nd")
@@ -144,3 +109,5 @@ num_deg <- NumDEGsAcrossConditions(sexes, condition_order)
 PlotNumDEGs(main_comparison, num_deg)
 PlotNumDEGsFacets(main_comparison, num_deg)
 
+# Plot the number of overlapping genes between one condition and all others, divided by ct and sex
+PlotDEGsOverlap(main_comparison, sexes, condition_order)
