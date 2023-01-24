@@ -57,6 +57,7 @@
 # Delete package tarball
 # unlink(pkgFile)
 # install_bitbucket("ibi_group/disgenet2r")
+# install.packages("readxl")
 
 library(clusterProfiler) # to run the enrichment analysis (GO, KEGG)
 library(DOSE)  # to run the enrichment analysis (DO)
@@ -68,7 +69,7 @@ library(ggplot2) # to plot
 library(stringr) # to format strings
 library(enrichR) # database
 library(disgenet2r) # database
-
+library(readxl)
 
 # Sets the EnrichR database for Human genes
 setEnrichrSite("Enrichr") 

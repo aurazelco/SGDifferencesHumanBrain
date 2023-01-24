@@ -683,9 +683,58 @@ PlotNumDEGsFacets <- function(main_dir, num_degs_ct) {
   dev.off()
 }
 
-# 27. Plot the num of shared genes between one condition and all others
+# 27. Stats on overlap between DEGs across conditions
   # Input: main directory where to save the plots, list of presence dfs, one per each ct, and the order in which to plot the conditions
-  # Return: plot
+  # Return: 
+
+CalcDEGsOverlap <- function(main_dir, ct_df_list, condition_ordered) {
+  plot_path <- paste0(main_dir, "DEGs_Overlap_across_conditions/")
+  dir.create(plot_path, showWarnings = F, recursive = T)
+  filt_df <- do.call(rbind, ct_df_list)
+  filt_df$presence <- ifelse(filt_df$presence=="yes", 1, 0)
+  filt_df$ct <- gsub('\\..*', '', rownames(filt_df))
+  for (sex_id in c("F", "M")) {
+    print(sex_id)
+    sex_df <- subset(filt_df, sex==sex_id & presence==1)
+    ct_vec <- vector()
+    comp_list <- list()
+    ct_names <- vector()
+    for (ct in unique(sex_df$ct)) {
+      if (length(unique(sex_df[which(sex_df$ct==ct), "condition"]))>1) {
+        ct_names <- c(ct_names, ct)
+        print(ct)
+        ct_cond <- condition_ordered[which(condition_ordered %in% unique(sex_df[which(sex_df$ct==ct), "condition"]))]
+        ct_df <- data.frame()
+        for (cond in ct_cond) {
+          ref_genes <- sex_df[which(sex_df$ct==ct & sex_df$condition==cond), "gene_id"]
+          comp_vec <- c(paste(cond, cond, sep = " - "))
+          num_common_genes <- c(length(ref_genes))
+          for (other_cond  in ct_cond[!ct_cond == cond]) {
+            comp_vec <- c(comp_vec, paste(cond, other_cond, sep = " - "))
+            num_common_genes <- c(num_common_genes, length(intersect(ref_genes, sex_df[which(sex_df$ct==ct & sex_df$condition==other_cond), "gene_id"])))
+          }
+          ct_df <- rbind(ct_df, data.frame(comp_vec, num_common_genes))
+        }
+        comp_list <- append(comp_list, list(ct_df))
+      }
+    }
+    names(comp_list) <- ct_names
+    for (ct_id in names(comp_list)) {
+      colnames(comp_list[[ct_id]]) <- c("comparison", "genes_num")
+      comp_list[[ct_id]] <- separate(comp_list[[ct_id]], comparison, into = c("ref_cond", "other_cond"), remove = F, sep = " - ")
+      comp_list[[ct_id]]$ref_cond <- factor(comp_list[[ct_id]]$ref_cond, condition_order[which(condition_order %in% unique(comp_list[[ct_id]]$ref_cond))])
+      comp_list[[ct_id]]$other_cond <- factor(comp_list[[ct_id]]$other_cond, condition_order[which(condition_order %in% unique(comp_list[[ct_id]]$other_cond))])
+      cond_palette <- hue_pal()(length(levels(comp_list[[ct_id]]$ref_cond)))
+      names(cond_palette) <- levels(comp_list[[ct_id]]$ref_cond)
+    }
+    return(comp_list)
+  }
+}
+
+
+# 28. Plot the num of shared genes between one condition and all others
+  # Input: main directory where to save the plots, list of presence dfs, one per each ct, and the order in which to plot the conditions
+  # Return: nothing, saves plot instead
 
 PlotDEGsOverlap <- function(main_dir, ct_df_list, condition_ordered) {
   plot_path <- paste0(main_dir, "DEGs_Overlap_across_conditions/")
@@ -750,3 +799,4 @@ PlotDEGsOverlap <- function(main_dir, ct_df_list, condition_ordered) {
     }
   }
 }
+

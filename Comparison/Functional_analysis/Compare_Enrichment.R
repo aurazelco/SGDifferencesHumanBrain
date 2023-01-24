@@ -136,3 +136,37 @@ EnrichOtherDBFvM(main_comparison, sexes, "EnrichR",  "GWAS_Catalog_2019", condit
 # DisGeNET (CURATED)
 EnrichOtherDB(main_comparison, sexes, "DisGeNET2r",  "DisGeNET (CURATED)", condition_order)
 EnrichOtherDBFvM(main_comparison, sexes, "DisGeNET2r",  "DisGeNET (CURATED)", condition_order)
+
+# Cell Enrichment
+ct_ref <- as.data.frame(read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/McKenzie_2018_suppl.xlsx",
+                    sheet = 'top_human_enrich',
+                    skip = 2))
+
+test1 <- data.frame()
+ref_ct <- vector()
+#bg_sex <- length(unique(sexes[which(sexes$sex=="M"), "gene_id"]))
+for (ct_ref_id in (unique(ct_ref$Celltype))) {
+  ref <- ct_ref[which(ct_ref$Celltype==ct_ref_id), "gene"]
+  pval <- vector()
+  cts <- vector()
+  conds <- vector()
+  for (ct_id in unique(sexes$common_annot)) {
+    for (cond_id in unique(sexes[which(sexes$sex=="M" & sexes$common_annot==ct_id), "condition"])) {
+      cond_ct_genes <- sexes[which(sexes$sex=="M" & sexes$common_annot==ct_id & sexes$condition==cond_id), "gene_id"]
+      #bg_cond <- length(sexes[which(sexes$sex=="M" & sexes$condition==cond_id), "gene_id"])
+      pval <- c(pval, 
+                  phyper(
+                    length(intersect(ref, cond_ct_genes)) - 1,
+                    length(ref),
+                    20000 - length(ref), # using the whole gene number in humans
+                    #bg_sex - length(ref),
+                    #bg_cond - length(ref),
+                    length(cond_ct_genes),
+                    lower.tail= FALSE))
+      cts <- c(cts, ct_id)
+      conds <- c(conds, cond_id)
+    }
+  }
+  ref_ct <- rep(ct_ref_id, length(pval))
+  test1 <- rbind(test1, data.frame("ref_ct"=ref_ct, "ct"=cts, "condition"=conds, "pval"=pval))
+}

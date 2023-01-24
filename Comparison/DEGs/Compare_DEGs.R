@@ -115,3 +115,6 @@ PlotNumDEGsFacets(main_comparison, num_deg)
 
 # Plot the number of overlapping genes between one condition and all others, divided by ct and sex
 PlotDEGsOverlap(main_comparison, sexes, condition_order)
+test1 <- CalcDEGsOverlap(main_comparison, sexes, condition_order)
+
+test2 <- test1$Interneurons[which(test1$Interneurons$ref_cond=="Velmeshev_2022_2nd_trimester"),]
