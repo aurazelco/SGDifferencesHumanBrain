@@ -10,22 +10,19 @@
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison/DEGs/ct_ARE_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison/DEGs/Compare_ARE_func.R")
 
 # sets the directories where to find the DEG csv files
-main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs/outputs/"
+main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj/"
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
 main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/"
 
 # Vectors to save the different sub-groups of DISCO and UCSC
-sub_disease <- list.dirs(main_DISCO, full.names = F, recursive = F)
 # the first folder "exta_files" is excluded
+sub_projs <- list.dirs(main_DISCO, full.names = F, recursive = F)[-1]
 sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)[-1]
-
-# Import all the CSVs from the different ages/conditions - slightly different file tree structure requires a different approach for UCSC
-disco_projs <- c("GSE157827", "GSE174367", "PRJNA544731")
 
 # Common cell type annotation
 unified_annotation <- c("CXCL14 IN" = "Interneurons",
@@ -83,7 +80,7 @@ condition_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
 )
 
 # Imports ARE from all sub-folders
-disco <- ImportDataset(main_DISCO, sub_disease, individual_projs = disco_projs)
+disco <- ImportDataset(main_DISCO, sub_projs, individual_projs = T)
 UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes")
 
 # Combines them in one dataframe (summing the common annotation) and plots the results

@@ -20,18 +20,13 @@ library(ggplot2) # to plot
 library(reshape) # to re-arrange the dfs
 library(tidyr) # to re-arrange the dfs
 
-# 1. Import data for each condition, asplit or not by projects
-# Input: CSV files
-# Return: list of dfs
+# 1. Import data for each condition, split or not by projects
+  # Input: main direcotry where to retrieve the files, if UCSC or not (different file tree structure)
+  # Return: list of dfs
 
-ImportCondition <- function(main_dir, UCSC_flag="no", individual_projs=vector(), ext, row_col) {
-  if (length(individual_projs)==0) {
-    path <- paste0(main_dir, "/02B_ARE_ERE")
-    str_to_remove <- "_ARE_sites.csv"
-  } else {
-    path <- paste0(main_dir, "/02B_ARE_ERE_proj")
-    str_to_remove <- "_ARE_sites_proj.csv"
-  }
+ImportCondition <- function(main_dir, UCSC_flag="no") {
+  path <- paste0(main_dir, "/02B_ARE_ERE")
+  str_to_remove <- "_ARE_sites.csv"
   are_files <- list.files(path, full.names = F, pattern = "\\.csv$")
   are_files <- are_files[grep("ARE", are_files)]
   are_files_full <- paste(path, are_files, sep="/")
@@ -41,10 +36,10 @@ ImportCondition <- function(main_dir, UCSC_flag="no", individual_projs=vector(),
 }
 
 # 2. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
-  # Input: main directory, sub-folders list, if UCSC or not, list of projects ids
+  # Input: main directory, sub-folders list, if UCSC or not, if subfolders are present
   # Return: list of condition lists, each containing ARE dfs divided in F and M
 
-ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_projs=vector()) {
+ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_projs=F) {
   ds_list <- list()
   group_names <- vector()
   for (folder in folder_list) {
@@ -53,19 +48,14 @@ ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_proj
     } else {
       are_folder <- paste0(main_dir, folder, "/outputs")
     }
-    if (length(individual_projs)==0) {
+    if (individual_projs==F) {
       ds_list <- append(ds_list, list(ImportCondition(are_folder, UCSC_flag =  UCSC_flag)))
       group_names <- c(group_names, folder)
     } else {
-      are_cond <- ImportCondition(are_folder, UCSC_flag =  UCSC_flag, individual_projs = individual_projs)
-      are_F_split <- split(are_cond[["F"]], are_cond[["F"]]$proj)
-      are_M_split <- split(are_cond[["M"]], are_cond[["M"]]$proj)
-      for (proj_id in individual_projs) {
-        if (proj_id %in% names(are_F_split) & proj_id %in% names(are_M_split)) {
-          proj_list <- list("F"=are_F_split[[proj_id]][, -c(1,3)], "M" = are_M_split[[proj_id]][, -c(1,3)])
-          ds_list <- append(ds_list, list(proj_list))
-          group_names <- c(group_names, paste(folder, proj_id, sep = "_"))
-        }
+      proj_conds <- list.dirs(are_folder, full.names = F, recursive = F)
+      for (cond in proj_conds) {
+        ds_list <- append(ds_list, list(ImportCondition(paste0(are_folder, "/", cond, "/outputs"), UCSC_flag =  UCSC_flag)))
+        group_names <- c(group_names, paste(cond, folder, sep = "_"))
       }
     }
   }
@@ -161,7 +151,7 @@ PlotARE <- function(main_dir, ARE_filt, condition_ordered) {
   for (ct in unique(ARE_filt$ct)) {
     print(ct)
     ct_plot <- PlotARECt(ARE_filt[which(ARE_filt$ct==ct),], condition_ordered)
-    pdf(paste0(plot_path, ct, ".pdf"), width = 10)
+    pdf(paste0(plot_path, ct, ".pdf"))
     print(ct_plot)
     dev.off()
   } 
