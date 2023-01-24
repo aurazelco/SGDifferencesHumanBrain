@@ -105,11 +105,26 @@ ImportDE <- function(path, ext, row_col) {
   return(deg)
 }
 
-# 2. Import All DEGs from F and M for all ct; slight different folder structure requires different inputs
-  # Input: directory where to find ct sub-folders, if UCSC or not, list of projects ids, the individual project id to look for, file extension, where to find row-names
+# 2. Function to filter out ns genes and too low FC, and order based on FC 
+  # Input: dataframe of DEGs
+  # Return: gene list of significant genes as data.frame
+
+Filter_gene <- function( order.gene.df, pval, FC) {
+  logFC <- log2(1/FC)
+  gene.sig <- order.gene.df[  order.gene.df[["p_val"]] <= pval
+                              & order.gene.df[["avg_log2FC"]] >= logFC, ]
+  
+  #If there are sig genes add index number for each sig gene
+  return(data.frame("Genes"=rownames(gene.sig)))
+}
+
+
+# 3. Import All DEGs from F and M for all ct; slight different folder structure requires different inputs
+  # Input: directory where to find ct sub-folders, if UCSC or not, list of projects ids, the individual project id to look for, 
+    # the threshold for p-value and Fc if unfiltered data are imported, file extension, where to find row-names
   # Return: list of 2 lists, one for F and one for M dfs
 
-ImportCt <- function(main_dir, UCSC_flag="no", individual_projs=vector(), single_proj="", ext, row_col) {
+ImportCt <- function(main_dir, UCSC_flag="no", individual_projs=vector(), single_proj="", pval, FC, ext, row_col) {
   if (length(individual_projs)==0) {
     path <- paste0(main_dir, "/01B_num_DEGs")
   } else {
@@ -142,8 +157,7 @@ ImportCt <- function(main_dir, UCSC_flag="no", individual_projs=vector(), single
             names_M <- c(names_M, sub_ct[ct])
           }
         } else {
-          deg_ct <- as.data.frame(rownames(deg[[i]]))
-          colnames(deg_ct) <- c("Genes")
+          deg_ct <- Filter_gene(deg[[i]], pval, FC)
           rownames(deg_ct) <- NULL
           if (grepl("F", i, fixed=TRUE)){
             df_F <- append(df_F, list(deg_ct))
@@ -178,11 +192,11 @@ ImportCt <- function(main_dir, UCSC_flag="no", individual_projs=vector(), single
   }
 }
 
-# 3. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
-  # Input: main directory, sub-folders list, if UCSC or not, list of projects ids
+# 4. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
+  # Input: main directory, sub-folders list, if UCSC or not, list of projects ids, , the threshold for p-value and Fc if unfiltered data are imported
   # Return: list of condition lists, each containing ct lists divided in F and M
 
-ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_projs=vector()) {
+ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_projs=vector(), pval, FC) {
   ds_list <- list()
   ct_list <- vector()
   group_names <- vector()
@@ -225,7 +239,7 @@ ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_proj
   return(list("genes"=ds_list, "ct"=unique(ct_list)))
 }
 
-# 4. Groups cts according to common annotation
+# 5. Groups cts according to common annotation
 # Input: list of lists generated from ImportDatasets, here combined in a vector, and the named vector used to harmonize the annotation
 # Return: one dataframe containing all DEGs
 
@@ -256,9 +270,9 @@ CreateSexDf <- function(list_ds, common_annot) {
   return(sex_dfs)
 }
 
-# 5. Creates a list, each element the gene list from each condition present for a specific ct and sex
-# Input: the dataframe, the ct and sex to be analyzed, the order in which the groups should be plotted
-# Return: the list of gene lists, from a specific ct and sex, for each condition
+# 6. Creates a list, each element the gene list from each condition present for a specific ct and sex
+  # Input: the dataframe, the ct and sex to be analyzed, the order in which the groups should be plotted
+  # Return: the list of gene lists, from a specific ct and sex, for each condition
 
 ExtractSexCt <- function(sex_df, ct, sex, condition_ordered) {
   sex_ct <- sex_df[which(sex_df$common_annot==ct & sex_df$sex==sex), ]
@@ -268,7 +282,7 @@ ExtractSexCt <- function(sex_df, ct, sex, condition_ordered) {
   return(sex_ct)
 }
 
-# 6. Compares the GOs of a list of genes
+# 7. Compares the GOs of a list of genes
   # Input: list of genes to be compared, which GO (BP, MO or CC),  
     # if a minimum threshold for how many genes in each module should be used
   # Return: enriched GO (formal class compareClusterResult)
@@ -288,7 +302,7 @@ compareGO <- function(sex_list, GO_ont, gene_thresh="no"){
   return(enrich)
 }
 
-# 7. finds the EntrezID for a gene
+# 8. finds the EntrezID for a gene
   # Input: gene symbol
   # Return: EntrezID(s) for the gene
 
@@ -302,7 +316,7 @@ GenetoENTREZ <- function(symbol){
   return(entrez.df)
 }
 
-# 8. Compares the KEGG pathways of a list of genes
+# 9. Compares the KEGG pathways of a list of genes
   # Input: list of genes to be compared, if a minimum threshold for how many genes in each module should be used
   # Return: enriched KEGG (formal class compareClusterResult)
 
@@ -324,7 +338,7 @@ compareKEGG <- function(sex_list, gene_thresh="no"){
   return(enrich)
 }
 
-# 9. Compares the DO of a list of genes
+# 10. Compares the DO of a list of genes
   # Input: list of genes to be compared, if a minimum threshold for how many genes in each module should be used
   # Return: enriched KEGG (formal class compareClusterResult)
 
@@ -345,7 +359,7 @@ compareDO <- function(sex_list, gene_thresh="no"){
   return(enrich)
 }
 
-# 10. Compares the DGN of a list of genes
+# 11. Compares the DGN of a list of genes
   # Input: list of genes to be compared, if a minimum threshold for how many genes in each module should be used
   # Return: enriched KEGG (formal class compareClusterResult)
 
@@ -365,7 +379,7 @@ compareDGN <- function(sex_list, gene_thresh="no"){
   return(enrich)
 }
 
-# 10. Compares the selected enrichment module of a list of genes
+# 12. Compares the selected enrichment module of a list of genes
   # Input: main directory where to save the plots, the dataframe containing all DEGs, the enrichment to be analyzed, 
     # the GO to analyze (if GO is the module), and  if a minimum threshold for how many genes in each module should be used
   # Return: nothing, saves plots and CSVs instead
@@ -433,7 +447,7 @@ EnrichFvM <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh=
 }
 
 
-# 11. Compares the DEGs from all condition in a specific ct-sex group
+# 13. Compares the DEGs from all condition in a specific ct-sex group
   # Input: main directory where to save the plots, the dataframe containing all DEGs, , the enrichment to be analyzed, 
     # the GO to analyze (if GO is the module), if a minimum threshold for how many genes in each module should be used, 
     # the order in which plot the conditions, and if the x-axis labels should be rotated by 90 degrees
@@ -512,7 +526,7 @@ EnrichCondition <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_t
 }
 
 
-# 12. Searches the selected database in enrichR
+# 14. Searches the selected database in enrichR
   # Input: the gene list, the database to look into
   # Return: dataframe with the retrieved information
 
@@ -524,7 +538,7 @@ EnrichR_fun <- function(gene_ls, dbsx){
   return(enrichR_df)
 }
 
-# 13. Searches in the DisGeNET database using disgenet2r
+# 15. Searches in the DisGeNET database using disgenet2r
   # Input: the gene list
   # Return: dataframe with the retrieved information
 
@@ -536,7 +550,7 @@ EnrichDisgenet2r_fun <- function(gene_ls){
   return(dgn_res)
 }
 
-# 14. Searches in the selected packages and databases for disease-enrichment
+# 16. Searches in the selected packages and databases for disease-enrichment
   # Input:  list of genes to be compared, the dtabase to look into, the package to use
   # Return: list of enriched terms for each condition
 
@@ -557,7 +571,7 @@ EnrichCt <- function(sex_ct, package, dbsx){
   return(enrich_ls)
 }
 
-# 15. Selects the top 5 enriched terms to combine in one df for plotting
+# 17. Selects the top 5 enriched terms to combine in one df for plotting
   # Input: the enriched list
   # Return: the filtered list of terms
 
@@ -569,7 +583,7 @@ SelectTop5 <- function(enrich_df){
   return(combind_df)
 }
 
-# 16. Calculates the enrchemnt in the package and databse specifiied for each ct-sex combo across all cts
+# 18. Calculates the enrichment in the package and database specified for each ct-sex combo across all cts
   # Input: main directory where to save the plots, the dataframe containing all DEGs, the package to be used,
     # the database, the order in which plot the conditions
   # Return: nothing, saves plots and CSVs instead
@@ -632,6 +646,84 @@ EnrichOtherDB <- function(main_dir, sex_df, package, dbsx, condition_ordered){
               plot.title = element_text(size=14, face="bold", colour = "black"),
               axis.title.x = element_text(size=12, face="bold", colour = "black"),
               axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+              axis.title.y = element_blank(),
+              axis.text.y = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
+              legend.position = "right", 
+              legend.title = element_text(size=12, face="bold", colour = "black"))
+        )
+        dev.off()
+      }
+    }
+  }
+}
+
+# 19. Calculates the enrichment in the package and database specified comparing for each ct-condition combo the sexes
+  # Input: main directory where to save the plots, the dataframe containing all DEGs, the package to be used,
+    # the database, the order in which plot the conditions
+  # Return: nothing, saves plots and CSVs instead
+
+EnrichOtherDBFvM <- function(main_dir, sex_df, package, dbsx, condition_ordered){
+  dbsx_path <- str_replace_all(dbsx, c(" "="_", "\\("="", "\\)"=""))
+  out_path <- paste0(main_dir, package, "_", dbsx_path, "_ct_sex/")
+  dir.create(out_path, recursive = T, showWarnings = F)
+  for (cond in unique(sex_df$condition)) {
+    print(cond)
+    cond_df <- sex_df[which(sex_df$condition==cond), ]
+    for (ct in unique(cond_df$common_annot)) {
+      cond_path <- paste0(out_path, cond, "/", ct, "/")
+      dir.create(cond_path, recursive = T, showWarnings = F)
+      filt_flag <- T
+      print(ct)
+      f_genes <- cond_df[which(cond_df$common_annot==ct & cond_df$sex=="F"), "gene_id"]
+      m_genes <- cond_df[which(cond_df$common_annot==ct & cond_df$sex=="M"), "gene_id"]
+      sex_comp <- list("F"=f_genes, "M"=m_genes)
+      enrich_df <- EnrichCt(sex_comp, package, dbsx)
+      top5 <-SelectTop5(enrich_df)
+      write.csv(top5, paste0(cond_path, "top5.csv"))
+      if (package == 'EnrichR') {
+        if (nrow(top5[top5['Adjusted.P.value']< 0.05,] > 1)) {
+          filtered_top <- top5[top5['Adjusted.P.value']< 0.05,]
+          filtered_top$gene_count <- as.numeric(filtered_top$gene_count)
+          if (nrow(filtered_top[filtered_top['gene_count'] > 1,] > 1)) {
+            filtered_top <- filtered_top[filtered_top['gene_count'] > 1,]
+            y_var = 'Term'
+            size_var = 'gene_count'
+            color_var = 'Adjusted.P.value'
+          } else {
+            print("No significant terms with more than 1 gene")
+            filt_flag <- F
+          }
+        } else {
+          print("No significant terms with adjusted p-value < 0.05")
+          filt_flag <- F
+        }
+      } else if (package == 'DisGeNET2r') {
+        if (nrow(top5[top5['FDR'] < 0.05,])) {
+          filtered_top <- top5[top5['FDR'] < 0.05,]
+          y_var = 'Description'
+          size_var = 'Count'
+          color_var = 'FDR'
+        } else {
+          print("No significant terms with adjusted p-value < 0.05")
+          filt_flag <- F
+        }
+      }
+      if (filt_flag) {
+        filtered_top <- filtered_top[, c("condition", y_var, size_var, color_var)]
+        colnames(filtered_top) <- c("condition", "term", "gene_count", "adj_pval")
+        pdf(paste0(cond_path, "sexes.pdf"))
+        print(
+          ggplot(filtered_top, aes(condition, term, size = gene_count, color = adj_pval)) + 
+            geom_point() + 
+            guides(size  = guide_legend(order = 1), color = guide_colorbar(order = 2)) +
+            scale_color_continuous(low="red", high="blue",guide=guide_colorbar(reverse=T)) +
+            labs(y = "", x = "Sexes", size = "Gene count", color = "Adjusted p-value") +
+            scale_size_continuous(range=c(3, 8)) + 
+            scale_y_discrete(labels=function(x) str_wrap(x,width=40)) +
+            theme(
+              plot.title = element_text(size=14, face="bold", colour = "black"),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
               axis.title.y = element_blank(),
               axis.text.y = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
               legend.position = "right", 

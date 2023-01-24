@@ -127,9 +127,12 @@ EnrichCondition(main_comparison, sexes, "DGN", gene_thresh = 100, condition_orde
 
 # DSigDB 
 EnrichOtherDB(main_comparison, sexes, "EnrichR",  "DSigDB", condition_order)
+EnrichOtherDBFvM(main_comparison, sexes, "EnrichR",  "DSigDB", condition_order)
 
 # GWAS_Catalog_2019
 EnrichOtherDB(main_comparison, sexes, "EnrichR",  "GWAS_Catalog_2019", condition_order)
+EnrichOtherDBFvM(main_comparison, sexes, "EnrichR",  "GWAS_Catalog_2019", condition_order)
 
 # DisGeNET (CURATED)
 EnrichOtherDB(main_comparison, sexes, "DisGeNET2r",  "DisGeNET (CURATED)", condition_order)
+EnrichOtherDBFvM(main_comparison, sexes, "DisGeNET2r",  "DisGeNET (CURATED)", condition_order)
