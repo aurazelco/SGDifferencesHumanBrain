@@ -988,3 +988,11 @@ SaveExprMtx(disco_filt, scenic_server, sub_disease[1])
 # MS
 SaveExprMtx(disco_filt, scenic_server, sub_disease[2])
 
+############ XIST expression
+
+disco_filt <- readRDS(paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
+
+disco_filt@meta.data$id_sex <- paste(disco_filt@meta.data$sample_id, disco_filt@meta.data$gender, sep = "_")
+
+VlnPlot(disco_filt, features = "XIST", group.by = "id_sex" ) + NoLegend()
+ggsave(paste0(disco_path, "XIST_RNA_expression.pdf"))

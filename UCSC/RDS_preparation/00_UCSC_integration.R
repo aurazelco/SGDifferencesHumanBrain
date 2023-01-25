@@ -219,7 +219,7 @@ dev.off()
 # data
 DefaultAssay(rds.combined) <- "RNA"
 
-#VlnPlot(rds.combined, features = "XIST", group.by = "id_sex_age_trimester") + NoLegend()
+VlnPlot(rds.combined, features = "XIST", group.by = "id_sex_age_trimester") + NoLegend()
 
 saveRDS(rds.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
 
@@ -1027,5 +1027,11 @@ rand_sample <- function(group_list, num_sampling, num_cells, main) {
 
 df_100_sampled <- rand_sample(df_list100, 3, 100, main_scenic)
 
+############ For SCENIC - HIGHEST VARIABLE GENES
 
+trim_2nd <- readRDS(paste0(input_rds_path, "/Eze_Nowakowski_integrated_2nd_trimester.rds"))
 
+trim_2nd@meta.data$id_sex <- paste(trim_2nd@meta.data$id, trim_2nd@meta.data$sex, sep="_")
+
+VlnPlot(trim_2nd, features = "XIST", group.by = "id_sex", assay = "RNA") + NoLegend()
+ggsave(paste0(main_outs, "XIST_RNA_expression.pdf"))
