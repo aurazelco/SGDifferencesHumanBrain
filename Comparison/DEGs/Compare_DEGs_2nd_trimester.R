@@ -29,8 +29,6 @@ UCSC <- ImportDataset(main_UCSC, sub_UCSC)
 obrien <- read_xlsx(paste0(main_comparison, "O'Brien_bioRXiv_2019_suppl.xlsx"), sheet = 2, skip = 1)
 colnames(obrien) <- str_replace_all(colnames(obrien), " ", "_")
 
-# Extract the Geens from each list and plots the Venn diagrams, one per sex
+# Extract the genes from each list and plots the Venn diagrams, one per sex, plus the percentages of overlap
 Venn2ndTrim(main_comparison, obrien, 2, UCSC, "O'Brien", "_2nd_trimester")
-
-
 

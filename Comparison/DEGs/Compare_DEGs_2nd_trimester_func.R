@@ -27,6 +27,7 @@ library(stringr) # to modify and harmonize names
 library(dplyr) # to extract the column from the O'Brien reference
 library(RColorBrewer) # to import the Set2 palette
 library(VennDiagram) # to plot the Venn Diagram
+library(ggplot2) # to plot the percentages of overlap
 
 # 1. Import data for each ct
   # Input: CSV files
@@ -167,8 +168,43 @@ PlotVenn <- function(plot_dir, sex_list, sex, venn_col) {
   )
 }
 
+# 5. Plot the Venn Diagram for each sex
+# Input: main directory, sex, sex
+# Return: nothing, plots are saved instead
 
-# 5. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
+PlotPercentOverlap <- function(plot_dir, overlap) {
+  overlapping_genes <- vector()
+  for (sex_id in names(overlap)) {
+    for (ds_id in names(overlap[[sex_id]])[-1]) {
+      overlapping_genes <- c(overlapping_genes, (length(intersect(overlap[[sex_id]][["O'Brien"]], overlap[[sex_id]][[ds_id]]))) * 100 / length(overlap[[sex_id]][[ds_id]]))
+    }
+  }
+  non_overlapping_genes <- 100 - overlapping_genes
+  overlap_df <- data.frame("ds"=rep(names(overlap[[sex_id]])[-1], 4),
+                           "sex" = rep(c("F", "M"), each=2, times=2),
+                           "overlap" = rep(c("Overlapping", "Non overlapping"), each = length(c(overlapping_genes))),
+                           "perc" = c(overlapping_genes, non_overlapping_genes))
+  pdf(paste0(plot_dir, "overlap_percentage.pdf"))
+  print(
+    ggplot(overlap_df, aes(ds, perc, fill=sex)) +
+      geom_bar(stat="identity", position = "dodge") +
+      facet_wrap(~overlap, scales = "free") +
+      labs(x="2nd trimester datasets", y="Percentage of DEGs", fill="Sexes") +
+      theme(panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(),
+            panel.background = element_blank(), 
+            axis.line = element_line(colour = "black"),
+            axis.title.x = element_blank(),
+            axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
+            axis.ticks.x=element_blank(),
+            axis.title.y = element_text(size=12, face="bold", colour = "black"),
+            legend.position = "bottom", 
+            legend.title = element_text(size=12, face="bold", colour = "black"))
+  )
+  dev.off()
+}  
+
+# 6. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
   # Input: main directory, the reference df, the list of degs imported
   # Return: nothing, plots are saved instead
 
@@ -179,6 +215,7 @@ Venn2ndTrim <- function(main_dir, ref_df, n_col=2, list_degs, ref_name, to_remov
     venn_col <- brewer.pal(length(list_degs)+1, "Set2")
     plot_path <- paste0(main_dir, "VennDiagram_2nd_trimester/")
     dir.create(plot_path, showWarnings = F, recursive = T)
+    overlap <- list()
     for (sex in c("F", "M")) {
       sex_list <- list(pull(ref_df, 2))
       for (ds in names(list_degs)) {
@@ -189,7 +226,10 @@ Venn2ndTrim <- function(main_dir, ref_df, n_col=2, list_degs, ref_name, to_remov
       }
       names(sex_list) <- c(ref_name, str_remove_all(names(list_degs), to_remove))
       PlotVenn(plot_path, sex_list, sex, venn_col)
+      overlap <- append(overlap, list(sex_list))
     }
+    names(overlap) <- c("F", "M")
+    PlotPercentOverlap(plot_path, overlap)
   }
 }
 
