@@ -1,17 +1,17 @@
 # Author: Aura Zelco
 # Brief description:
-  # This script is used for comparing the DEGs from the DEG analysis across multiple datasets (different ages/disease conditions)
+  # This script is used for comparing the enrichment in the X and Y chromosomes from the DEGs analysis
 # Brief procedure:
-  # 1. Reads all ARE csv files from all the different datasets (in this case 2 - DISCO and UCSC)
+  # 1. Reads all enrichment csv files from all the different datasets (in this case 2 - DISCO and UCSC)
   # 2. Manually combines the annotations to be able to compare at a general level the different celltypes
-  # 3. Plots the percentages of ARE sites in each ct across conditions, separated by sex
+  # 3. 
 
 # OBS: since there is a need for manual input, it is recommended to run this script in a R environment/IDE (e.g. RStudio)
 
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison/DEGs/Compare_ARE_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison/DEGs/Compare_XY_Enrichment_func.R")
 
 # sets the directories where to find the DEG csv files
 main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj/"
@@ -80,10 +80,9 @@ condition_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
                      "Multiple Sclerosis_PRJNA544731" 
 )
 
-# Imports ARE from all sub-folders
+# Imports XY enrichment from all sub-folders
 disco <- ImportDataset(main_DISCO, sub_projs, individual_projs = T)
 UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes")
 
-# Combines them in one dataframe (summing the common annotation) and plots the results
-ARE <- CreateAREDf(c(disco, UCSC), unified_annotation)
-PlotARE(main_comparison, ARE, condition_order)
+# Generates heatmap plot of pvalues and saves it to output folder
+PlotEnrichedPvalues(main_comparison, c(UCSC, disco), unified_annotation, condition_order)

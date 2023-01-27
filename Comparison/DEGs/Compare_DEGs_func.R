@@ -573,6 +573,10 @@ SaveSharedGenes <- function(main_dir, gene_count_dfs, min_sharing=0.75, min_num_
   shared_genes_chr <- do.call(rbind, shared_genes_chr)
   shared_genes_chr$chr_simplified <- shared_genes_chr$chromosome_name
   shared_genes_chr$chr_simplified[which(shared_genes_chr$chr_simplified!= "X" & shared_genes_chr$chr_simplified!= "Y")] <- "Autosome"
+  shared_genes_chr$num_conditions <- rep(NA, nrow(shared_genes_chr))
+  for (ct_id in names(gene_count_dfs)) {
+      shared_genes_chr[which(shared_genes_chr$ct==ct_id), "num_conditions"] <- max(gene_count_dfs[[ct_id]]$condition_count)
+  }
   write.csv(shared_genes_chr, paste0(out_path, "Shared_genes.csv"))
 }
 

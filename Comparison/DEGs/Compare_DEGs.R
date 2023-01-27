@@ -95,8 +95,10 @@ condition_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
                "Multiple Sclerosis_PRJNA544731" 
 )
 
-# Heatmaps of presence of genes (yes/no) across all ages, for each ct
+# Generates a df with all DEGs
 sexes <- CreateSexDf(c(UCSC[[1]], disco[[1]]), unified_annotation)
+
+# Heatmaps of presence of genes (yes/no) across all ages, for each ct
 PlotCts(main_comparison, sexes, condition_order)
 
 # Heatmaps specifically for the two datasets from the second trimester, all cts
@@ -115,6 +117,3 @@ PlotNumDEGsFacets(main_comparison, num_deg)
 
 # Plot the number of overlapping genes between one condition and all others, divided by ct and sex
 PlotDEGsOverlap(main_comparison, sexes, condition_order)
-test1 <- CalcDEGsOverlap(main_comparison, sexes, condition_order)
-
-test2 <- test1$Interneurons[which(test1$Interneurons$ref_cond=="Velmeshev_2022_2nd_trimester"),]

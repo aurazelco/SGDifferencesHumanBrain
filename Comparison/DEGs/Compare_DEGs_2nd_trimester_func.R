@@ -225,11 +225,27 @@ Venn2ndTrim <- function(main_dir, ref_df, n_col=2, list_degs, ref_name, to_remov
         sex_list <- append(sex_list, list(ds_genes))
       }
       names(sex_list) <- c(ref_name, str_remove_all(names(list_degs), to_remove))
-      PlotVenn(plot_path, sex_list, sex, venn_col)
+      #PlotVenn(plot_path, sex_list, sex, venn_col)
       overlap <- append(overlap, list(sex_list))
     }
     names(overlap) <- c("F", "M")
     PlotPercentOverlap(plot_path, overlap)
+    genes <- vector()
+    comp <- vector()
+    sexes <- vector()
+    for (sex_id in names(overlap)) {
+      genes <- c(genes, Reduce(intersect, overlap[[sex_id]]))
+      comp <- c(comp, rep(paste("all", sex_id, sep = "_"), length(Reduce(intersect, overlap[[sex_id]]))))
+      sexes <- c(sexes, rep(sex_id, length(Reduce(intersect, overlap[[sex_id]]))))
+      for (i in names(overlap[[sex_id]])[-1]) {
+        genes <- c(genes, intersect(overlap[[sex_id]][[1]], overlap[[sex_id]][[i]]))
+        comp <- c(comp, rep(paste(names(overlap[[sex_id]])[1], i, sep = " - "), 
+                            length(intersect(overlap[[sex_id]][[1]], overlap[[sex_id]][[i]]))))
+        sexes <- c(sexes, rep(sex_id, 
+                            length(intersect(overlap[[sex_id]][[1]], overlap[[sex_id]][[i]]))))
+      }
+    }
+    write.csv(data.frame("comparison"=comp, "sex"= sexes, "gene_id"= genes), paste0(plot_path, "Intersected_genes.csv"))
   }
 }
 

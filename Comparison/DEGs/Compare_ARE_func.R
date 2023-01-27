@@ -2,14 +2,17 @@
 # Brief description:
   # This script is used for comparing the AREs from the DEG analysis across multiple datasets (different ages/disease conditions)
 # Brief procedure:
-  # 1. Reads all ARE CSV files from all the different datasets (in this case 2 - DISCO and UCSC)
-  
+  # 1. Reads all ARE csv files from all the different datasets (in this case 2 - DISCO and UCSC)
+  # 2. Manually combines the annotations to be able to compare at a general level the different celltypes
+  # 3. Plots the percentages of ARE sites in each ct across conditions, separated by sex
+
 # Documentation abbreviations:
   # F and M: females and males
   # ct: celltype
   # df: dataframe
   # ds: dataset
   # ARE: androgen-response element
+
 # OBS: this script is sourced in Compare_ARE.R
 
 #---------------------------------------------------------------------------------------------------

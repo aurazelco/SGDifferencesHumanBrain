@@ -31,4 +31,3 @@ colnames(obrien) <- str_replace_all(colnames(obrien), " ", "_")
 
 # Extract the genes from each list and plots the Venn diagrams, one per sex, plus the percentages of overlap
 Venn2ndTrim(main_comparison, obrien, 2, UCSC, "O'Brien", "_2nd_trimester")
-

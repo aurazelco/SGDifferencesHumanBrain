@@ -153,14 +153,14 @@ for (ct_ref_id in (unique(ct_ref$Celltype))) {
   for (ct_id in unique(sexes$common_annot)) {
     for (cond_id in unique(sexes[which(sexes$sex=="M" & sexes$common_annot==ct_id), "condition"])) {
       cond_ct_genes <- sexes[which(sexes$sex=="M" & sexes$common_annot==ct_id & sexes$condition==cond_id), "gene_id"]
-      #bg_cond <- length(sexes[which(sexes$sex=="M" & sexes$condition==cond_id), "gene_id"])
+      bg_cond <- length(sexes[which(sexes$sex=="M" & sexes$condition==cond_id), "gene_id"])
       pval <- c(pval, 
                   phyper(
                     length(intersect(ref, cond_ct_genes)) - 1,
                     length(ref),
-                    20000 - length(ref), # using the whole gene number in humans
+                    #20000 - length(ref), # using the whole gene number in humans
                     #bg_sex - length(ref),
-                    #bg_cond - length(ref),
+                    bg_cond - length(ref),
                     length(cond_ct_genes),
                     lower.tail= FALSE))
       cts <- c(cts, ct_id)
