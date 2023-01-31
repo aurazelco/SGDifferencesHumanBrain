@@ -204,12 +204,12 @@ ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_proj
   for (folder in folder_list) {
     if (UCSC_flag=="no") {
       if (length(individual_projs)==0) {
-        ds_list <- append(ds_list, list(ImportCt(paste0(main_dir, folder))))
+        ds_list <- append(ds_list, list(ImportCt(paste0(main_dir, folder), pval, FC)))
         ct_list <-c(ct_list, list.dirs(paste0(main_dir, folder, "/01B_num_DEGs"), recursive=FALSE, full.names = FALSE))
         group_names <- c(group_names, folder)
       } else {
         for (single_proj in individual_projs) {
-          single_proj_list <- list(ImportCt(paste0(main_dir, folder), individual_projs = individual_projs, single_proj = single_proj))
+          single_proj_list <- list(ImportCt(paste0(main_dir, folder), individual_projs = individual_projs, single_proj = single_proj, pval, FC))
           if (single_proj_list!="empty") {
             ds_list <- append(ds_list, single_proj_list)
             ct_list <-c(ct_list, list.dirs(paste0(main_dir, folder, "/01A_DEGs"), recursive=FALSE, full.names = FALSE))
@@ -224,7 +224,7 @@ ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_proj
         group_names <- c(group_names, folder)
       } else {
         for (single_proj in individual_projs) {
-          single_proj_list <- list(ImportCt(paste0(main_dir, folder), UCSC_flag, individual_projs = individual_projs, single_proj = single_proj))
+          single_proj_list <- list(ImportCt(paste0(main_dir, folder), UCSC_flag, individual_projs = individual_projs, single_proj = single_proj, pval, FC))
           if (single_proj_list!="empty") {
             ds_list <- append(ds_list, single_proj_list)
             ct_list <-c(ct_list, list.dirs(paste0(main_dir, folder, "/outputs/01A_DEGs"), recursive=FALSE, full.names = FALSE))
@@ -735,4 +735,107 @@ EnrichOtherDBFvM <- function(main_dir, sex_df, package, dbsx, condition_ordered)
     }
   }
 }
+
+# 20. Plot the presence heatmap
+  # Input: the presence df, the ct to plot
+  # Return: the plot
+
+PlotHmpRef <- function(ref_presence_df, ref_ct_id, plot_titles) {
+  ref_plot <- ggplot(ref_presence_df[which(ref_presence_df$ref_ct==ref_ct_id), ], aes(cond_ct, gene_ids, fill=presence)) +
+    geom_tile() +
+    facet_grid(condition ~ sex, scales = "free") +
+    scale_fill_manual(values = c("Yes"="#F8766D",
+                                 "No"="#00BFC4"),
+                      guide = guide_legend(reverse = TRUE)) +
+    labs(x="Cell types", y="Genes", fill="Genes found", title = plot_titles[ref_ct_id]) +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          panel.spacing.x=unit(0, "lines"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.x = element_text(size=12, face="bold", colour = "black"),
+          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+          axis.ticks.x=element_blank(),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          legend.position = "right", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+  return(ref_plot)
+}
+
+# 21. Plot the presence number of genes
+  # Input: the presence df, the ct to plot
+  # Return: the plot
+
+PlotBarPlotRef <- function(ref_presence_df, ref_ct_id, plot_titles) {
+  ref_plot <- ggplot(ref_presence_df[which(ref_presence_df$ref_ct==ref_ct_id), ], aes(cond_ct, fill = presence)) +
+    geom_bar(position = "dodge") +
+    facet_grid(condition ~ sex, scales = "free") +
+    scale_fill_manual(values = c("Yes"="#F8766D",
+                                 "No"="#00BFC4"),
+                      guide = guide_legend(reverse = TRUE)) +
+    labs(x="Cell types", y="Number of Genes", fill="Genes found", title = plot_titles[ref_ct_id]) +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          panel.spacing.x=unit(0, "lines"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.x = element_text(size=12, face="bold", colour = "black"),
+          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+          axis.ticks.x=element_blank(),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          axis.text.y = element_text(size=8, colour = "black"),
+          axis.ticks.y = element_blank(),
+          legend.position = "right", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+  return(ref_plot)
+}
+
+
+# 22. Plots if gebes from a reference df are found or not in the DEGs
+  # Input: main directory where to save the plots, the dataframe containing all DEGs, the reference df, 
+    # the order in which plot the conditions (and which conditions to plot), the vercotr to use for plot titles
+  # Return: nothing, saves plot instead
+
+PlotRefCt <- function(main_dir, sex_df, ref_df, condition_ordered, ref_df_name="ref", plot_titles){
+  out_path <- paste0(main_dir, "Hmp_", ref_df_name, "/")
+  dir.create(out_path, recursive = T, showWarnings = F)
+  sex_df_filt <- sex_df[which(sex_df$condition %in% condition_ordered), ]
+  presence <- vector()
+  ids <- vector()
+  gene_ids <- vector()
+  for (sex_id in unique(sex_df_filt$sex)) {
+    for (ct in unique(ref_df$Celltype)) {
+      ref_genes <- ref_df[which(ref_df$Celltype==ct), "gene"]
+      for (cond in unique(sex_df_filt[which(sex_df_filt$sex==sex_id), "condition"])) {
+        for (ct_id in unique(sex_df_filt[which(sex_df_filt$sex==sex_id & sex_df_filt$condition==cond), "common_annot"])) {
+          presence <- c(presence, 
+                        ifelse(ref_df[which(ref_df$Celltype=="ast"), "gene"] %in% sex_df_filt[which(sex_df_filt$sex==sex_id & sex_df_filt$condition==cond & sex_df_filt$common_annot==ct_id), "gene_id"],
+                               "Yes", "No"))
+          ids <- c(ids, 
+                   rep(paste(sex_id, ct, cond, ct_id, sep = "/"), length(ref_genes)))
+          gene_ids <- c(gene_ids, ref_genes)
+          
+        }
+      }
+    }
+  }
+  ref_presence_df <- data.frame(ids, gene_ids, presence)
+  ref_presence_df <- separate(ref_presence_df, ids, into=c("sex", "ref_ct", "condition", "cond_ct"), sep = "/")
+  ref_presence_df$condition <- factor(ref_presence_df$condition, condition_order[8:14])
+  ref_presence_df <- ref_presence_df[order(ref_presence_df$condition), ]
+  for (ref_ct_id in unique(ref_presence_df$ref_ct)) {
+      print(ref_ct_id)
+      pdf(paste0(out_path, plot_titles[ref_ct_id], "_hmp.pdf"), height = 15, width = 10)
+      print(PlotHmpRef(ref_presence_df, ref_ct_id, plot_titles))
+      dev.off()
+      pdf(paste0(out_path, plot_titles[ref_ct_id], "_barplot.pdf"), height = 15, width = 10)
+      print(PlotBarPlotRef(ref_presence_df, ref_ct_id, plot_titles))
+      dev.off()
+  }
+}
+
 

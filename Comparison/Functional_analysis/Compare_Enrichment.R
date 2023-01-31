@@ -25,7 +25,7 @@
 source("~/Desktop/Lund_MSc/Thesis/scripts/Comparison/Functional_analysis/Compare_Enrichment_func.R")
 
 # sets the directories where to find the DEG csv files
-main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs/outputs/"
+main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_common/outputs/"
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
@@ -46,7 +46,7 @@ sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)[-1]
 
 # Import all the CSVs from the different ages/conditions - slightly different file tree structure requires a different approach for UCSC
 disco_projs <- c("GSE157827", "GSE174367", "PRJNA544731")
-disco <- ImportDataset(main_DISCO, sub_disease, individual_projs = disco_projs)
+disco <- ImportDataset(main_DISCO, sub_disease, individual_projs = disco_projs, pval = 0.05, FC = 1.2)
 UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes")
 
 # disco[[2]] and UCSC[[2]] can be used to manually create unified_annotation, as done below
@@ -142,31 +142,12 @@ ct_ref <- as.data.frame(read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data
                     sheet = 'top_human_enrich',
                     skip = 2))
 
-test1 <- data.frame()
-ref_ct <- vector()
-#bg_sex <- length(unique(sexes[which(sexes$sex=="M"), "gene_id"]))
-for (ct_ref_id in (unique(ct_ref$Celltype))) {
-  ref <- ct_ref[which(ct_ref$Celltype==ct_ref_id), "gene"]
-  pval <- vector()
-  cts <- vector()
-  conds <- vector()
-  for (ct_id in unique(sexes$common_annot)) {
-    for (cond_id in unique(sexes[which(sexes$sex=="M" & sexes$common_annot==ct_id), "condition"])) {
-      cond_ct_genes <- sexes[which(sexes$sex=="M" & sexes$common_annot==ct_id & sexes$condition==cond_id), "gene_id"]
-      bg_cond <- length(sexes[which(sexes$sex=="M" & sexes$condition==cond_id), "gene_id"])
-      pval <- c(pval, 
-                  phyper(
-                    length(intersect(ref, cond_ct_genes)) - 1,
-                    length(ref),
-                    #20000 - length(ref), # using the whole gene number in humans
-                    #bg_sex - length(ref),
-                    bg_cond - length(ref),
-                    length(cond_ct_genes),
-                    lower.tail= FALSE))
-      cts <- c(cts, ct_id)
-      conds <- c(conds, cond_id)
-    }
-  }
-  ref_ct <- rep(ct_ref_id, length(pval))
-  test1 <- rbind(test1, data.frame("ref_ct"=ref_ct, "ct"=cts, "condition"=conds, "pval"=pval))
-}
+ref_ct_names <- c(
+  "ast" = "Astrocytes", 
+  "end" = "Endothelial Cells",
+  "mic" = "Microglia",
+  "neu" = "Neurons",
+  "oli" = "Oligodendrocytes"
+)
+
+PlotRefCt(main_comparison, sexes, ct_ref, condition_order[8:14], "McKenzie_2018", ref_ct_names)
