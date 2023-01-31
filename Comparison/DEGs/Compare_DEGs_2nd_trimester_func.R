@@ -204,9 +204,10 @@ PlotPercentOverlap <- function(plot_dir, overlap) {
   dev.off()
 }  
 
-# 6. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
-  # Input: main directory, the reference df, the list of degs imported
-  # Return: nothing, plots are saved instead
+# 6. Plots the comparison with a reference df
+  # Input: main directory, the reference df, the column in the reference df where the gene names are, 
+    # the list of degs imported, the reference name, and parts of string to be removed
+  # Return: nothing, plots and CSVs are saved instead
 
 Venn2ndTrim <- function(main_dir, ref_df, n_col=2, list_degs, ref_name, to_remove="empty") {
   if (length(list_degs)>4) {
@@ -225,7 +226,7 @@ Venn2ndTrim <- function(main_dir, ref_df, n_col=2, list_degs, ref_name, to_remov
         sex_list <- append(sex_list, list(ds_genes))
       }
       names(sex_list) <- c(ref_name, str_remove_all(names(list_degs), to_remove))
-      #PlotVenn(plot_path, sex_list, sex, venn_col)
+      PlotVenn(plot_path, sex_list, sex, venn_col)
       overlap <- append(overlap, list(sex_list))
     }
     names(overlap) <- c("F", "M")

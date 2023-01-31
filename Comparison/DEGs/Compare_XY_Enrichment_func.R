@@ -94,6 +94,8 @@ PlotEnrichedPvalues <- function(main_dir, enrich_list, common_annot, condition_o
   enrich_avg <- data.frame("groups"=unique(enrich_df$new_groups), "pval"=pval_avg)
   enrich_avg <- separate(enrich_avg, groups, into = c("condition", "sex", "ct", "XY"), sep = "/")
   enrich_avg$pval_bin <- ifelse(enrich_avg$pval > 0.05, "Non-significant", "Significant")
+  enrich_avg$condition <- factor(enrich_avg$condition, condition_ordered)
+  enrich_avg <- enrich_avg[order(enrich_avg$condition), ]
   out_path <- paste0(main_dir, "XY_enrichment/")
   dir.create(out_path, recursive = T, showWarnings = F)
   pdf(paste0(out_path, "pvalue_hmp.pdf"))
