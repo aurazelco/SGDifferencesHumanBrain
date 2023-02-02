@@ -69,7 +69,8 @@ library(ggplot2) # to plot
 library(stringr) # to format strings
 library(enrichR) # database
 library(disgenet2r) # database
-library(readxl)
+library(readxl) # to read excel files
+library(dplyr) # to re-arrange dfs
 
 # Sets the EnrichR database for Human genes
 setEnrichrSite("Enrichr") 
@@ -82,7 +83,7 @@ options(ggrepel.max.overlaps = Inf)
   # Input: CSV files
   # Return: list of dfs
 
-ImportDE <- function(path, ext, row_col) {
+ImportFiles <- function(path, ext, row_col) {
   if (missing(ext)) {
     deg_files <- list.files(path = path, pattern = "\\.csv$",full.names = TRUE)
     if (missing(row_col)) {
@@ -137,7 +138,7 @@ ImportCt <- function(main_dir, UCSC_flag="no", individual_projs=vector(), single
   names_F <- vector()
   names_M <- vector()
   for (ct in 1:length(sub_ct)) {
-    deg <- ImportDE(paste(path, sub_ct[ct], sep="/"))
+    deg <- ImportFiles(paste(path, sub_ct[ct], sep="/"))
     if (length(individual_projs)>0) {
       if (length(grep(single_proj, names(deg))) > 0) {
         deg <- deg[grepl(single_proj, names(deg),fixed = T)]
@@ -771,8 +772,8 @@ PlotHmpRef <- function(ref_presence_df, ref_ct_id, plot_titles) {
 
 PlotBarPlotRef <- function(ref_presence_df, ref_ct_id, plot_titles) {
   ref_plot <- ggplot(ref_presence_df[which(ref_presence_df$ref_ct==ref_ct_id), ], aes(cond_ct, fill = presence)) +
-    geom_bar(position = "dodge") +
-    facet_grid(condition ~ sex, scales = "free") +
+    geom_bar(position = "stack") +
+    facet_grid(sex ~ condition, scales = "free") +
     scale_fill_manual(values = c("Yes"="#F8766D",
                                  "No"="#00BFC4"),
                       guide = guide_legend(reverse = TRUE)) +
@@ -797,7 +798,7 @@ PlotBarPlotRef <- function(ref_presence_df, ref_ct_id, plot_titles) {
 
 # 22. Plots if gebes from a reference df are found or not in the DEGs
   # Input: main directory where to save the plots, the dataframe containing all DEGs, the reference df, 
-    # the order in which plot the conditions (and which conditions to plot), the vercotr to use for plot titles
+    # the order in which plot the conditions (and which conditions to plot), the vector to use for plot titles
   # Return: nothing, saves plot instead
 
 PlotRefCt <- function(main_dir, sex_df, ref_df, condition_ordered, ref_df_name="ref", plot_titles){
@@ -813,7 +814,7 @@ PlotRefCt <- function(main_dir, sex_df, ref_df, condition_ordered, ref_df_name="
       for (cond in unique(sex_df_filt[which(sex_df_filt$sex==sex_id), "condition"])) {
         for (ct_id in unique(sex_df_filt[which(sex_df_filt$sex==sex_id & sex_df_filt$condition==cond), "common_annot"])) {
           presence <- c(presence, 
-                        ifelse(ref_df[which(ref_df$Celltype=="ast"), "gene"] %in% sex_df_filt[which(sex_df_filt$sex==sex_id & sex_df_filt$condition==cond & sex_df_filt$common_annot==ct_id), "gene_id"],
+                        ifelse(ref_df[which(ref_df$Celltype==ct), "gene"] %in% sex_df_filt[which(sex_df_filt$sex==sex_id & sex_df_filt$condition==cond & sex_df_filt$common_annot==ct_id), "gene_id"],
                                "Yes", "No"))
           ids <- c(ids, 
                    rep(paste(sex_id, ct, cond, ct_id, sep = "/"), length(ref_genes)))
@@ -825,17 +826,146 @@ PlotRefCt <- function(main_dir, sex_df, ref_df, condition_ordered, ref_df_name="
   }
   ref_presence_df <- data.frame(ids, gene_ids, presence)
   ref_presence_df <- separate(ref_presence_df, ids, into=c("sex", "ref_ct", "condition", "cond_ct"), sep = "/")
-  ref_presence_df$condition <- factor(ref_presence_df$condition, condition_order[8:14])
+  ref_presence_df$condition <- factor(ref_presence_df$condition, condition_order)
   ref_presence_df <- ref_presence_df[order(ref_presence_df$condition), ]
   for (ref_ct_id in unique(ref_presence_df$ref_ct)) {
-      print(ref_ct_id)
+      print(plot_titles[[ref_ct_id]])
       pdf(paste0(out_path, plot_titles[ref_ct_id], "_hmp.pdf"), height = 15, width = 10)
       print(PlotHmpRef(ref_presence_df, ref_ct_id, plot_titles))
       dev.off()
-      pdf(paste0(out_path, plot_titles[ref_ct_id], "_barplot.pdf"), height = 15, width = 10)
+      pdf(paste0(out_path, plot_titles[ref_ct_id], "_barplot.pdf"), height = 4, width = 16)
       print(PlotBarPlotRef(ref_presence_df, ref_ct_id, plot_titles))
       dev.off()
   }
 }
 
 
+# 23. Import results from disease-related enrichments
+  # Input: main directory where to find the files, which db to use, which comparison to import
+  # Return: list of files
+
+ImportDBresults <- function(main_dir, dbsx, which_dbsx) {
+  dbsx_path <- paste0(main_dir, dbsx, which_dbsx)
+  cts <- list.dirs(dbsx_path, recursive = F, full.names = F)
+  df_F <- list()
+  df_M <- list()
+  names_F <- vector()
+  names_M <- vector()
+  for (ct in cts) {
+    dbsx_files <- ImportFiles(paste(dbsx_path, ct, sep = "/"))
+    for (i in names(dbsx_files)) {
+      if (grepl("F", i, fixed=TRUE)){
+        df_F <- append(df_F, list(dbsx_files[[i]]))
+        names_F <- c(names_F, ct)
+      } else {
+        df_M <- append(df_M, list(dbsx_files[[i]]))
+        names_M <- c(names_M, ct)
+      }
+    }
+  }
+  names(df_F) <- names_F
+  names(df_M) <- names_M
+  dbsx_ls <- list("F"=df_F, "M"=df_M)
+  for (sex in names(dbsx_ls)) {
+    dbsx_ls[[sex]] <- do.call(rbind, dbsx_ls[[sex]])
+    dbsx_ls[[sex]] <- cbind("sex" = rep(sex, nrow(dbsx_ls[[sex]])),
+                          "ct" = gsub("\\..*","",rownames(dbsx_ls[[sex]])),
+                          dbsx_ls[[sex]])
+  }
+  dbsx_df <- do.call(rbind, dbsx_ls)
+  rownames(dbsx_df) <- NULL
+  dbsx_df <- cbind("dbsx"= rep(dbsx, nrow(dbsx_df)), dbsx_df)
+  if (dbsx == "DO" | dbsx == "DGN") {
+    keep_cols <- c("dbsx", "sex", "ct", "Cluster", "Description", "p.adjust",  "Count")
+  } else if (dbsx=="DisGeNET2r_DisGeNET_CURATED") {
+    keep_cols <- c("dbsx", "sex", "ct", "Description", "FDR", "Count", "condition")
+  } else {
+    keep_cols <- c( "dbsx", "sex", "ct", "Term", "Adjusted.P.value", "gene_count","condition"  )
+  }
+  dbsx_df <- dbsx_df[, which(colnames(dbsx_df) %in% keep_cols)]
+  if (dbsx == "DO" | dbsx == "DGN") {
+    dbsx_df <- dbsx_df %>% relocate(Cluster, .after = Count)
+  }
+  colnames(dbsx_df) <- c("dbsx", "sex", "ct", "term", "adj_pval", "gene_count", "condition")
+  return(dbsx_df)
+}
+
+# 24. Counts the number of repeated terms
+  # Input: main directory where to save the files, the merged dataframe, the order in which plot the conditions
+  # Return: nothing, saves the files instead
+
+CountDiseases <- function(main_dir, dbsx_all) {
+  path <- paste0(main_dir, "/Faceted_Diseases/")
+  dir.create(path, recursive = T, showWarnings = F)
+  dbsx_all <- subset(dbsx_all, adj_pval <= 0.05 & gene_count > 1) 
+  count_ct_df <- list()
+  for (ct in unique(dbsx_all$ct)) {
+    for (sex in unique(dbsx_all$sex)) {
+      count_dis <- as.data.frame(table(tolower(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), "term"])))
+      count_dis <- count_dis[order(count_dis$Freq, decreasing = T), ][1:10, ]
+      max <- length(unique(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), "dbsx"])) * length(unique(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), "condition"]))
+      count_dis <- cbind("ct" = rep(ct, nrow(count_dis)),
+                         "sex" = rep(sex, nrow(count_dis)),
+                         count_dis,
+                         "max"= rep(max, nrow(count_dis)))
+      count_ct_df <- append(count_ct_df, list(count_dis))
+    }
+  }
+  count_ct_df <- do.call(rbind, count_ct_df)
+  write.csv(count_ct_df, paste0(path, "disease_count_per_ct.csv"))
+  count_sex_df <- list()
+  for (sex in unique(dbsx_all$sex)) {
+    count_dis <- as.data.frame(table(tolower(dbsx_all[which(dbsx_all$sex==sex), "term"])))
+    count_dis <- count_dis[order(count_dis$Freq, decreasing = T), ][1:20, ]
+    max <- length(unique(dbsx_all[which(dbsx_all$sex==sex), "dbsx"])) * length(unique(dbsx_all[which(dbsx_all$sex==sex), "condition"]))
+    count_dis <- cbind(
+                       "sex" = rep(sex, nrow(count_dis)),
+                       count_dis,
+                       "max"= rep(max, nrow(count_dis)))
+    count_sex_df <- append(count_sex_df, list(count_dis))
+  }
+  count_sex_df <- do.call(rbind, count_sex_df)
+  write.csv(count_sex_df, paste0(path, "disease_count.csv"))
+}
+
+
+# 25. Plots the disease enrichemnt results in facets
+  # Input: main directory where to save the plots, the merged dataframe, the order in which plot the conditions
+  # Return: nothing, saves the plots instead
+
+PlotFacetedDB <- function(main_dir, dbsx_all, condition_ordered) {
+  dbsx_all <- subset(dbsx_all, adj_pval <= 0.05 & gene_count > 1) 
+  dbsx_all$condition <- factor(dbsx_all$condition, condition_ordered[which(condition_ordered %in% unique(dbsx_all$condition))]) 
+  dbsx_all <- dbsx_all[order(dbsx_all$condition), ]
+  plot_path <- paste0(main_dir, "/Faceted_Diseases/")
+  dir.create(plot_path, recursive = T, showWarnings = F)
+  for (sex in unique(dbsx_all$sex)) {
+    for (ct in unique(dbsx_all[which(dbsx_all$sex==sex), "ct"])) {
+      if (nrow(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), ]) > 1) {
+        pdf(paste0(plot_path, ct, "_", sex, ".pdf"), width = 25, height = 10)
+        print(
+          ggplot(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), ], aes(condition, term, size = gene_count, color = adj_pval)) + 
+            geom_point() + 
+            guides(size  = guide_legend(order = 1), color = guide_colorbar(order = 2)) +
+            scale_color_continuous(low="red", high="blue",guide=guide_colorbar(reverse=T)) +
+            labs(title = paste0(ct, "_", sex), y = "", x = "Developmental Conditions", size = "Gene count", color = "Adjusted p-value") +
+            facet_wrap(~ dbsx, scales = "free", nrow=1) +
+            scale_size_continuous(range=c(3, 8)) + 
+            scale_y_discrete(labels=function(x) str_wrap(x,width=40)) +
+            theme(
+              plot.title = element_text(size=14, face="bold", colour = "black"),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              axis.text.x = element_text(size=12, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+              axis.title.y = element_blank(),
+              axis.text.y = element_text(size=12, colour = "black", vjust = 0.7, hjust=0.5),
+              legend.position = "right", 
+              legend.title = element_text(size=12, face="bold", colour = "black"))
+        )
+        dev.off()
+      } else {
+        print(paste0("The ", ct, " in ", sex, " has no significant terms"))
+      }
+      
+    }
+  }
+}

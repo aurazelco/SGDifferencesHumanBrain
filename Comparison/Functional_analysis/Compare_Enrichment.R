@@ -137,6 +137,20 @@ EnrichOtherDBFvM(main_comparison, sexes, "EnrichR",  "GWAS_Catalog_2019", condit
 EnrichOtherDB(main_comparison, sexes, "DisGeNET2r",  "DisGeNET (CURATED)", condition_order)
 EnrichOtherDBFvM(main_comparison, sexes, "DisGeNET2r",  "DisGeNET (CURATED)", condition_order)
 
+# Compare disease-related results
+which_comp <- "_comparison_cts"
+DO <- ImportDBresults(main_comparison, "DO", which_comp)
+DGN <- ImportDBresults(main_comparison, "DGN", which_comp)
+DGN_CURATED <- ImportDBresults(main_comparison, "DisGeNET2r_DisGeNET_CURATED", "")
+DSigDB <- ImportDBresults(main_comparison, "EnrichR_DSigDB", "")
+GWAS <- ImportDBresults(main_comparison, "EnrichR_GWAS_Catalog_2019", "")
+
+# Counts how mauch frequent each term is, adn saves the CSV in the directory
+CountDiseases(main_comparison, rbind(DO, DGN, DGN_CURATED, DSigDB, GWAS)) 
+
+# DGN excluded because too many terms
+PlotFacetedDB(main_comparison, rbind(DO, DGN_CURATED, DSigDB, GWAS), condition_order )
+  
 # Cell Enrichment
 ct_ref <- as.data.frame(read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/McKenzie_2018_suppl.xlsx",
                     sheet = 'top_human_enrich',
@@ -151,3 +165,4 @@ ref_ct_names <- c(
 )
 
 PlotRefCt(main_comparison, sexes, ct_ref, condition_order[8:14], "McKenzie_2018", ref_ct_names)
+

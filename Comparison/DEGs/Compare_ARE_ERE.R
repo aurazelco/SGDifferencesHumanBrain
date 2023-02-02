@@ -1,6 +1,6 @@
 # Author: Aura Zelco
 # Brief description:
-  # This script is used for comparing the DEGs from the DEG analysis across multiple datasets (different ages/disease conditions)
+  # This script is used for comparing the AREs and EREs from the DEG analysis across multiple datasets (different ages/disease conditions)
 # Brief procedure:
   # 1. Reads all ARE csv files from all the different datasets (in this case 2 - DISCO and UCSC)
   # 2. Manually combines the annotations to be able to compare at a general level the different celltypes
@@ -11,7 +11,7 @@
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison/DEGs/Compare_ARE_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison/DEGs/Compare_ARE_ERE_func.R")
 
 # sets the directories where to find the DEG csv files
 main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj/"
@@ -81,9 +81,21 @@ condition_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
 )
 
 # Imports ARE from all sub-folders
-disco <- ImportDataset(main_DISCO, sub_projs, individual_projs = T)
-UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes")
+disco_ARE <- ImportDataset(main_DISCO, sub_projs, individual_projs = T, ARE_ERE="ARE")
+UCSC_ARE <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes", ARE_ERE="ARE")
 
 # Combines them in one dataframe (summing the common annotation) and plots the results
-ARE <- CreateAREDf(c(disco, UCSC), unified_annotation)
+ARE <- CreateAREDf(c(disco_ARE, UCSC_ARE), unified_annotation)
 PlotARE(main_comparison, ARE, condition_order)
+# Facets all ARE plots
+PlotFacetedARE(main_comparison, ARE, condition_order)
+
+
+# Imports ERE from all sub-folders
+disco_ERE <- ImportDataset(main_DISCO, sub_projs, individual_projs = T, ARE_ERE="ERE")
+UCSC_ERE <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes", ARE_ERE="ERE")
+
+# Combines them in one dataframe (summing the common annotation) and plots the results
+ERE <- CreateEREDf(c(disco_ERE, UCSC_ERE), unified_annotation)
+# Facets all ERE plots
+PlotFacetedERE(main_comparison, ERE, condition_order)
