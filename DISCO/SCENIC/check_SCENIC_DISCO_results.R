@@ -346,8 +346,8 @@ if (length(unique(norm_tf$projs))>1) {
     RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm_projs[[proj]], norm_tf[which(norm_tf$projs==proj), "gene_id"], "gender", paste("TF", proj, sep = "_"))
   }
 } else {
-  RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm, norm_tf$gene_id, "ct_sex", "TF")
-  RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm, norm_tf$gene_id, "gender", "TF")
+  RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm, norm_tf$gene_id, "ct_sex", paste("TF", unique(norm_tf$projs), sep = "_"))
+  RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm, norm_tf$gene_id, "gender", paste("TF", unique(norm_tf$projs), sep = "_"))
 }
 
 if (length(unique(norm_tg$projs))>1) {
@@ -358,8 +358,8 @@ if (length(unique(norm_tg$projs))>1) {
     RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm_projs[[proj]], norm_tg[which(norm_tg$projs==proj), "gene_id"], "gender", paste("Target", proj, sep = "_"))
   }
 } else {
-  RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm, norm_tg$gene_id, "ct_sex", "Target")
-  RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm, norm_tg$gene_id, "gender", "Target")
+  RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm, norm_tg$gene_id, "ct_sex", paste("Target", unique(norm_tg$projs), sep = "_"))
+  RidgeTFTG(paste0(main_DISCO, sub_disease[3], "/"), norm, norm_tg$gene_id, "gender", paste("Target", unique(norm_tg$projs), sep = "_"))
 }
 
 
@@ -378,8 +378,8 @@ if (length(unique(ad_tf$projs))>1) {
     RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad_projs[[proj]], ad_tf[which(ad_tf$projs==proj), "gene_id"], "gender", paste("TF", proj, sep = "_"))
   }
 } else {
-  RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad, ad_tf$gene_id, "ct_sex", "TF")
-  RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad, ad_tf$gene_id, "gender", "TF")
+  RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad, ad_tf$gene_id, "ct_sex", paste("TF", unique(ad_tf$projs), sep = "_"))
+  RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad, ad_tf$gene_id, "gender", paste("TF", unique(ad_tf$projs), sep = "_"))
 }
 
 if (length(unique(ad_tg$projs))>1) {
@@ -390,8 +390,8 @@ if (length(unique(ad_tg$projs))>1) {
     RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad_projs[[proj]], ad_tg[which(ad_tg$projs==proj), "gene_id"], "gender", paste("Target", proj, sep = "_"))
   }
 } else {
-  RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad, ad_tg$gene_id, "ct_sex", "Target")
-  RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad, ad_tg$gene_id, "gender", "Target")
+  RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad, ad_tg$gene_id, "ct_sex", paste("Target", unique(ad_tg$projs), sep = "_"))
+  RidgeTFTG(paste0(main_DISCO, sub_disease[1], "/"), ad, ad_tg$gene_id, "gender", paste("Target", unique(ad_tg$projs), sep = "_"))
 }
 
 
@@ -411,8 +411,8 @@ if (length(unique(ms_tf$projs))>1) {
     RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms_projs[[proj]], ms_tf[which(ms_tf$projs==proj), "gene_id"], "gender", paste("TF", proj, sep = "_"))
   }
 } else {
-  RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms, ms_tf$gene_id, "ct_sex", "TF")
-  RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms, ms_tf$gene_id, "gender", "TF")
+  RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms, ms_tf$gene_id, "ct_sex", paste("TF", unique(ms_tf$projs), sep = "_"))
+  RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms, ms_tf$gene_id, "gender", paste("TF", unique(ms_tf$projs), sep = "_"))
 }
 
 if (length(unique(ms_tg$projs))>1) {
@@ -423,8 +423,8 @@ if (length(unique(ms_tg$projs))>1) {
     RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms_projs[[proj]], ms_tg[which(ms_tg$projs==proj), "gene_id"], "gender", paste("Target", proj, sep = "_"))
   }
 } else {
-  RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms, ms_tg$gene_id, "ct_sex", "Target")
-  RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms, ms_tg$gene_id, "gender", "Target")
+  RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms, ms_tg$gene_id, "ct_sex", paste("Target", unique(ms_tg$projs), sep = "_"))
+  RidgeTFTG(paste0(main_DISCO, sub_disease[2], "/"), ms, ms_tg$gene_id, "gender", paste("Target", unique(ms_tg$projs), sep = "_"))
 }
 
 
