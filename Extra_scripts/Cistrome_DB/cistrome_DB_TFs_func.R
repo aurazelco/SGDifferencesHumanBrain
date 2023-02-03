@@ -82,13 +82,17 @@ CistromeFilt <- function(grn_all, dis_type=F, tf_vector) {
 
 CistromeDB <- function(main_dir, res_folder, dis_type=F, tf_vector) {
   sub_groups <- list.dirs(main_dir, full.names = F, recursive = F)
+  cistrome_ls <- list()
   for (sub_group in sub_groups) {
     print(sub_group)
     in_path <- paste0(main_dir, sub_group, "/", res_folder, "/sampled_100_cells_all/")
     grn_all <- GRNresults(in_path, res_folder)
     cistrome_df <- CistromeFilt(grn_all, dis_type, tf_vector)
-    out_path <- paste0(main_dir, sub_group, "/5_outputs/")
-    dir.create(out_path, recursive = T, showWarnings = F)
-    write.csv(cistrome_df, paste0(out_path, "Cistrome_TFs.csv"), row.names = F)
+    #out_path <- paste0(main_dir, sub_group, "/5_outputs/")
+    #dir.create(out_path, recursive = T, showWarnings = F)
+    #write.csv(cistrome_df, paste0(out_path, "Cistrome_TFs.csv"), row.names = F)
+    cistrome_ls <- append(cistrome_ls, list(cistrome_df))
   }
+  names(cistrome_ls) <- sub_groups
+  return(cistrome_ls)
 }
