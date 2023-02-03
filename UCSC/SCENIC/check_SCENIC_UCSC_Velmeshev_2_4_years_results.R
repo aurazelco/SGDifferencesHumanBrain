@@ -89,8 +89,8 @@ HmpSCENIC(main_Velm_2_4_years, F, Velm_2_4_years_final, Velm_2_4_years_10, ct_or
 #####  TFs and TGs expression in SeuratObjects
 
 Velm_2_4_years_scenic <- ImportSCENICresults(main_Velm_2_4_years, F, "1_GRN", proj_order = "no")
-#SCENICTfTg(main_Velm_2_4_years, F, Velm_2_4_years_scenic, Velm_2_4_years_final, ct_order)
-SCENICTfTg(main_Velm_2_4_years, F, Velm_2_4_years_scenic, Velm_2_4_years_final, ct_order, 100)
+#TfTgSeuratExpression(main_Velm_2_4_years, F, Velm_2_4_years_scenic, Velm_2_4_years_final, ct_order)
+TfTgSeuratExpression(main_Velm_2_4_years, F, Velm_2_4_years_scenic, Velm_2_4_years_final, ct_order, 100)
 
 Velm_2_4_years_tf_list <- SCENICExtractGRN(Velm_2_4_years_scenic, F, "TF", 100)
 ExtractDiffGRN(main_Velm_2_4_years, F, Velm_2_4_years_tf_list, "TF")

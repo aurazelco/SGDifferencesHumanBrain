@@ -83,8 +83,8 @@ HmpSCENIC(main_Velm_3rd, F, Velm_3rd_final, Velm_3rd_10, ct_order)
 #####  TFs and TGs expression in SeuratObjects
 
 Velm_3rd_scenic <- ImportSCENICresults(main_Velm_3rd, F, "1_GRN", proj_order = "no")
-#SCENICTfTg(main_Velm_3rd, F, Velm_3rd_scenic, Velm_3rd_final, ct_order)
-SCENICTfTg(main_Velm_3rd, F, Velm_3rd_scenic, Velm_3rd_final, ct_order, 100)
+#TfTgSeuratExpression(main_Velm_3rd, F, Velm_3rd_scenic, Velm_3rd_final, ct_order)
+TfTgSeuratExpression(main_Velm_3rd, F, Velm_3rd_scenic, Velm_3rd_final, ct_order, 100)
 
 Velm_3rd_tf_list <- SCENICExtractGRN(Velm_3rd_scenic, F, "TF", 100)
 ExtractDiffGRN(main_Velm_3rd, F, Velm_3rd_tf_list, "TF")

@@ -406,7 +406,7 @@ SCENICExtractGRN <- function(grn_out, dis_type, obj, cutoff) {
   for (k in names(grn_out)) {
     grn_k <- list()
     for (i in names(grn_out[[k]])) {
-      grn_k <- append(grn_k, list(grn_out[[k]][[i]][1:cutoff, ]))
+      grn_k <- append(grn_k, list(unique(grn_out[[k]][[i]])[1:cutoff, ]))
     }
     names(grn_k) <- names(grn_out[[k]])
     grn_filt <- append(grn_filt, list(grn_k))

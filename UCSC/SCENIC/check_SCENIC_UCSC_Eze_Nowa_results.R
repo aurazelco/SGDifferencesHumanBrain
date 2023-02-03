@@ -75,8 +75,8 @@ HmpSCENICAll(main_Eze_Nowa, F, eze_nowa_final, eze_nowa_markers, ct_order)
 #####  TFs and TGs expression in SeuratObjects
 
 eze_nowa_scenic <- ImportSCENICresults(main_Eze_Nowa, F, "1_GRN", proj_order = "no")
-SCENICTfTg(main_Eze_Nowa, F, eze_nowa_scenic, eze_nowa_final, ct_order)
-SCENICTfTg(main_Eze_Nowa, F, eze_nowa_scenic, eze_nowa_final, ct_order, 100)
+TfTgSeuratExpression(main_Eze_Nowa, F, eze_nowa_scenic, eze_nowa_final, ct_order)
+TfTgSeuratExpression(main_Eze_Nowa, F, eze_nowa_scenic, eze_nowa_final, ct_order, 100)
 
 eze_nowa_tf_list <- SCENICExtractGRN(eze_nowa_scenic, F, "TF", 100)
 ExtractDiffGRN(main_Eze_Nowa, F, eze_nowa_tf_list, "TF")
