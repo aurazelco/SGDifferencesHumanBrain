@@ -15,7 +15,9 @@
       # b. GWAS_Catalog_2019
     # disgenet2r:
       # a. Curated DisGeNET
+    # comparison with McKenzie
   # 4. Saves the plots and CSV results
+
 
 # OBS: since there is a need for manual input, it is recommended to run this script in a R environment/IDE (e.g. RStudio)
 
