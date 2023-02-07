@@ -1040,8 +1040,6 @@ ggsave(paste0(main_outs, "XIST_RNA_expression.pdf"))
 
 trim_2nd <- readRDS(paste0(input_rds_path, "/Eze_Nowakowski_integrated_2nd_trimester.rds"))
 
-trim_2nd@meta.data$proj_sex_ct <- paste(trim_2nd@meta.data$proj, trim_2nd@meta.data$sex,trim_2nd@meta.data$cluster_final, sep="/")
-
-num_cells <- as.data.frame(table(trim_2nd@meta.data$proj_sex_ct))
-num_cells <- separate(num_cells, Var1, into = c("project", "sex", "ct"), sep = "/")
+num_cells <- as.data.frame(table(trim_2nd@meta.data$sex_ct))
+num_cells <- separate(num_cells, Var1, into = c("sex", "ct"), sep = "_")
 write.csv(num_cells, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Eze_Nowakowski_num_cells.csv"))

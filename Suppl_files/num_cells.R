@@ -1,7 +1,13 @@
 library(dplyr)
 library(stringr)
+library(ggplot2)
+library(tidyr)
+library(ggpubr)
+
 
 out_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/thesis_draft/suppl_files/"
+plot_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Extra_figures/"
+
 
 disco <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_common/num_proj_sex_ct.csv")
 
@@ -11,6 +17,7 @@ eze_nowa <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs
 disco$X <- NULL
 velm$X <- NULL
 eze_nowa$X <- NULL
+eze_nowa <- cbind(rep("Eze_Nowakowski_2nd_trimester", nrow(eze_nowa)), eze_nowa)
 
 colnames(eze_nowa) <- c("proj", "sex", "ct", "count")
 colnames(velm) <- c("proj", "sex", "ct", "count")
@@ -30,13 +37,137 @@ all_ds_ct$sex <- str_replace_all(all_ds_ct$sex, c("Female"="F", "Male"="M"))
 sex_count <- vector()
 id <- vector()
 for (ds in unique(all_ds_ct$proj)) {
-  sex_count <- c(sex_count, sum(all_ds_ct[which(all_ds_ct$proj==ds &  all_ds_ct$sex=="F"), "count"]))
-  sex_count <- c(sex_count, sum(all_ds_ct[which(all_ds_ct$proj==ds &  all_ds_ct$sex=="M"), "count"]))
-  id <- c(id, paste(ds, "F", sep = "/"), paste(ds, "M", sep = "/"))
+  for (dis in unique(all_ds_ct[which(all_ds_ct$proj==ds), "disease"])) {
+    sex_count <- c(sex_count, sum(all_ds_ct[which(all_ds_ct$proj==ds & all_ds_ct$disease==dis & all_ds_ct$sex=="F"), "count"]))
+    sex_count <- c(sex_count, sum(all_ds_ct[which(all_ds_ct$proj==ds & all_ds_ct$disease==dis &  all_ds_ct$sex=="M"), "count"]))
+    id <- c(id, paste(ds, dis, "F", sep = "/"), paste(ds, dis, "M", sep = "/"))
+  }
 }
 
 all_ds <- data.frame("id"=id, "count"=sex_count)
-all_ds <- separate(all_ds, id, into = c("proj", "sex"), sep = "/")
+all_ds <- separate(all_ds, id, into = c("proj","disease", "sex"), sep = "/")
 
 write.csv(all_ds_ct, paste0(out_path, "num_cells_per_ct.csv"))
 write.csv(all_ds, paste0(out_path, "num_cells.csv"))
+
+order_proj <- c("Eze_Nowakowski_2nd_trimester", "Velmeshev_2022_2nd trimester",
+                "Velmeshev_2022_3rd trimester", "Velmeshev_2022_0-1 years", "Velmeshev_2022_1-2 years",
+                "Velmeshev_2022_2-4 years", "Velmeshev_2022_10-20 years", "Velmeshev_2022_Adult",
+                "DISCO_GSE157827", "DISCO_GSE174367","DISCO_PRJNA544731")
+
+norm <- ggplot(all_ds[which(all_ds$disease=="Normal"),], aes(factor(proj, order_proj), count, fill=sex)) +
+  geom_bar(stat = "identity", color="black", position = "dodge") +
+  labs(x="Datasets", y="Number of cells", fill="Sex") +
+  facet_wrap(~factor(disease, levels=c("Normal", "Alzheimer's disease", "Multiple Sclerosis")), 
+             scales = "free_x") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        plot.title = element_text(size=12, face="bold", colour = "black"),
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
+        axis.ticks.x=element_blank(),
+        axis.title.y = element_text(size=12, face="bold", colour = "black"),
+        legend.position = "bottom", 
+        legend.title = element_text(size=12, face="bold", colour = "black"))
+
+dis <- ggplot(all_ds[which(all_ds$disease!="Normal"),], aes(factor(proj, order_proj), count, fill=sex)) +
+  geom_bar(stat = "identity", color="black", position = "dodge") +
+  labs(x="Datasets", y="Number of cells", fill="Sex") +
+  facet_wrap(~factor(disease, levels=c("Normal", "Alzheimer's disease", "Multiple Sclerosis")), 
+             scales = "free_x") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        plot.title = element_text(size=12, face="bold", colour = "black"),
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
+        axis.ticks.x=element_blank(),
+        axis.title.y = element_text(size=12, face="bold", colour = "black"),
+        legend.position = "bottom", 
+        legend.title = element_text(size=12, face="bold", colour = "black"))
+
+
+fig <- ggarrange(norm, dis, nrow = 2, common.legend = T, legend = "bottom")
+
+pdf(paste0(plot_path, "num_cells.pdf"))
+print(fig)
+dev.off()
+
+unified_annotation <- c("CXCL14 IN" = "Interneurons",
+                        "EC" = "Endothelial cells",
+                        "fibrous astrocyte"  = "Astrocytes",
+                        "L2_3 EN" = "Excitatory neurons", 
+                        "L4 EN" = "Excitatory neurons",
+                        "L5 EN" = "Excitatory neurons",
+                        "L5_6 EN" = "Excitatory neurons",
+                        "L5b EN" = "Excitatory neurons",
+                        "L6 EN" = "Excitatory neurons",                
+                        "microglia" = "Microglia", 
+                        "Oligodendrocyte" =  "Oligodendrocytes",      
+                        "OPC" = "OPCs",                  
+                        "PLCH1 L4_5 EN" = "Excitatory neurons", 
+                        "protoplasmic astrocyte" = "Astrocytes",
+                        "PVALB IN"  = "Interneurons",            
+                        "pyramidal neuron"  = "Excitatory neurons",
+                        "SST IN" = "Interneurons",   
+                        "SV2C IN"  = "Interneurons",   
+                        "T" = "T cells",
+                        "TSHZ2 L4_5 EN" = "Excitatory neurons",  
+                        "VIP IN" = "Interneurons",
+                        "IPC"="IPCs",
+                        "Mesenchymal" = "Mesenchymal",      
+                        "Neuroepithelial" =     "Neuroepithelial",
+                        "Neuronal" = "Neurons",            
+                        "Other"    = "Other",                
+                        "Radial Glial"     = "Radial Glia",       
+                        "Astrocytes" = "Astrocytes",        
+                        "Excitatory neurons"  = "Excitatory neurons",
+                        "Interneurons"   = "Interneurons",     
+                        "Microglia"  = "Microglia",         
+                        "Oligodendrocytes" = "Oligodendrocytes",
+                        "OPCs" = "OPCs",            
+                        "Unknown" = "Unknown",           
+                        "Vascular cells" = "Vascular cells",     
+                        "Dorsal progenitors"  = "Dorsal progenitors" ,   
+                        "Ventral progenitors" = "Ventral progenitors")
+names(unified_annotation) <- tolower(names(unified_annotation))
+
+all_ds_ct$ct <- str_replace_all(all_ds_ct$ct, "/", "_")
+
+all_ds_ct$ct_common <- rep(NA, nrow(all_ds_ct))
+for (ct in tolower(unique(all_ds_ct$ct))) {
+  all_ds_ct[which(tolower(all_ds_ct$ct)==ct), "ct_common"] <- unified_annotation[ct]
+}
+
+all_ds_ct$proj <- factor(all_ds_ct$proj, order_proj)
+all_ds_ct <- all_ds_ct[order(all_ds_ct$proj), ]
+
+
+pdf(paste0(plot_path, "num_cells_per_ct.pdf"), height = 15, width = 10)
+print(
+  ggplot(all_ds_ct, aes(proj, count, fill=proj)) +
+    geom_bar(stat = "identity", show.legend = T, color="black") +
+    geom_hline(yintercept = 100, linetype="dashed") +
+    labs(x="Developmental Conditions", y="Number of cells", fill="Conditions") +
+    facet_grid(ct_common ~ sex, scales = "free_y", switch = "y", drop = T) +
+    theme(
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = NA, color = "black"), 
+      panel.spacing.x = unit(0.5, "lines"),
+      plot.title = element_text(size=14, face="bold", colour = "black"),
+      axis.line = element_line(colour = "black"),
+      axis.title.y = element_text(size=14, face="bold", colour = "black"),
+      axis.text.y = element_text(size=10, colour = "black", vjust = 0.7, hjust=0.5),
+      axis.title.x = element_text(size=14, face="bold", colour = "black"),
+      axis.text.x = element_blank(), 
+      axis.ticks.x = element_blank(), 
+      strip.text = element_text(size = 8),
+      legend.position = "bottom", 
+      legend.text = element_text(size=10, colour = "black"),
+      legend.title = element_text(size=14, face="bold", colour = "black"))
+)
+dev.off()
