@@ -68,15 +68,16 @@ ReadRawData2 <- function(main_dir, dis_type, sex, ext, row_col) {
 
 # 3. Calculate ARE df
 AREdf <- function(df_sex, sex, ARE_DF) {
+  ARE_ls <- list("full" = unique(setdiff(ARE_DF$fullsites, ARE_DF$halfsites)), 
+                 "half" = unique(setdiff(ARE_DF$halfsites, ARE_DF$fullsites)),
+                 "hf" = unique(intersect(ARE_DF$fullsites, ARE_DF$halfsites)))
   df_ARE <- data.frame(as.factor(names(df_sex)))
   colnames(df_ARE) <- c("ct")
   df_ARE$ct <- sapply(1:length(df_ARE$ct), function(i) str_replace(df_ARE$ct[i], paste0("_", sex, "_filt"), ""))
   df_ARE$bg <- sapply(1:length(names(df_sex)), function(i) nrow(df_sex[[i]]))
-  df_ARE$full <- sapply(1:length(names(df_sex)), function(i) length(intersect(rownames(df_sex[[i]]), unique(ARE_DF$fullsites))))
-  df_ARE$half <- sapply(1:length(names(df_sex)), function(i) length(intersect(rownames(df_sex[[i]]), unique(ARE_DF$halfsites))))
-  df_ARE$hf <- sapply(1:length(names(df_sex)), function(i) length(intersect(rownames(df_sex[[i]]), intersect(unique(ARE_DF$halfsites), unique(ARE_DF$fullsites)))))
-  df_ARE$full <- df_ARE$full - df_ARE$hf
-  df_ARE$half <- df_ARE$half - df_ARE$hf
+  df_ARE$full <- sapply(1:length(names(df_sex)), function(i) length(intersect(rownames(df_sex[[i]]), ARE_ls[["full"]])))
+  df_ARE$half <- sapply(1:length(names(df_sex)), function(i) length(intersect(rownames(df_sex[[i]]), ARE_ls[["half"]])))
+  df_ARE$hf <- sapply(1:length(names(df_sex)), function(i) length(intersect(rownames(df_sex[[i]]), ARE_ls[["hf"]])))
   df_ARE$no_overlap <- df_ARE$bg - df_ARE$full - df_ARE$half - df_ARE$hf
   return(df_ARE)
 }

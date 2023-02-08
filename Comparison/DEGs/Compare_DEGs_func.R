@@ -30,6 +30,7 @@ library(tidyr) # to clean and re-organize dfs
 library(ggpubr) # to assemble plots together before saving
 library(biomaRt) # to query to which chromosome the shared genes belong to
 library(scales) # to set the palette to be used in the PlotDEGsOverlap function
+library(RColorBrewer) # to set a palette for the number of DEGs palette
 
 # 1. Import data for each ct
   # Input: CSV files
@@ -602,7 +603,7 @@ NumDEGsAcrossConditions <- function(ct_df_list, condition_ordered) {
       }
     }
   }
-  sex <- rep(c("F", "M"), length(condition))
+  sex <- rep(c("F", "M"), length(condition)/2)
   num_deg_df <- data.frame(ct, condition, sex, count_degs)
   condition_ordered <- condition_ordered[which(condition_ordered %in% unique(num_deg_df$condition))]
   num_deg_df$condition <- factor(num_deg_df$condition, condition_ordered)
@@ -658,14 +659,15 @@ PlotNumDEGs <- function(main_dir, num_degs_ct) {
   # Input: main directory where to save the plots, the dataframe with num of DEGs for each ct and condition
   # Return: nothing, saves the plot instead
 
-PlotNumDEGsFacets <- function(main_dir, num_degs_ct) {
+PlotNumDEGsFacets <- function(main_dir, num_degs_ct, col_palette) {
   plot_path <- paste0(main_dir, "Num_Total_DEGs_across_conditions/")
   dir.create(plot_path, showWarnings = F, recursive = T)
   pdf(paste0(plot_path, "Faceted_tot_DEGs.pdf"), height = 22, width = 15)
   print(
     ggplot(num_degs_ct, aes(condition, count_degs, fill=condition)) +
-      geom_bar(stat = "identity", show.legend = T) +
+      geom_bar(stat = "identity", show.legend = T, color="black") +
       labs(x="Developmental Conditions", y="Number of DEGs", fill="Conditions") +
+      scale_fill_manual(values = col_palette) + 
       facet_grid(ct ~ sex, scales = "free", switch = "y", drop = T) +
       theme(
             panel.grid.major = element_blank(), 
@@ -783,7 +785,7 @@ PlotDEGsOverlap <- function(main_dir, ct_df_list, condition_ordered) {
       pdf(paste0(plot_path, ct_id, "_", sex_id, ".pdf"), width = 15)
       print(
         ggplot(ct_df, aes(other_cond, genes_num, fill=other_cond)) +
-          geom_bar(stat = "identity") +
+          geom_bar(stat = "identity", color="black") +
           facet_wrap(~ref_cond, scales = "free") +
           labs(x="", y="Number of shared genes", fill="Developmental conditions", title = paste(ct_id, sex_id, sep = " - ")) +
           fill_palette(cond_palette) +

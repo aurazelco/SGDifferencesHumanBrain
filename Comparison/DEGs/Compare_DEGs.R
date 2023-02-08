@@ -39,8 +39,8 @@ UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes")
 # disco[[2]] and UCSC[[2]] can be used to manually create unified_annotation, as done below
 disco[[2]]
 UCSC[[2]]
-# manually decided how to combine the sub-celltypes
 
+# manually decided how to combine the sub-celltypes
 unified_annotation <- c("CXCL14 IN" = "Interneurons",
               "EC" = "Endothelial cells",
               "fibrous astrocyte"  = "Astrocytes",
@@ -96,14 +96,10 @@ condition_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
 )
 
 # Generates a df with all DEGs
-sexes <- CreateSexDf(c(UCSC[[1]], disco[[1]]), unified_annotation)
+sexes <- CreateSexDf(c(UCSC[[1]][-1], disco[[1]]), unified_annotation)
 
 # Heatmaps of presence of genes (yes/no) across all ages, for each ct
 PlotCts(main_comparison, sexes, condition_order)
-
-# Heatmaps specifically for the two datasets from the second trimester, all cts
-trim_2nd <- CreateConditionDf(c(UCSC[[1]], disco[[1]]), unified_annotation, condition_order[1:2])
-PlotAcrossConditions(main_comparison, trim_2nd, "trimester_2nd")
 
 # Count of how genes are shared among ages, for each ct and sex
 gene_counts <- CreateCountDfs(sexes)
@@ -111,9 +107,31 @@ PlotNumSharedGenes(main_comparison, gene_counts)
 SaveSharedGenes(main_comparison, gene_counts, 0.75, 1)
 
 # Count number of DEGs per ct across ages, for each ct and sex, and also create one faceted figure
-num_deg <- NumDEGsAcrossConditions(sexes, condition_order)
+num_deg <- NumDEGsAcrossConditions(sexes, condition_order[-1])
 PlotNumDEGs(main_comparison, num_deg)
-PlotNumDEGsFacets(main_comparison, num_deg)
+
+brewer_palette <- c(colorRampPalette(c("white", "#228B22"))(8), "#FF0000")
+custom_palette <- c(
+                    "Velmeshev_2022_2nd_trimester"=brewer_palette[1],           
+                    "Velmeshev_2022_3rd_trimester"=brewer_palette[2], 
+                    "Velmeshev_2022_0_1_years"=brewer_palette[3],                
+                    "Velmeshev_2022_1_2_years"=brewer_palette[4],            
+                    "Velmeshev_2022_2_4_years"=brewer_palette[5],  
+                    "Velmeshev_2022_10_20_years"=brewer_palette[6],      
+                    "Velmeshev_2022_Adult"=brewer_palette[7],
+                    "Normal_GSE157827"=brewer_palette[8],              
+                    "Normal_GSE174367"=brewer_palette[8],               
+                    "Normal_PRJNA544731"=brewer_palette[8], 
+                    "Alzheimer's disease_GSE157827"=brewer_palette[9],
+                    "Alzheimer's disease_GSE174367"=brewer_palette[9],
+                    "Multiple Sclerosis_PRJNA544731"=brewer_palette[9] 
+)
+
+PlotNumDEGsFacets(main_comparison, num_deg, custom_palette)
 
 # Plot the number of overlapping genes between one condition and all others, divided by ct and sex
 PlotDEGsOverlap(main_comparison, sexes, condition_order)
+
+# Plots to compare 2nd trim
+#trim_2nd <- CreateConditionDf(c(UCSC[[1]], disco[[1]]), unified_annotation, condition_order[1:2])
+#PlotAcrossConditions(main_comparison, trim_2nd, "trimester_2nd")

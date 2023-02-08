@@ -85,11 +85,32 @@ AREdfPerc <- function(ARE_filt) {
   return(ARE_filt_perc)
 }
 
+# 3. Calculate percentages of ARE sites
+  # Input: ARE filtered df
+  # Return: ARE DF with updated percentages after sum due to common annotation but simplified
+
+AREdfPercSimplified <- function(ARE_filt) {
+  ARE_filt <- transform(ARE_filt, full_perc = full * 100 / bg)
+  ARE_filt <- transform(ARE_filt, half_perc = half * 100 / bg)
+  ARE_filt <- transform(ARE_filt, hf_perc = hf * 100 / bg)
+  ARE_filt <- transform(ARE_filt, no_overlap_perc = no_overlap * 100 / bg)
+  ARE_filt <- transform(ARE_filt, ARE = (full + half + hf) * 100 / bg)
+  ARE_filt_perc <- ARE_filt[, c(1, 10, 11)]
+  ARE_filt_perc <- melt(ARE_filt_perc, id.vars = "final")
+  names(ARE_filt_perc)[names(ARE_filt_perc) == 'value'] <- 'percent'
+  names(ARE_filt_perc)[names(ARE_filt_perc) == 'variable'] <- 'sites'
+  levels(ARE_filt_perc$sites) <- c('None', 'ARE')
+  ARE_filt_perc$sites <- factor(ARE_filt_perc$sites, c("ARE", "None"))
+  ARE_filt_perc <- separate(ARE_filt_perc, final, into = c("ct", "condition", "sex"), remove = T, sep = "-")
+  return(ARE_filt_perc)
+}
+
+
 # 4. Combines the datasets in one dataframe
   # Input: all datasets in one list
   # Return: all ARE dfs combined in one, averaged for common annotation
 
-CreateAREDf <- function(ARE_all_list, common_annotation) {
+CreateAREDf <- function(ARE_all_list, common_annotation, simpl="no") {
   for (are_df in names(ARE_all_list)) {
     for (sex in names(ARE_all_list[[are_df]])) {
       ARE_all_list[[are_df]][[sex]]$condition <- rep(are_df, nrow(ARE_all_list[[are_df]][[sex]]))
@@ -109,7 +130,11 @@ CreateAREDf <- function(ARE_all_list, common_annotation) {
   }
   colnames(ARE_filt) <- c("final", colnames(ARE_df)[2:6])
   ARE_filt[,2:6] <- lapply(ARE_filt[,2:6], as.numeric)
-  ARE_filt <- AREdfPerc(ARE_filt)
+  if (simpl=="yes") {
+    ARE_filt <- AREdfPercSimplified(ARE_filt)
+  } else {
+    ARE_filt <- AREdfPerc(ARE_filt)
+  }
   return(ARE_filt)
 }
 
@@ -204,19 +229,26 @@ PlotARE <- function(main_dir, ARE_filt, condition_ordered) {
   # Input: main directory where to save the plots, ARE filtered df, the order of the age/condition groups
   # Return: nothing, saves plot instead
 
-PlotFacetedARE <- function(main_dir, ARE_filt, condition_ordered) {
+PlotFacetedARE <- function(main_dir, ARE_filt, condition_ordered, simpl="no") {
   plot_path <- paste0(main_dir, "ARE_ERE_Across_Conditions/")
   dir.create(plot_path, showWarnings = F, recursive = T)
   ARE_filt$condition <- factor(ARE_filt$condition, condition_ordered)
   ARE_filt <- ARE_filt[order(ARE_filt$condition),]
-  col_palette <- c("#39B600", "#9590FF","#D376FF" , "#FD61D1")
-  pdf(paste0(plot_path, "ARE_faceted.pdf"), width = 20, height = 25)
+  if (simpl=="no") {
+    col_palette <- c("#39B600", "#9590FF","#D376FF" , "#FD61D1")
+    plot_title <- "ARE_faceted.pdf"
+  } else {
+    col_palette <- c("#39B600", "#FD61D1")
+    plot_title <- "ARE_faceted_simplified.pdf"
+  }
+  pdf(paste0(plot_path, plot_title), width = 20, height = 25)
   print(
     ggplot(ARE_filt, aes(sex, percent, fill=sites)) +
       geom_bar(stat="identity", color="black", position = "stack") +
       facet_grid(ct~condition, scales = "free", drop = T) +
       labs(x="Developmental conditions", y="% of ARE sites", fill="Overlap ARE sites") +
-      scale_fill_manual(values = c('Full' = col_palette[4] , 'Half' = col_palette[3], 'Half-Full' = col_palette[2], 'None' = col_palette[1])) +
+      {if (simpl=="no") scale_fill_manual(values = c('Full' = col_palette[4] , 'Half' = col_palette[3], 'Half-Full' = col_palette[2], 'None' = col_palette[1]))} +
+      {if (simpl=="yes") scale_fill_manual(values = c('ARE' = col_palette[2], 'None' = col_palette[1]))} +
       theme(panel.grid.major = element_blank(), 
             panel.grid.minor = element_blank(),
             panel.background = element_blank(), 

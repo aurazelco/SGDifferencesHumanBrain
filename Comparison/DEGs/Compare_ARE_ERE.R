@@ -86,9 +86,14 @@ UCSC_ARE <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes", ARE_ERE="ARE")
 
 # Combines them in one dataframe (summing the common annotation) and plots the results
 ARE <- CreateAREDf(c(disco_ARE, UCSC_ARE), unified_annotation)
-PlotARE(main_comparison, ARE, condition_order)
+PlotARE(main_comparison, ARE[which(ARE$condition!="Eze_Nowakowski_integrated_2nd_trimester"), ], condition_order)
 # Facets all ARE plots
-PlotFacetedARE(main_comparison, ARE, condition_order)
+PlotFacetedARE(main_comparison, ARE[which(ARE$condition!="Eze_Nowakowski_integrated_2nd_trimester"), ], condition_order)
+
+# Plot simplified sites facet
+ARE_simpl <- CreateAREDf(c(disco_ARE, UCSC_ARE), unified_annotation, "yes")
+PlotFacetedARE(main_comparison, ARE_simpl[which(ARE_simpl$condition!="Eze_Nowakowski_integrated_2nd_trimester"), ], condition_order, simpl = "yes")
+
 
 
 # Imports ERE from all sub-folders

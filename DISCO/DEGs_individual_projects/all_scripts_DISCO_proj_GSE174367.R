@@ -228,11 +228,11 @@ PlotNumChr(main, sub_disease[1], num_chr_genes, ct_order, T)
 
 source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs_individual_projects/02B_ARE_ERE_func.R")
 
-ARE <- read_excel("Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj/extra_files/AREsitesHuman.xlsx",
+ARE <- read_excel("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj/extra_files/AREsitesHuman.xlsx",
                   skip=1)
 colnames(ARE) <- c("fullsites", "halfsites")
 
-ERE <- read_excel("Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj/extra_files/Hs_allEREs.xls")
+ERE <- read_excel("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj/extra_files/Hs_allEREs.xls")
 EREgene <- ERE$`Hs Gene Name`
 
 # NORMAL

@@ -21,6 +21,7 @@
 #install.packages("dplyr")
 #install.packages("RColorBrewer")
 #install.packages("VennDiagram")
+#install.packages("ggVennDiagram")
 
 library(readxl) # to import xlsx files
 library(stringr) # to modify and harmonize names
@@ -28,6 +29,7 @@ library(dplyr) # to extract the column from the O'Brien reference
 library(RColorBrewer) # to import the Set2 palette
 library(VennDiagram) # to plot the Venn Diagram
 library(ggplot2) # to plot the percentages of overlap
+library(ggVennDiagram) # to plot the second part of Venn diagrams
 
 # 1. Import data for each ct
   # Input: CSV files
@@ -128,10 +130,10 @@ ImportDataset <- function(main_dir, folder_list, individual_projs=vector()) {
 }
 
 # 4. Plot the Venn Diagram for each sex
-  # Input: main directory, sex, sex
+  # Input: main directory, sex, list of genes to compare, the sex, and the palette to be used
   # Return: nothing, plots are saved instead
 
-PlotVenn <- function(plot_dir, sex_list, sex, venn_col) {
+PlotVennSex <- function(plot_dir, sex_list, sex, venn_col) {
   venn.diagram(
     # General
     x=sex_list, 
@@ -209,7 +211,7 @@ PlotPercentOverlap <- function(plot_dir, overlap) {
     # the list of degs imported, the reference name, and parts of string to be removed
   # Return: nothing, plots and CSVs are saved instead
 
-Venn2ndTrim <- function(main_dir, ref_df, n_col=2, list_degs, ref_name, to_remove="empty") {
+Venn2ndTrimSex <- function(main_dir, ref_df, n_col=2, list_degs, ref_name, to_remove="empty") {
   if (length(list_degs)>4) {
     print("The Venn diagram can only be used with max of 5 groups")
   } else {
@@ -218,7 +220,7 @@ Venn2ndTrim <- function(main_dir, ref_df, n_col=2, list_degs, ref_name, to_remov
     dir.create(plot_path, showWarnings = F, recursive = T)
     overlap <- list()
     for (sex in c("F", "M")) {
-      sex_list <- list(pull(ref_df, 2))
+      sex_list <- list(pull(ref_df, n_col))
       for (ds in names(list_degs)) {
         ds_genes <- do.call(rbind,list_degs[[ds]][[sex]])
         #ds_genes$ct <- gsub('(.*).\\w+', '\\1', rownames(ds_genes))
@@ -226,7 +228,7 @@ Venn2ndTrim <- function(main_dir, ref_df, n_col=2, list_degs, ref_name, to_remov
         sex_list <- append(sex_list, list(ds_genes))
       }
       names(sex_list) <- c(ref_name, str_remove_all(names(list_degs), to_remove))
-      PlotVenn(plot_path, sex_list, sex, venn_col)
+      PlotVennSex(plot_path, sex_list, sex, venn_col)
       overlap <- append(overlap, list(sex_list))
     }
     names(overlap) <- c("F", "M")
@@ -246,7 +248,62 @@ Venn2ndTrim <- function(main_dir, ref_df, n_col=2, list_degs, ref_name, to_remov
                             length(intersect(overlap[[sex_id]][[1]], overlap[[sex_id]][[i]]))))
       }
     }
-    write.csv(data.frame("comparison"=comp, "sex"= sexes, "gene_id"= genes), paste0(plot_path, "Intersected_genes.csv"))
+    write.csv(data.frame("comparison"=comp, "sex"= sexes, "gene_id"= genes), paste0(plot_path, "sex_intersected_genes.csv"))
   }
 }
 
+# 7. Create a list wth all the groups to be compared
+  # Input: the imported list of DEGs, the reference df, the column in the ref_df where to find the gene ids, if strings have to be removed from the name
+  # Return: list of genes
+
+CreateList <- function(list_degs, ref_df, ref_name, n_col=2, to_remove="empty") {
+  groups <- vector()
+  ds_sex_genes <- list(pull(ref_df, n_col))
+  for (ds in names(list_degs)) {
+    for (sex in names(list_degs[[ds]])) {
+      ds_sex_genes <- append(ds_sex_genes, list(unique(unlist(list_degs[[ds]][[sex]]))))
+      groups <- c(groups, paste(ds, sex, sep = "_"))
+    }
+  }
+  if (to_remove=="empty") {
+    names(ds_sex_genes) <- c(ref_name, groups)
+  } else {
+    names(ds_sex_genes) <- str_remove_all(c(ref_name, groups), to_remove)
+  }
+  return(ds_sex_genes)
+}
+
+
+# 8. Plots the comparison with a reference df
+  # Input: main directory, the reference df, the list of degs imported, the reference name, 
+    #  the groups to be compared, the plot tile, the column in the reference df where the gene names are, 
+    # and parts of string to be removed
+  # Return: nothing, plots and CSVs are saved instead
+
+Venn2ndTrim <- function(main_dir, ref_df, list_degs, ref_name, groups_to_compare, plot_title, n_col=2, to_remove="empty") {
+  if (length(groups_to_compare)>5) {
+    print("The Venn diagram can only be used with max of 5 groups")
+  } else {
+    plot_path <- paste0(main_dir, "VennDiagram_2nd_trimester/")
+    dir.create(plot_path, showWarnings = F, recursive = T)
+    ds_sex_genes <- CreateList(list_degs, ref_df, ref_name, n_col, to_remove)
+    comp_ls <- ds_sex_genes[groups_to_compare]
+    pdf(paste0(plot_path, plot_title, "_Venn.pdf"), width = 15)
+    print(
+      ggVennDiagram(comp_ls, label = "both", label_alpha = 100, label_percent_digit = 2) + theme(legend.position = "bottom")
+    )
+    dev.off()
+    genes <- c(Reduce(intersect, comp_ls))
+    comp <- c(rep("all", length(genes)))
+    if (length(groups_to_compare)>2) {
+      for (i in 1:(length(comp_ls)-1)) {
+        comp_int <- comp_ls[(i+1):length(names(comp_ls))]
+        for (k in 1:length(comp_int)) {
+          genes <- c(genes, intersect(comp_ls[[i]], comp_int[[k]]))
+          comp <- c(comp, rep(paste(names(comp_ls)[i], names(comp_int)[k], sep = " - "), length(intersect(comp_ls[[i]], comp_int[[k]]))))
+        }
+      }
+    }
+    write.csv(data.frame("comparison"=comp, "gene_id"= genes), paste0(plot_path, plot_title, "_intersected_genes.csv"))
+  }
+}
