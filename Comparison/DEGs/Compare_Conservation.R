@@ -87,5 +87,5 @@ disco <- ImportDataset(main_DISCO, sub_proj, individual_projs = T, cons_db = con
 UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes", individual_projs = F, cons_db = conservation_db)
 
 # Merges the result dfs in one, averaging duplicates and plots the resulting df
-cons_df <- CreateConservationDf(c(UCSC, disco), unified_annotation, condition_order)
+cons_df <- CreateConservationDf(c(UCSC[-1], disco), unified_annotation, condition_order)
 PlotConservationComparison(main_comparison, cons_df, conservation_db, 4)

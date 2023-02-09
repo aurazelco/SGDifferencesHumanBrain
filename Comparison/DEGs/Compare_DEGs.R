@@ -104,7 +104,7 @@ PlotCts(main_comparison, sexes, condition_order)
 # Count of how genes are shared among ages, for each ct and sex
 gene_counts <- CreateCountDfs(sexes)
 PlotNumSharedGenes(main_comparison, gene_counts)
-SaveSharedGenes(main_comparison, gene_counts, 0.75, 1)
+test1 <- SaveSharedGenes(main_comparison, gene_counts, 0.75, 1)
 
 # Count number of DEGs per ct across ages, for each ct and sex, and also create one faceted figure
 num_deg <- NumDEGsAcrossConditions(sexes, condition_order[-1])
@@ -131,7 +131,10 @@ PlotNumDEGsFacets(main_comparison, num_deg, custom_palette)
 
 # Plot the number of overlapping genes between one condition and all others, divided by ct and sex
 PlotDEGsOverlap(main_comparison, sexes, condition_order)
+# Plots the same but as a heatmap
+PlotDEGsOverlapHmp(main_comparison, sexes, condition_order)
 
 # Plots to compare 2nd trim
 #trim_2nd <- CreateConditionDf(c(UCSC[[1]], disco[[1]]), unified_annotation, condition_order[1:2])
 #PlotAcrossConditions(main_comparison, trim_2nd, "trimester_2nd")
+

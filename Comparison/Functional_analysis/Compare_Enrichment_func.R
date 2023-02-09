@@ -795,8 +795,58 @@ PlotBarPlotRef <- function(ref_presence_df, ref_ct_id, plot_titles) {
   return(ref_plot)
 }
 
+# 22. Calculates the % of known markers in the DEGs
+  # Input: the presence df, the ct to plot, the gene lists
+  # Return: the percent df
 
-# 22. Plots if gebes from a reference df are found or not in the DEGs
+RefPerc <- function(ref_presence_df, ref_ct_id, sex_df) {
+  pos_markers <- ref_presence_df[which(ref_presence_df$ref_ct==ref_ct_id), ]
+  tot_genes <- vector()
+  tot_names <- vector()
+  num_pos <- vector()
+  for (id in unique(pos_markers$condition)) {
+      for (ct in unique(pos_markers[which(pos_markers$condition==id), "cond_ct"])) {
+        tot_names <- c(tot_names, paste(id, ct, "F", sep = "/"), paste(id, ct, "M", sep = "/"))
+        num_pos <- c(num_pos, length(pos_markers[which(pos_markers$condition==id & pos_markers$cond_ct==ct & pos_markers$sex=="F" & pos_markers$presence=="Yes"), "gene_ids"]))
+        num_pos <- c(num_pos, length(pos_markers[which(pos_markers$condition==id & pos_markers$cond_ct==ct & pos_markers$sex=="M" & pos_markers$presence=="Yes"), "gene_ids"]))
+        tot_genes <- c(tot_genes, length(sex_df[which(sex_df$condition==id & sex_df$common_annot==ct & sex_df$sex=="F"), "gene_id"]))
+        tot_genes <- c(tot_genes, length(sex_df[which(sex_df$condition==id & sex_df$common_annot==ct & sex_df$sex=="M"), "gene_id"]))
+      }
+    }
+  ref_perc <- data.frame(tot_names, num_pos, tot_genes)
+  ref_perc <- separate(ref_perc, tot_names, into = c("condition", "ct", "sex"), sep = "/")
+  ref_perc$perc <- ref_perc$num_pos * 100 / ref_perc$tot_genes
+  return(ref_perc)
+}
+
+# 23. Plot the presence number of genes as percentage
+  # Input: the presence df, the ct to plot
+  # Return: the plot
+
+PlotBarPlotRefPerc <- function(ref_perc, ref_ct_id, plot_titles) {
+  ref_plot <- ggplot(ref_perc, aes(ct, perc, fill=condition)) +
+    geom_bar(stat="identity", color="black") +
+    facet_grid(sex ~ condition, scales = "free") +
+    labs(x="Cell types", y="Markers %", fill="Groups", title = plot_titles[ref_ct_id]) +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          panel.spacing.x=unit(0, "lines"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.x = element_text(size=12, face="bold", colour = "black"),
+          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+          axis.ticks.x=element_blank(),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          axis.text.y = element_text(size=8, colour = "black"),
+          axis.ticks.y = element_blank(),
+          legend.position = "right", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+  return(ref_plot)
+}
+
+
+# 24. Plots if gebes from a reference df are found or not in the DEGs
   # Input: main directory where to save the plots, the dataframe containing all DEGs, the reference df, 
     # the order in which plot the conditions (and which conditions to plot), the vector to use for plot titles
   # Return: nothing, saves plot instead
@@ -829,18 +879,22 @@ PlotRefCt <- function(main_dir, sex_df, ref_df, condition_ordered, ref_df_name="
   ref_presence_df$condition <- factor(ref_presence_df$condition, condition_order)
   ref_presence_df <- ref_presence_df[order(ref_presence_df$condition), ]
   for (ref_ct_id in unique(ref_presence_df$ref_ct)) {
-      print(plot_titles[[ref_ct_id]])
-      pdf(paste0(out_path, plot_titles[ref_ct_id], "_hmp.pdf"), height = 15, width = 10)
-      print(PlotHmpRef(ref_presence_df, ref_ct_id, plot_titles))
-      dev.off()
-      pdf(paste0(out_path, plot_titles[ref_ct_id], "_barplot.pdf"), height = 4, width = 16)
-      print(PlotBarPlotRef(ref_presence_df, ref_ct_id, plot_titles))
-      dev.off()
+    print(plot_titles[[ref_ct_id]])
+    pdf(paste0(out_path, plot_titles[ref_ct_id], "_hmp.pdf"), height = 15, width = 10)
+    print(PlotHmpRef(ref_presence_df, ref_ct_id, plot_titles))
+    dev.off()
+    pdf(paste0(out_path, plot_titles[ref_ct_id], "_barplot.pdf"), height = 4, width = 16)
+    print(PlotBarPlotRef(ref_presence_df, ref_ct_id, plot_titles))
+    dev.off()
+    ref_perc <- RefPerc(ref_presence_df, ref_ct_id, sex_df)
+    pdf(paste0(out_path, plot_titles[ref_ct_id], "_barplot_perc.pdf"), height = 4, width = 16)
+    print(PlotBarPlotRefPerc(ref_perc, ref_ct_id, plot_titles))
+    dev.off()
   }
 }
 
 
-# 23. Import results from disease-related enrichments
+# 25. Import results from disease-related enrichments
   # Input: main directory where to find the files, which db to use, which comparison to import
   # Return: list of files
 
@@ -890,7 +944,7 @@ ImportDBresults <- function(main_dir, dbsx, which_dbsx) {
   return(dbsx_df)
 }
 
-# 24. Counts the number of repeated terms
+# 26. Counts the number of repeated terms
   # Input: main directory where to save the files, the merged dataframe, the order in which plot the conditions
   # Return: nothing, saves the files instead
 
@@ -929,7 +983,7 @@ CountDiseases <- function(main_dir, dbsx_all) {
 }
 
 
-# 25. Plots the disease enrichemnt results in facets
+# 27. Plots the disease enrichemnt results in facets
   # Input: main directory where to save the plots, the merged dataframe, the order in which plot the conditions
   # Return: nothing, saves the plots instead
 
@@ -967,5 +1021,88 @@ PlotFacetedDB <- function(main_dir, dbsx_all, condition_ordered) {
       }
       
     }
+  }
+}
+
+# 28. Creates a dataframe with only the gens related to know diseases
+  # Input: main directory where to save the file, the reference dataframe with the diseases and genes, 
+    # one dataframe containing all DEGs, the reference name to be used for the output folder
+  # Return: the DEG dataframe with the presence of genes-associated genes and saves the results to CSV file
+
+CreateDisDf <- function(main_dir, ref, sex_dfs, ref_df_name) {
+  dis_genes <- vector()
+  group_id <- vector()
+  for (dis_family in unique(ref$Disease_group)) {
+    for (dis in unique(ref[which(ref$Disease_group==dis_family), "Disease"])) {
+      dis_genes <- c(dis_genes, unlist(str_split(ref[which(ref$Disease_group==dis_family & ref$Disease==dis), "Affected_gene"], pattern = ", ")))
+      group_id <- c(group_id, rep(paste(dis_family, dis, sep = "/"), length(unlist(str_split(ref[which(ref$Disease_group==dis_family & ref$Disease==dis), "Affected_gene"], pattern = ", ")))))
+    }
+  }
+  ref_df <- data.frame(group_id, dis_genes)
+  sex_dfs$id <- paste(sex_dfs$condition, sex_dfs$sex, sex_dfs$common_annot, sep = "/")
+  dis_presence <- vector()
+  dis_names <- vector()
+  deg_ids <- vector()
+  genes_ids <- vector()
+  for (id in unique(ref_df$group_id)) {
+    for (deg in unique(sex_dfs$id)) {
+      genes_ids <- c(genes_ids, ref_df[which(ref_df$group_id==id), "dis_genes"])
+      deg_presence <- ifelse(ref_df[which(ref_df$group_id==id), "dis_genes"] %in% sex_dfs[which(sex_dfs$id==deg), "gene_id"], "yes", "no")
+      dis_presence <- c(dis_presence, deg_presence)
+      dis_names <-c(dis_names, rep(id, length(deg_presence)))
+      deg_ids <- c(deg_ids, rep(deg, length(deg_presence)))
+    }
+  }
+  ref_deg <- data.frame(dis_names, deg_ids, genes_ids, dis_presence)
+  ref_deg <- separate(ref_deg, dis_names, into = c("disease_group", "disease"), sep = "/")
+  ref_deg <- separate(ref_deg, deg_ids, into = c("condition", "sex", "ct"), sep = "/")
+  ref_deg$dis_gene_id <- paste(ref_deg$disease, ref_deg$genes_ids, sep =  " - ")
+  out_path <- paste0(main_dir, "Hmp_", ref_df_name, "/")  
+  dir.create(out_path, showWarnings = F, recursive = T)
+  write.csv(ref_deg, paste0(out_path, "disease_genes_in_degs.csv"))
+  return(ref_deg)
+}
+
+# 29. Plot heatmap with the results of which disease-associated genes are found in the degs
+  # Iput: the DEG data frame with the presence of genes-associated genes, the disease group to plot
+  # Return: the faceted plot
+
+PlotDisDegGroup <- function(ref_deg, dis_id) {
+  dis_plot <- ggplot(complete(ref_deg[which(ref_deg$disease_group==dis_id),]), aes(factor(condition, condition_order), dis_gene_id, fill=dis_presence)) +
+    geom_tile(color="white") +
+    facet_grid(sex ~ ct, scales = "free") +
+    labs(x="Groups", y="Disease-associated genes", fill="Genes found", title =dis_id) +
+    scale_fill_manual(values = c("yes"="#F8766D",
+                                 "no"="#00BFC4"),
+                      na.value = "grey",
+                      guide = guide_legend(reverse = TRUE)) +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          panel.spacing.x=unit(0, "lines"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.x = element_text(size=12, face="bold", colour = "black"),
+          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+          axis.ticks.x=element_blank(),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          axis.text.y = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
+          axis.ticks.y = element_blank(),
+          legend.position = "right", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+}
+
+# 30. Plots the results for the disease-associated genes for all disease groups
+  # Input: main directory where to save the plots, the DEG dataframe with the presence of genes-associated genes
+  # Return: nothing, saves plots instead
+
+PlotDisDeg <- function(main_dir, ref_deg, ref_df_name) {
+  out_path <- paste0(main_dir, "Hmp_", ref_df_name, "/")  
+  dir.create(out_path, showWarnings = F, recursive = T)
+  for (dis in unique(ref_deg$disease_group)) {
+    print(dis)
+    pdf(paste0(out_path, dis, ".pdf"), width = 16)
+    print(PlotDisDegGroup(ref_deg, dis))
+    dev.off()
   }
 }

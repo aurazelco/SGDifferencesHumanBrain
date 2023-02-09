@@ -12,26 +12,27 @@ plot_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Extra_figures/"
 disco <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_common/num_proj_sex_ct.csv")
 
 velm <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_sex_ct_per_age.csv")
-eze_nowa <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Eze_Nowakowski_num_cells.csv")
+#eze_nowa <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Eze_Nowakowski_num_cells.csv")
 
 disco$X <- NULL
 velm$X <- NULL
-eze_nowa$X <- NULL
-eze_nowa <- cbind(rep("Eze_Nowakowski_2nd_trimester", nrow(eze_nowa)), eze_nowa)
+#eze_nowa$X <- NULL
+#eze_nowa <- cbind(rep("Eze_Nowakowski_2nd_trimester", nrow(eze_nowa)), eze_nowa)
 
-colnames(eze_nowa) <- c("proj", "sex", "ct", "count")
+#colnames(eze_nowa) <- c("proj", "sex", "ct", "count")
 colnames(velm) <- c("proj", "sex", "ct", "count")
-eze_nowa$disease <- rep("Normal", nrow(eze_nowa))
+#eze_nowa$disease <- rep("Normal", nrow(eze_nowa))
 velm$disease <- rep("Normal", nrow(velm))
 
-eze_nowa <- eze_nowa %>% relocate(disease, .after = sex)
+#eze_nowa <- eze_nowa %>% relocate(disease, .after = sex)
 velm <- velm %>% relocate(disease, .after = sex)
 
 velm$proj <- paste("Velmeshev_2022", velm$proj, sep = "_")
 disco$proj <- paste("DISCO", disco$proj, sep = "_")
 
 
-all_ds_ct <- rbind(eze_nowa, velm, disco)
+#all_ds_ct <- rbind(eze_nowa, velm, disco)
+all_ds_ct <- rbind(velm, disco)
 all_ds_ct$sex <- str_replace_all(all_ds_ct$sex, c("Female"="F", "Male"="M"))
 
 sex_count <- vector()
@@ -54,7 +55,7 @@ order_proj <- c("Eze_Nowakowski_2nd_trimester", "Velmeshev_2022_2nd trimester",
                 "Velmeshev_2022_2-4 years", "Velmeshev_2022_10-20 years", "Velmeshev_2022_Adult",
                 "DISCO_GSE157827", "DISCO_GSE174367","DISCO_PRJNA544731")
 
-norm <- ggplot(all_ds[which(all_ds$disease=="Normal"),], aes(factor(proj, order_proj), count, fill=sex)) +
+norm <- ggplot(all_ds[which(all_ds$disease=="Normal"),], aes(factor(proj, order_proj[-1]), count, fill=sex)) +
   geom_bar(stat = "identity", color="black", position = "dodge") +
   labs(x="Datasets", y="Number of cells", fill="Sex") +
   facet_wrap(~factor(disease, levels=c("Normal", "Alzheimer's disease", "Multiple Sclerosis")), 
@@ -173,7 +174,7 @@ order_proj_dis <- c(
   "DISCO_GSE174367_Alzheimer's disease", "DISCO_PRJNA544731_Multiple Sclerosis" 
 )
 
-all_ds_ct$proj_dis <- factor(all_ds_ct$proj_dis, order_proj_dis)
+all_ds_ct$proj_dis <- factor(all_ds_ct$proj_dis, order_proj_dis[-1])
 all_ds_ct <- all_ds_ct[order(all_ds_ct$proj_dis), ]
 
 pdf(paste0(plot_path, "num_cells_per_ct.pdf"), height = 15, width = 10)

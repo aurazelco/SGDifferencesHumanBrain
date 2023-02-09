@@ -114,13 +114,21 @@ CreateConservationDf <- function(cons_list, common_annotation, condition_ordered
 PlotConservationComparison <- function(main_dir, cons_df_mean, cons_db, threshold) {
   plot_path <- paste0(main_dir, "Conservation_", cons_db, "/")
   dir.create(plot_path, recursive = T, showWarnings = F)
+  cons_df_mean <- droplevels(cons_df_mean)
+  cons_df_mean$frac_groups <- str_replace_all(cons_df_mean$frac_groups, c("F_All" = "All Female Genes", "M_All" = "All Male Genes", 
+                                                                          "F_DEG_fraction" = "Female-biased genes", "M_DEG_fraction" = "Male-biased genes"))
+  cons_df_mean$frac_groups <- factor(cons_df_mean$frac_groups, c("All Female Genes",  "Female-biased genes", "All Male Genes", "Male-biased genes"))
   pdf(paste0(plot_path, "Conservation_comparison.pdf"), height = 15, width = 10)
   print(  
     ggplot(cons_df_mean, aes(ct, fractions, fill=frac_groups)) +
             geom_bar(stat='identity', position='dodge', color="black") + 
             facet_wrap(~condition, scales = "free_x") +
             labs(title=paste0("Conserved in at least ", threshold, " species"), x="Cell types", y="Fraction of conserved genes", fill="Groups") +
-            scale_fill_discrete(labels=c("All Female Genes", "Female-biased genes", "All Male Genes", "Male-biased genes")) +
+            #scale_fill_discrete(labels=c("All Female Genes", "Female-biased genes", "All Male Genes", "Male-biased genes")) +
+            scale_fill_manual(values = c("All Female Genes" = "#D3D3D3",  
+                                         "Female-biased genes" = "#F8766D", 
+                                         "All Male Genes" = "#5A5A5A", 
+                                         "Male-biased genes"="#00BFC4")) +
             theme(panel.grid.major = element_blank(), 
                   panel.grid.minor = element_blank(),
                   panel.background = element_blank(), 

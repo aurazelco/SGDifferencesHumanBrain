@@ -412,7 +412,7 @@ PlotAcrossConditionsSex <- function(condition_df_presence_sex, sex) {
     scale_fill_manual(values = c("yes"="#F8766D",
                                  "no"="#00BFC4"),
                       guide = guide_legend(reverse = TRUE)) +
-    labs(x="Developmental conditions", y="Genes", fill="Genes found", title = sex) +
+    labs(x="Groups", y="Genes", fill="Genes found", title = sex) +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(), 
@@ -579,6 +579,7 @@ SaveSharedGenes <- function(main_dir, gene_count_dfs, min_sharing=0.75, min_num_
       shared_genes_chr[which(shared_genes_chr$ct==ct_id), "num_conditions"] <- max(gene_count_dfs[[ct_id]]$condition_count)
   }
   write.csv(shared_genes_chr, paste0(out_path, "Shared_genes.csv"))
+  return(shared_genes_chr)
 }
 
 
@@ -689,58 +690,9 @@ PlotNumDEGsFacets <- function(main_dir, num_degs_ct, col_palette) {
   dev.off()
 }
 
-# 27. Stats on overlap between DEGs across conditions
+# 27. Plot the num of shared genes between one condition and all others
   # Input: main directory where to save the plots, list of presence dfs, one per each ct, and the order in which to plot the conditions
-  # Return: 
-
-CalcDEGsOverlap <- function(main_dir, ct_df_list, condition_ordered) {
-  plot_path <- paste0(main_dir, "DEGs_Overlap_across_conditions/")
-  dir.create(plot_path, showWarnings = F, recursive = T)
-  filt_df <- do.call(rbind, ct_df_list)
-  filt_df$presence <- ifelse(filt_df$presence=="yes", 1, 0)
-  filt_df$ct <- gsub('\\..*', '', rownames(filt_df))
-  for (sex_id in c("F", "M")) {
-    print(sex_id)
-    sex_df <- subset(filt_df, sex==sex_id & presence==1)
-    ct_vec <- vector()
-    comp_list <- list()
-    ct_names <- vector()
-    for (ct in unique(sex_df$ct)) {
-      if (length(unique(sex_df[which(sex_df$ct==ct), "condition"]))>1) {
-        ct_names <- c(ct_names, ct)
-        print(ct)
-        ct_cond <- condition_ordered[which(condition_ordered %in% unique(sex_df[which(sex_df$ct==ct), "condition"]))]
-        ct_df <- data.frame()
-        for (cond in ct_cond) {
-          ref_genes <- sex_df[which(sex_df$ct==ct & sex_df$condition==cond), "gene_id"]
-          comp_vec <- c(paste(cond, cond, sep = " - "))
-          num_common_genes <- c(length(ref_genes))
-          for (other_cond  in ct_cond[!ct_cond == cond]) {
-            comp_vec <- c(comp_vec, paste(cond, other_cond, sep = " - "))
-            num_common_genes <- c(num_common_genes, length(intersect(ref_genes, sex_df[which(sex_df$ct==ct & sex_df$condition==other_cond), "gene_id"])))
-          }
-          ct_df <- rbind(ct_df, data.frame(comp_vec, num_common_genes))
-        }
-        comp_list <- append(comp_list, list(ct_df))
-      }
-    }
-    names(comp_list) <- ct_names
-    for (ct_id in names(comp_list)) {
-      colnames(comp_list[[ct_id]]) <- c("comparison", "genes_num")
-      comp_list[[ct_id]] <- separate(comp_list[[ct_id]], comparison, into = c("ref_cond", "other_cond"), remove = F, sep = " - ")
-      comp_list[[ct_id]]$ref_cond <- factor(comp_list[[ct_id]]$ref_cond, condition_order[which(condition_order %in% unique(comp_list[[ct_id]]$ref_cond))])
-      comp_list[[ct_id]]$other_cond <- factor(comp_list[[ct_id]]$other_cond, condition_order[which(condition_order %in% unique(comp_list[[ct_id]]$other_cond))])
-      cond_palette <- hue_pal()(length(levels(comp_list[[ct_id]]$ref_cond)))
-      names(cond_palette) <- levels(comp_list[[ct_id]]$ref_cond)
-    }
-    return(comp_list)
-  }
-}
-
-
-# 28. Plot the num of shared genes between one condition and all others
-  # Input: main directory where to save the plots, list of presence dfs, one per each ct, and the order in which to plot the conditions
-  # Return: nothing, saves plot instead
+  # Return: nothing, saves plot and CSV instead
 
 PlotDEGsOverlap <- function(main_dir, ct_df_list, condition_ordered) {
   plot_path <- paste0(main_dir, "DEGs_Overlap_across_conditions/")
@@ -774,12 +726,15 @@ PlotDEGsOverlap <- function(main_dir, ct_df_list, condition_ordered) {
       }
     }
     names(comp_list) <- ct_names
+    out_file <- do.call(rbind, comp_list)
+    out_file$ct <- gsub('\\..*', '', rownames(out_file))
+    write.csv(out_file, paste0(plot_path, "overlap_num_df.csv"))
     for (ct_id in names(comp_list)) {
       ct_df <- comp_list[[ct_id]]
       colnames(ct_df) <- c("comparison", "genes_num")
       ct_df <- separate(ct_df, comparison, into = c("ref_cond", "other_cond"), remove = F, sep = " - ")
-      ct_df$ref_cond <- factor(ct_df$ref_cond, condition_order[which(condition_order %in% unique(ct_df$ref_cond))])
-      ct_df$other_cond <- factor(ct_df$other_cond, condition_order[which(condition_order %in% unique(ct_df$other_cond))])
+      ct_df$ref_cond <- factor(ct_df$ref_cond, condition_ordered[which(condition_ordered %in% unique(ct_df$ref_cond))])
+      ct_df$other_cond <- factor(ct_df$other_cond, condition_ordered[which(condition_ordered %in% unique(ct_df$other_cond))])
       cond_palette <- hue_pal()(length(levels(ct_df$ref_cond)))
       names(cond_palette) <- levels(ct_df$ref_cond)
       pdf(paste0(plot_path, ct_id, "_", sex_id, ".pdf"), width = 15)
@@ -787,7 +742,7 @@ PlotDEGsOverlap <- function(main_dir, ct_df_list, condition_ordered) {
         ggplot(ct_df, aes(other_cond, genes_num, fill=other_cond)) +
           geom_bar(stat = "identity", color="black") +
           facet_wrap(~ref_cond, scales = "free") +
-          labs(x="", y="Number of shared genes", fill="Developmental conditions", title = paste(ct_id, sex_id, sep = " - ")) +
+          labs(x="", y="Number of shared genes", fill="Groups", title = paste(ct_id, sex_id, sep = " - ")) +
           fill_palette(cond_palette) +
           theme(panel.grid.major = element_blank(), 
                 panel.grid.minor = element_blank(),
@@ -805,4 +760,86 @@ PlotDEGsOverlap <- function(main_dir, ct_df_list, condition_ordered) {
     }
   }
 }
+
+# 28. Plot the num of shared genes between one condition and all others
+# Input: main directory where to save the plots, list of presence dfs, one per each ct, and the order in which to plot the conditions
+# Return: nothing, saves plot and CSV instead
+
+PlotDEGsOverlapHmp <- function(main_dir, ct_df_list, condition_ordered, min_num_conds=1) {
+  `%!in%` <- Negate(`%in%`)
+  plot_path <- paste0(main_dir, "DEGs_Overlap_across_conditions/")
+  dir.create(plot_path, showWarnings = F, recursive = T)
+  filt_df <- do.call(rbind, ct_df_list)
+  filt_df$presence <- ifelse(filt_df$presence=="yes", 1, 0)
+  filt_df$ct <- gsub('\\..*', '', rownames(filt_df))
+  for (sex_id in c("F", "M")) {
+    print(sex_id)
+    sex_df <- subset(filt_df, sex==sex_id & presence==1)
+    ct_vec <- vector()
+    comp_list <- list()
+    ct_names <- vector()
+    for (ct in unique(sex_df$ct)) {
+      if (length(unique(sex_df[which(sex_df$ct==ct), "condition"]))>1) {
+        ct_names <- c(ct_names, ct)
+        print(ct)
+        ct_cond <- condition_ordered[which(condition_ordered %in% unique(sex_df[which(sex_df$ct==ct), "condition"]))]
+        ct_df <- data.frame()
+        for (cond in ct_cond) {
+          ref_genes <- sex_df[which(sex_df$ct==ct & sex_df$condition==cond), "gene_id"]
+          comp_vec <- vector()
+          ref_presence <- vector()
+          for (other_cond  in ct_cond[!ct_cond == cond]) {
+            ref_presence <- c(ref_presence, ifelse(ref_genes %in% sex_df[which(sex_df$ct==ct & sex_df$condition==other_cond), "gene_id"], "Yes", "No"))
+            comp_vec <- c(comp_vec, rep(paste(cond, other_cond, sep = " - "), length(ref_genes)))
+          }
+          ref_genes_ls <- rep(ref_genes, length(ct_cond[!ct_cond == cond]))
+          cond_df <- data.frame(comp_vec, ref_genes_ls, ref_presence)
+          gene_counts <- as.data.frame(table(cond_df$ref_genes_ls))
+          if (length(as.character(gene_counts[which(gene_counts$Freq<=min_num_conds),"Var1"])) != 0 & ct!= "Dorsal progenitors") {
+            genes_to_be_removed <- as.character(gene_counts[which(gene_counts$Freq<=1),"Var1"])
+            cond_df <- subset(cond_df, ref_genes_ls %!in%  genes_to_be_removed)
+          }
+          ct_df <- rbind(ct_df, cond_df)
+        }
+        comp_list <- append(comp_list, list(ct_df))
+      }
+    }
+    names(comp_list) <- ct_names
+    out_file <- do.call(rbind, comp_list)
+    out_file$ct <- gsub('\\..*', '', rownames(out_file))
+    write.csv(out_file, paste0(plot_path, "overlap_presence_df.csv"))
+    for (ct_id in names(comp_list)) {
+      ct_df <- comp_list[[ct_id]]
+      colnames(ct_df) <- c("comparison", "gene_id", "presence")
+      ct_df <- separate(ct_df, comparison, into = c("ref_cond", "other_cond"), remove = F, sep = " - ")
+      ct_df$ref_cond <- factor(ct_df$ref_cond, condition_ordered[which(condition_ordered %in% unique(ct_df$ref_cond))])
+      ct_df$other_cond <- factor(ct_df$other_cond, condition_ordered[which(condition_ordered %in% unique(ct_df$other_cond))])
+      ct_df <- ct_df[order(ct_df$ref_cond), ]
+      pdf(paste0(plot_path, ct_id, "_", sex_id, "_hmp.pdf"), width = 15, height = 15)
+      print(
+        ggplot(ct_df, aes(other_cond, gene_id, fill=presence)) +
+          geom_tile() +
+          scale_fill_manual(values = c("Yes"="#F8766D",
+                                       "No"="#00BFC4"),
+                            guide = guide_legend(reverse = TRUE)) +
+          facet_wrap(~ref_cond, scales = "free") +
+          labs(x="", y="Genes", fill="Groups", title = paste(ct_id, sex_id, sep = " - ")) +
+          theme(panel.grid.major = element_blank(), 
+                panel.grid.minor = element_blank(),
+                panel.background = element_blank(), 
+                panel.spacing.x=unit(0, "lines"),
+                plot.title = element_text(size=12, face="bold", colour = "black"),
+                axis.line = element_line(colour = "black"),
+                axis.title.y = element_text(size=12, face="bold", colour = "black"),
+                axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+                axis.text.y = element_blank(),
+                axis.ticks.y = element_blank(),
+                legend.position = "bottom", 
+                legend.title = element_text(size=12, face="bold", colour = "black"))
+      )
+      dev.off()
+    }
+  }
+}
+
 

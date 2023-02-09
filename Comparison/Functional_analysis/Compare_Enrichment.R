@@ -112,7 +112,7 @@ condition_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
 
 
 # Combines all dataframes into one df
-sexes <- CreateSexDf(c(disco[[1]], UCSC[[1]]), unified_annotation)
+sexes <- CreateSexDf(c(disco[[1]], UCSC[[1]][-1]), unified_annotation)
 
 # Saves results, one plot and one CSV for each F v M comparison for each ct-condition combo - GO, KEGG, DO DisGeNET
 EnrichFvM(main_comparison, sexes, "GO", "BP")
@@ -127,7 +127,7 @@ EnrichCondition(main_comparison, sexes, "KEGG", gene_thresh = 100, condition_ord
 EnrichCondition(main_comparison, sexes, "DO", gene_thresh = 100, condition_ordered = condition_order, rotate_x_axis = T)
 EnrichCondition(main_comparison, sexes, "DGN", gene_thresh = 100, condition_ordered = condition_order, rotate_x_axis = T)
 
-# DSigDB 
+# DSigDB - drug db
 EnrichOtherDB(main_comparison, sexes, "EnrichR",  "DSigDB", condition_order)
 EnrichOtherDBFvM(main_comparison, sexes, "EnrichR",  "DSigDB", condition_order)
 
@@ -147,13 +147,18 @@ DGN_CURATED <- ImportDBresults(main_comparison, "DisGeNET2r_DisGeNET_CURATED", "
 DSigDB <- ImportDBresults(main_comparison, "EnrichR_DSigDB", "")
 GWAS <- ImportDBresults(main_comparison, "EnrichR_GWAS_Catalog_2019", "")
 
+
 # Counts how mauch frequent each term is, adn saves the CSV in the directory
-CountDiseases(main_comparison, rbind(DO, DGN, DGN_CURATED, DSigDB, GWAS)) 
+all_dbs <- rbind(DO, DGN, DGN_CURATED, GWAS, DSigDB)
+all_dbs <- all_dbs[which(all_dbs$condition!="Eze_Nowakowski_integrated_2nd_trimester"),]
+CountDiseases(main_comparison, all_dbs) 
 
 # DGN excluded because too many terms
-PlotFacetedDB(main_comparison, rbind(DO, DGN_CURATED, DSigDB, GWAS), condition_order )
+all_dbs <- rbind(DO, DGN_CURATED, GWAS, DSigDB)
+all_dbs <- all_dbs[which(all_dbs$condition!="Eze_Nowakowski_integrated_2nd_trimester"),]
+PlotFacetedDB(main_comparison, all_dbs, condition_order )
   
-# Cell Enrichment
+# Cell Enrichment - only adults compared to McKenzie 2018
 ct_ref <- as.data.frame(read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/McKenzie_2018_suppl.xlsx",
                     sheet = 'top_human_enrich',
                     skip = 2))
@@ -168,3 +173,12 @@ ref_ct_names <- c(
 
 PlotRefCt(main_comparison, sexes, ct_ref, condition_order[8:14], "McKenzie_2018", ref_ct_names)
 
+# Disease enrichment - comparison with Chlamydas 2022
+chlamydas <- as.data.frame(read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/Chlamydas_2022.xlsx", skip = 1))
+colnames(chlamydas) <- str_replace_all(colnames(chlamydas), " ", "_")
+chlamydas <- chlamydas[, c(1,2,4)]
+chlamydas <- drop_na(chlamydas)
+
+chl_deg <- CreateDisDf(main_comparison, chlamydas, sexes, "Chlamydas_2022")
+
+PlotDisDeg(main_comparison, chl_deg, "Chlamydas_2022")
