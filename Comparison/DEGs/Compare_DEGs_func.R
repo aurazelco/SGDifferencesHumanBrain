@@ -762,10 +762,11 @@ PlotDEGsOverlap <- function(main_dir, ct_df_list, condition_ordered) {
 }
 
 # 28. Plot the num of shared genes between one condition and all others
-# Input: main directory where to save the plots, list of presence dfs, one per each ct, and the order in which to plot the conditions
+# Input: main directory where to save the plots, list of presence dfs, one per each ct, 
+    # the order in which to plot the conditions, and the minimum number of conditions ot have each ref gene
 # Return: nothing, saves plot and CSV instead
 
-PlotDEGsOverlapHmp <- function(main_dir, ct_df_list, condition_ordered, min_num_conds=1) {
+PlotDEGsOverlapHmp <- function(main_dir, ct_df_list, condition_ordered, min_num_conds=2) {
   `%!in%` <- Negate(`%in%`)
   plot_path <- paste0(main_dir, "DEGs_Overlap_across_conditions/")
   dir.create(plot_path, showWarnings = F, recursive = T)
@@ -779,7 +780,7 @@ PlotDEGsOverlapHmp <- function(main_dir, ct_df_list, condition_ordered, min_num_
     comp_list <- list()
     ct_names <- vector()
     for (ct in unique(sex_df$ct)) {
-      if (length(unique(sex_df[which(sex_df$ct==ct), "condition"]))>1) {
+      if (length(unique(sex_df[which(sex_df$ct==ct), "condition"]))>2) {
         ct_names <- c(ct_names, ct)
         print(ct)
         ct_cond <- condition_ordered[which(condition_ordered %in% unique(sex_df[which(sex_df$ct==ct), "condition"]))]
@@ -795,8 +796,8 @@ PlotDEGsOverlapHmp <- function(main_dir, ct_df_list, condition_ordered, min_num_
           ref_genes_ls <- rep(ref_genes, length(ct_cond[!ct_cond == cond]))
           cond_df <- data.frame(comp_vec, ref_genes_ls, ref_presence)
           gene_counts <- as.data.frame(table(cond_df$ref_genes_ls))
-          if (length(as.character(gene_counts[which(gene_counts$Freq<=min_num_conds),"Var1"])) != 0 & ct!= "Dorsal progenitors") {
-            genes_to_be_removed <- as.character(gene_counts[which(gene_counts$Freq<=1),"Var1"])
+          if (length(as.character(gene_counts[which(gene_counts$Freq < min_num_conds),"Var1"])) != 0 & ct != "Dorsal progenitors") {
+            genes_to_be_removed <- as.character(gene_counts[which(gene_counts$Freq < min_num_conds),"Var1"])
             cond_df <- subset(cond_df, ref_genes_ls %!in%  genes_to_be_removed)
           }
           ct_df <- rbind(ct_df, cond_df)
@@ -814,7 +815,8 @@ PlotDEGsOverlapHmp <- function(main_dir, ct_df_list, condition_ordered, min_num_
       ct_df <- separate(ct_df, comparison, into = c("ref_cond", "other_cond"), remove = F, sep = " - ")
       ct_df$ref_cond <- factor(ct_df$ref_cond, condition_ordered[which(condition_ordered %in% unique(ct_df$ref_cond))])
       ct_df$other_cond <- factor(ct_df$other_cond, condition_ordered[which(condition_ordered %in% unique(ct_df$other_cond))])
-      ct_df <- ct_df[order(ct_df$ref_cond), ]
+      ct_df$other_cond_presence <- paste(ct_df$other_cond, ct_df$presence, sep=" ")
+      ct_df <- ct_df[order(ct_df$other_cond_presence), ]
       pdf(paste0(plot_path, ct_id, "_", sex_id, "_hmp.pdf"), width = 15, height = 15)
       print(
         ggplot(ct_df, aes(other_cond, gene_id, fill=presence)) +

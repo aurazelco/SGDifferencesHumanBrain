@@ -234,9 +234,9 @@ PlotSexHmp <- function(main_dir, chr_sex_list, ct_ordered) {
   PlotSexHeatmap(main_dir, chr_sex_list[[2]], "Y", "M", ct_ordered)
 }
 
-# 11. Retrieve p-values from Fisher's test done in 02A_Fisher
+# 11. Retrieve p-values from HyperGeom's test done in 02A_HyperGeom
 ExtractPval <- function(main_dir, sex) {
-  pval <- read.csv(paste0(main_dir, "/02A_Fisher_sex_genes/", sex, "_Fisher_results_v2.csv"))
+  pval <- read.csv(paste0(main_dir, "/02A_HyperGeom_sex_genes/", sex, "_HyperGeom_results_v2.csv"))
   names(pval)[names(pval) == 'X.1'] <- 'ct'
   #pval$ct <- as.factor(pval$ct)
   pval$signX <- rep(NA, length(pval$X_enriched_pval))
@@ -252,12 +252,12 @@ ExtractPval <- function(main_dir, sex) {
 
 # 12. Add p-value to df
 AddPval <- function(df, pvalX, pvalY) {
-  df$pval_fisher <- rep("", length(df$perc))
+  df$pval_HyperGeom <- rep("", length(df$perc))
   for (cells in pvalX$ct) {
-    df[which(df$ct==cells & df$chr=="X"),"pval_fisher"] <- pvalX[which(pvalX$ct==cells), "signX"]
+    df[which(df$ct==cells & df$chr=="X"),"pval_HyperGeom"] <- pvalX[which(pvalX$ct==cells), "signX"]
   }
   for (cells in pvalY$ct) {
-    df[which(df$ct==cells & df$chr=="Y"),"pval_fisher"] <- pvalY[which(pvalY$ct==cells), "signY"]
+    df[which(df$ct==cells & df$chr=="Y"),"pval_HyperGeom"] <- pvalY[which(pvalY$ct==cells), "signY"]
   }
   return(df)
 }
@@ -296,7 +296,7 @@ PlotGeneralHeatmap <- function(main_dir, chr_sex_list, ct_ordered) {
   
 }
 
-# 14. Plot the fraction of enriched DEGs per chromosome, including or not the Fisher p-value
+# 14. Plot the fraction of enriched DEGs per chromosome, including or not the HyperGeom p-value
 PlotNumChr <- function(main_dir, num_chr_genes, ct_ordered, pval_file=F) {
   sexes <- c("F", "M")
   col_palette <- hue_pal()(3)
@@ -340,7 +340,7 @@ PlotNumChr <- function(main_dir, num_chr_genes, ct_ordered, pval_file=F) {
                                      "Autosome"= col_palette[2])) +
         #{if (length(pvalX$ct)>0) geom_text(size=8, x = pvalX$ct, y = df[which(pvalX$ct %in% df$ct & df$chr=="X"), "perc"] + 0.2, label=pvalX$signX)} +
         #{if (length(pvalY$ct)>0) geom_text(size=8, x = pvalY$ct, y = df[which(pvalY$ct %in% df$ct & df$chr=="Y"), "perc"] + 0.2, label=pvalY$signY)} + 
-        {if (pval_flag) geom_text(aes(x = ct, y = perc, label = pval_fisher, fontface = "bold"), nudge_x = 0.15, nudge_y = 0.1)} +
+        {if (pval_flag) geom_text(aes(x = ct, y = perc, label = pval_HyperGeom, fontface = "bold"), nudge_x = 0.15, nudge_y = 0.1)} +
         {if (pval_flag) annotate("text",x= length(levels(df$ct))/2,y=max(df$perc) + 0.2,label="Significance: *: X-chr, #: Y-chr")} +
         {if (pval_flag) coord_cartesian(clip="off") } +
         {if (pval_flag==F) annotate("text", x = length(levels(df$ct))/2, y=max(df$perc), fontface = "bold", label = "NS", colour = "black")} +

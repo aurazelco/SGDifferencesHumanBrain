@@ -165,28 +165,28 @@ CalcHyperGeom2 <- function(main_dir, dis_type, tot_genes, df_sex, chr_genes, chr
 
 # 7. Calculate HyperGeom for both sexes and chromosomes genes
 HyperGeomDEGs <- function(main_dir, dis_type, sex, tot_genes, X_chr, Y_chr, ext, row_col) {
-  out_path <- paste0(main_dir, dis_type, "/outputs/02A_Fisher_sex_genes/")
+  out_path <- paste0(main_dir, dis_type, "/outputs/02A_HyperGeom_sex_genes/")
   dir.create(out_path, showWarnings = FALSE, recursive = T)
   df_sex <- XYdeg(main_dir, dis_type, sex, ext, row_col)
   df_sex$X_enriched_pval <- CalcHyperGeom(main_dir, dis_type, tot_genes, df_sex, X_chr, "X", ext, row_col)
   df_sex$Y_enriched_pval <- CalcHyperGeom(main_dir, dis_type, tot_genes, df_sex, Y_chr, "Y", ext, row_col)
-  write.csv(df_sex, paste0(out_path, sex, "_Fisher_results.csv"))
+  write.csv(df_sex, paste0(out_path, sex, "_HyperGeom_results.csv"))
   return(df_sex)
 }
 
 HyperGeomDEGs2 <- function(main_dir, dis_type, sex, tot_genes, X_chr, Y_chr, ext, row_col) {
-  out_path <- paste0(main_dir, dis_type, "/outputs/02A_Fisher_sex_genes/")
+  out_path <- paste0(main_dir, dis_type, "/outputs/02A_HyperGeom_sex_genes/")
   dir.create(out_path, showWarnings = FALSE, recursive = T)
   df_sex <- XYdeg(main_dir, dis_type, sex, ext, row_col)
   df_sex$X_enriched_pval <- CalcHyperGeom2(main_dir, dis_type, tot_genes, df_sex, X_chr, "X", ext, row_col)
   df_sex$Y_enriched_pval <- CalcHyperGeom2(main_dir, dis_type, tot_genes, df_sex, Y_chr, "Y", ext, row_col)
-  write.csv(df_sex, paste0(out_path, sex, "_Fisher_results.csv"))
+  write.csv(df_sex, paste0(out_path, sex, "_HyperGeom_results.csv"))
   return(df_sex)
 }
 
 # 8. Calculate all and plot results
 PlotHyperGeom <- function(main_dir, dis_type, df_sex, sex) {
-  out_path <- paste0(main_dir, dis_type, "/outputs/02A_Fisher_sex_genes/")
+  out_path <- paste0(main_dir, dis_type, "/outputs/02A_HyperGeom_sex_genes/")
   dir.create(out_path, showWarnings = FALSE, recursive = T)
   df_melt <- melt.data.frame(df_sex[, c(4:5)])   
   df_melt$ct <- as.factor(rep(rownames(df_sex), 2))
@@ -213,7 +213,7 @@ PlotHyperGeom <- function(main_dir, dis_type, df_sex, sex) {
 }
 
 PlotHyperGeom2 <- function(main_dir, dis_type, df_sex, sex) {
-  out_path <- paste0(main_dir, dis_type, "/outputs/02A_Fisher_sex_genes/")
+  out_path <- paste0(main_dir, dis_type, "/outputs/02A_HyperGeom_sex_genes/")
   dir.create(out_path, showWarnings = FALSE, recursive = T)
   df_melt <- melt.data.frame(df_sex[, c(4:5)])   
   df_melt$ct <- as.factor(rep(rownames(df_sex), 2))

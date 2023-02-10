@@ -167,8 +167,8 @@ HyperGeomDEGs <- function(main_dir,  sex, tot_genes, X_chr, Y_chr, ext, row_col)
   df_sex <- XYdeg(main_dir, sex, ext, row_col)
   df_sex$X_enriched_pval <- CalcHyperGeom(main_dir,  tot_genes, df_sex, X_chr, "X", ext, row_col)
   df_sex$Y_enriched_pval <- CalcHyperGeom(main_dir,  tot_genes, df_sex, Y_chr, "Y", ext, row_col)
-  dir.create(paste(main_dir, "02A_Fisher_sex_genes", sep="/"), showWarnings = FALSE)
-  write.csv(df_sex, paste0(main_dir, "/02A_Fisher_sex_genes/", sex, "_Fisher_results.csv"))
+  dir.create(paste(main_dir, "02A_HyperGeom_sex_genes", sep="/"), showWarnings = FALSE)
+  write.csv(df_sex, paste0(main_dir, "/02A_HyperGeom_sex_genes/", sex, "_HyperGeom_results.csv"))
   return(df_sex)
 }
 
@@ -176,8 +176,8 @@ HyperGeomDEGs2 <- function(main_dir, sex, tot_genes, X_chr, Y_chr, ext, row_col)
   df_sex <- XYdeg(main_dir, sex, ext, row_col)
   df_sex$X_enriched_pval <- CalcHyperGeom2(main_dir, tot_genes, df_sex, X_chr, "X", ext, row_col)
   df_sex$Y_enriched_pval <- CalcHyperGeom2(main_dir, tot_genes, df_sex, Y_chr, "Y", ext, row_col)
-  dir.create(paste(main_dir, "02A_Fisher_sex_genes", sep="/"), showWarnings = FALSE)
-  write.csv(df_sex, paste0(main_dir, "/02A_Fisher_sex_genes/", sex, "_Fisher_results_v2.csv"))
+  dir.create(paste(main_dir, "02A_HyperGeom_sex_genes", sep="/"), showWarnings = FALSE)
+  write.csv(df_sex, paste0(main_dir, "/02A_HyperGeom_sex_genes/", sex, "_HyperGeom_results_v2.csv"))
   return(df_sex)
 }
 
@@ -188,7 +188,7 @@ PlotHyperGeom <- function(main_dir,  df_sex, sex) {
   colnames(df_melt) <- c("chr", "pval", "ct")
   df_melt$chr <- as.factor(df_melt$chr)
   if (any(df_melt$pval< 0.05)) {
-    pdf(paste0(main_dir, "/02A_Fisher_sex_genes/", sex, "_pval.pdf"))
+    pdf(paste0(main_dir, "/02A_HyperGeom_sex_genes/", sex, "_pval.pdf"))
     print(ggplot(df_melt[which(df_melt$pval < 0.05), ], aes(ct, chr)) +
             geom_tile(aes(fill=pval)) +
             labs(x="Cell types", y="Chromosome-enriched genes", fill="P-values") +
@@ -213,7 +213,7 @@ PlotHyperGeom2 <- function(main_dir,df_sex, sex) {
   colnames(df_melt) <- c("chr", "pval", "ct")
   df_melt$chr <- as.factor(df_melt$chr)
   if (any(df_melt$pval< 0.05)) {
-    pdf(paste0(main_dir, "/02A_Fisher_sex_genes/", sex, "_pval_v2.pdf"))
+    pdf(paste0(main_dir, "/02A_HyperGeom_sex_genes/", sex, "_pval_v2.pdf"))
     print(ggplot(df_melt[which(df_melt$pval < 0.05), ], aes(ct, chr)) +
     geom_tile(aes(fill=pval)) +
     labs(x="Cell types", y="Chromosome-enriched genes", fill="P-values") +

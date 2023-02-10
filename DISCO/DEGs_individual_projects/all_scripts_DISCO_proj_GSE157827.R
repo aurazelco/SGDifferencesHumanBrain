@@ -204,12 +204,12 @@ PlotCMresults(main, sub_disease[1],
               ct_list, data_ct, ct_order)
 
 
-####### 02A_Fisher.R
+####### 02A_HyperGeom.R
 
 source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs_individual_projects/01C_num_chr_func.R")
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs_individual_projects/02A_Fisher_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs_individual_projects/02A_HyperGeom_func.R")
 
-# as used in 02A_Fisher
+# as used in 02A_HyperGeom
 X_chr_genes <- 1848
 Y_chr_genes <- 431
 tot_genes <- 20000

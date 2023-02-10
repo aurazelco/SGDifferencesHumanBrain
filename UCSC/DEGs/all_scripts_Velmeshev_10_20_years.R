@@ -195,12 +195,12 @@ PlotGeneralHeatmap(main_local, chr_10_20_years, ct_order)
 PlotSexHmp(main_local, chr_10_20_years, ct_order)
 
 
-####### 02A_Fisher.R  -> not on the server
+####### 02A_HyperGeom.R  -> not on the server
 
 source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs/01C_num_chr_func.R")
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs/02A_Fisher_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs/02A_HyperGeom_func.R")
 
-# as used in 02A_Fisher
+# as used in 02A_HyperGeom
 X_chr_genes <- 1848
 Y_chr_genes <- 431
 tot_genes <- 20000
