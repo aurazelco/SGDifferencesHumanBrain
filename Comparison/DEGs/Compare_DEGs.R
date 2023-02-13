@@ -104,7 +104,7 @@ PlotCts(main_comparison, sexes, condition_order)
 # Count of how genes are shared among ages, for each ct and sex
 gene_counts <- CreateCountDfs(sexes)
 PlotNumSharedGenes(main_comparison, gene_counts)
-test1 <- SaveSharedGenes(main_comparison, gene_counts, 0.75, 1)
+SaveSharedGenes(main_comparison, gene_counts, 0.75, 1)
 
 # Count number of DEGs per ct across ages, for each ct and sex, and also create one faceted figure
 num_deg <- NumDEGsAcrossConditions(sexes, condition_order[-1])
@@ -138,3 +138,11 @@ PlotDEGsOverlapHmp(main_comparison, sexes, condition_order)
 #trim_2nd <- CreateConditionDf(c(UCSC[[1]], disco[[1]]), unified_annotation, condition_order[1:2])
 #PlotAcrossConditions(main_comparison, trim_2nd, "trimester_2nd")
 
+# Comparison of normal DISCO DEGs
+normal_disco <- NormDf(disco[[1]][c("Normal_GSE157827", "Normal_GSE174367", "Normal_PRJNA544731")], unified_annotation)
+
+og_cts <- CalcCommonGenes(normal_disco, "ct")
+common_cts <- CalcCommonGenes(normal_disco, "common_annot")
+
+PlotCommonGenes(main_comparison, og_cts, "Normal_DISCO", "Original_annotation")
+PlotCommonGenes(main_comparison, common_cts, "Normal_DISCO", "Unified_annotation")

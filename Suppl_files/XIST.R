@@ -58,15 +58,15 @@ cell_info <- list()
 for (id in names(ds_paths)) {
   print(id)
   if (id == "DISCO") {
-    id_seurat <- readRDS(paste0(ds_paths[[id]], ds_names[[id]], ".rds"))
-    xist_ls <- append(xist_ls, list(data.frame("XIST"=GetAssayData(id_seurat[["RNA"]], slot="data")["XIST",])))
+    #id_seurat <- readRDS(paste0(ds_paths[[id]], ds_names[[id]], ".rds"))
+    #xist_ls <- append(xist_ls, list(data.frame("XIST"=GetAssayData(id_seurat[["RNA"]], slot="data")["XIST",])))
     cell_info <- append(cell_info, list(read.csv(paste0(ds_paths[[id]][1], "DEGs_common/cell_info.csv")))) 
-    rm(id_seurat)
+    #rm(id_seurat)
   } else {
-    id_seurat <- readRDS(paste0(ds_paths[[id]], ds_names[[id]], ".rds"))
-    xist_ls <- append(xist_ls, list(data.frame("XIST"=GetAssayData(id_seurat[["RNA"]], slot="data")["XIST",])))
+    #id_seurat <- readRDS(paste0(ds_paths[[id]], ds_names[[id]], ".rds"))
+    #xist_ls <- append(xist_ls, list(data.frame("XIST"=GetAssayData(id_seurat[["RNA"]], slot="data")["XIST",])))
     cell_info <- append(cell_info, list(read.csv(paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/", ds_names[[id]], "/cell_info_", ds_names[[id]], ".csv"))))
-    rm(id_seurat)
+    #rm(id_seurat)
   }
 }
 names(xist_ls) <- names(ds_paths)
@@ -111,27 +111,143 @@ xist_df[grep("M_", xist_df$info), "sex"] <- "M"
 xist_df[grep("F_", xist_df$info), "sex"] <- "F"
 
 # 8. XIST RNA expression plot
-groups_order <- c("Velmeshev_3rd_trimester", "Velmeshev_0_1_years",     "Velmeshev_1_2_years",     "Velmeshev_2_4_years",    
-                  "Velmeshev_10_20_years" , "Velmeshev_Adults",        "DISCO")
-xist_df$group <- factor(xist_df$group, groups_order)
-xist_df$samples <- factor(xist_df$samples)
+disco <- as.data.frame(do.call(rbind, str_split(xist_df[which(xist_df$group=="DISCO"), "info"], "_")))
+
+proj_ids <- unique(disco$V1)
+dis_ids <- unique(disco$V3)
+
+#for (i in 1:(length(names(cell_info)) -1)) {
+#   xist_df[which(xist_df$sample_id %in% cell_info[[i]]$cell_id), "group"] <- names(cell_info)[i]
+#}
+
+xist_df$new_group <- xist_df$group
+for (proj in proj_ids) {
+  for (dis in dis_ids ) {
+    for (sex in c("F", "M")) {
+      if (any(grep(paste(proj, sex, dis, sep = "_"), xist_df[which(xist_df$group=="DISCO"), "info"]))) {
+        print(paste(proj, dis, sep = "_"))
+        xist_df[which(grepl(paste(proj, sex, dis, sep = "_"), xist_df$info)), "new_group"] <- paste(proj, dis, sep = "_")
+      }
+    }
+  }
+}
+
+groups_order <- c("Velmeshev_3rd_trimester","Velmeshev_0_1_years",          
+                  "Velmeshev_1_2_years", "Velmeshev_2_4_years",           
+                  "Velmeshev_10_20_years", "Velmeshev_Adults",              
+                  "GSE157827_Normal","GSE174367_Normal",              
+                  "PRJNA544731_Normal", "GSE157827_Alzheimer's disease",
+                  "GSE174367_Alzheimer's disease", "PRJNA544731_Multiple Sclerosis")
+xist_df$new_group <- factor(xist_df$new_group, groups_order)
+xist_df <- xist_df[order(xist_df$new_group), ]
+xist_df$samples <- factor(xist_df$samples, unique(xist_df$samples))
 xist_df <- xist_df[order(xist_df$samples), ]
 
-ggplot(xist_df, aes(factor(samples, levels = levels(xist_df$samples)), XIST, fill=sex)) +
-  geom_violin() +
-  facet_grid(group ~ sex, scales = "free") +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        plot.title = element_text(size=12, face="bold", colour = "black"),
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_blank(),
-        axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
-        axis.ticks.x=element_blank(),
-        axis.title.y = element_text(size=12, face="bold", colour = "black"),
-        legend.position = "bottom", 
-        legend.title = element_text(size=12, face="bold", colour = "black"))
+
+pdf("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Extra_figures/XIST_faceted.pdf", width = 15, height = 20)
+print(
+  ggplot(xist_df, aes(samples, XIST, fill=sex)) +
+    geom_violin() +
+    facet_grid(new_group ~ sex, scales = "free") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          strip.text = element_text(size=12, face="bold", colour = "black"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.x = element_blank(),
+          axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
+          axis.ticks.x=element_blank(),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          legend.position = "bottom", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+)
+dev.off()
 
 
 # 9. Number of samples
 cell_info <- append(cell_info, list("Velmeshev_2nd_trimester"=read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/Velmeshev_2022_2nd_trimester/cell_info_Velmeshev_2022_2nd_trimester.csv")))
+  
+num_samples <- cell_info
+num_samples$DISCO <- num_samples$DISCO[, c(1,2,5)]
+num_samples <- do.call(rbind, num_samples)
+num_samples <- cbind("group" = gsub('\\..*', '', rownames(num_samples)), num_samples)
+rownames(num_samples) <- NULL
+num_samples$X <- NULL
+
+num_samples$new_ids <- num_samples$cell_id
+num_samples$new_ids <- str_replace_all(num_samples$new_ids, c("-1_"="-1/", "-1--"="-1/"))
+num_samples <- separate(num_samples, new_ids, into=c("barcodes", "samples"), sep="/")
+num_samples$sex <- rep(NA, nrow(num_samples))
+num_samples$og_group <- str_replace_all(num_samples$og_group, c("Female"="F", "Male"="M"))
+num_samples[grep("M_", num_samples$og_group), "sex"] <- "M"
+num_samples[grep("F_", num_samples$og_group), "sex"] <- "F"
+
+disco <- as.data.frame(do.call(rbind, str_split(num_samples[which(num_samples$group=="DISCO"), "og_group"], "_")))
+
+proj_ids <- unique(disco$V1)
+dis_ids <- unique(disco$V3)
+
+
+num_samples$new_group <- num_samples$group
+for (proj in proj_ids) {
+  for (dis in dis_ids ) {
+    for (sex in c("F", "M")) {
+      if (any(grep(paste(proj, sex, dis, sep = "_"), num_samples[which(num_samples$group=="DISCO"), "og_group"]))) {
+        print(paste(proj, dis, sep = "_"))
+        num_samples[which(grepl(paste(proj, sex, dis, sep = "_"), num_samples$og_group)), "new_group"] <- paste(proj, dis, sep = "_")
+      }
+    }
+  }
+}
+
+num_samples$samples_count <- rep(NA, nrow(num_samples)) 
+for (group in unique(num_samples$new_group)) {
+  for (sex in c("F", "M")) {
+    num_samples[which(num_samples$new_group==group & num_samples$sex==sex), "samples_count"] <- length(unique(num_samples[which(num_samples$new_group==group & num_samples$sex==sex), "samples"]))
+  }
+}
+
+num_samples_simplified <- num_samples[, c("new_group", "sex", "samples_count")]
+num_samples_simplified <- num_samples_simplified[which(!duplicated(num_samples_simplified)),]
+
+sum(num_samples_simplified$samples_count)
+sum(num_samples_simplified[which(num_samples_simplified$sex=="F"), "samples_count"])
+sum(num_samples_simplified[which(num_samples_simplified$sex=="M"), "samples_count"])
+
+
+velm_4_10 <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
+velm_4_10 <- subset(velm_4_10, age=="4-10 years")
+num_samples_simplified <- rbind(num_samples_simplified,
+                                c("Velmeshev_4_10_years", "F", nrow(velm_4_10[which(velm_4_10$sex=="Female"),])),
+                                c("Velmeshev_4_10_years", "M", nrow(velm_4_10[which(velm_4_10$sex=="Male"),])))
+num_samples_simplified$samples_count <- as.numeric(num_samples_simplified$samples_count)
+
+groups_order <- c("Velmeshev_2nd_trimester", "Velmeshev_3rd_trimester","Velmeshev_0_1_years",          
+                  "Velmeshev_1_2_years", "Velmeshev_2_4_years",  "Velmeshev_4_10_years",         
+                  "Velmeshev_10_20_years", "Velmeshev_Adults",              
+                  "GSE157827_Normal","GSE174367_Normal",              
+                  "PRJNA544731_Normal", "GSE157827_Alzheimer's disease",
+                  "GSE174367_Alzheimer's disease", "PRJNA544731_Multiple Sclerosis")
+num_samples_simplified$new_group <- factor(num_samples_simplified$new_group, groups_order)
+num_samples_simplified <- num_samples_simplified[order(num_samples_simplified$new_group), ]
+
+pdf("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Extra_figures/num_samples.pdf")
+print(
+  ggplot(num_samples_simplified, aes(new_group, samples_count, fill=sex)) +
+        geom_bar(stat = "identity", color="black", position = "dodge") +
+        geom_hline(yintercept = 3, linetype="dashed") +
+        labs(x="Groups", y="Number of samples", fill="Sex") +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              plot.title = element_text(size=12, face="bold", colour = "black"),
+              axis.line = element_line(colour = "black"),
+              axis.title.x = element_blank(),
+              axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
+              axis.ticks.x=element_blank(),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "bottom", 
+              legend.title = element_text(size=12, face="bold", colour = "black"))
+  )
+dev.off()

@@ -823,10 +823,10 @@ RefPerc <- function(ref_presence_df, ref_ct_id, sex_df) {
   # Input: the presence df, the ct to plot
   # Return: the plot
 
-PlotBarPlotRefPerc <- function(ref_perc, ref_ct_id, plot_titles) {
-  ref_plot <- ggplot(ref_perc, aes(ct, perc, fill=condition)) +
+PlotBarPlotRefPerc <- function(ref_perc, ref_ct_id, plot_titles, condition_ordered) {
+  ref_plot <- ggplot(ref_perc, aes(ct, perc, fill = factor(condition, condition_ordered[which(condition_ordered %in% condition)]))) +
     geom_bar(stat="identity", color="black") +
-    facet_grid(sex ~ condition, scales = "free") +
+    facet_grid(sex ~ factor(condition, condition_ordered[which(condition_ordered %in% condition)]), scales = "free") +
     labs(x="Cell types", y="Markers %", fill="Groups", title = plot_titles[ref_ct_id]) +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
@@ -876,7 +876,7 @@ PlotRefCt <- function(main_dir, sex_df, ref_df, condition_ordered, ref_df_name="
   }
   ref_presence_df <- data.frame(ids, gene_ids, presence)
   ref_presence_df <- separate(ref_presence_df, ids, into=c("sex", "ref_ct", "condition", "cond_ct"), sep = "/")
-  ref_presence_df$condition <- factor(ref_presence_df$condition, condition_order)
+  ref_presence_df$condition <- factor(ref_presence_df$condition, condition_ordered[which(condition_ordered %in% unique(ref_presence_df$condition))])
   ref_presence_df <- ref_presence_df[order(ref_presence_df$condition), ]
   for (ref_ct_id in unique(ref_presence_df$ref_ct)) {
     print(plot_titles[[ref_ct_id]])
@@ -888,7 +888,7 @@ PlotRefCt <- function(main_dir, sex_df, ref_df, condition_ordered, ref_df_name="
     dev.off()
     ref_perc <- RefPerc(ref_presence_df, ref_ct_id, sex_df)
     pdf(paste0(out_path, plot_titles[ref_ct_id], "_barplot_perc.pdf"), height = 4, width = 16)
-    print(PlotBarPlotRefPerc(ref_perc, ref_ct_id, plot_titles))
+    print(PlotBarPlotRefPerc(ref_perc, ref_ct_id, plot_titles, condition_ordered))
     dev.off()
   }
 }

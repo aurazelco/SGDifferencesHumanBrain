@@ -475,13 +475,13 @@ CreateCountDfs <- function(ct_df_list) {
 }
 
 # 17. Plot count dfs for each ct
-  # Input: the count df of one ct
-  # Return: bar plot of how many genes are shared among how many groups
+# Input: shared gene df
+# Return: bar plot of how many genes are shared among how many groups
 
 PlotNumSharedGenesCt <- function(ct_df) {
   ct_plot <- ggplot(ct_df, aes(condition_count, fill=as.factor(condition_count))) +
-    geom_bar() +
-    facet_wrap(~sex, scales = "free") +
+    geom_bar(color="black") +
+    facet_wrap(~ sex, scales = "free") +
     scale_x_continuous(breaks=seq(min(ct_df$condition_count), max(ct_df$condition_count),by=1)) +
     labs(y="Gene absolute count", fill="Number of conditions sharing genes") +
     theme(panel.grid.major = element_blank(), 
@@ -499,23 +499,90 @@ PlotNumSharedGenesCt <- function(ct_df) {
   return(ct_plot)
 }
 
-# 18. Plot all count dfs for all cts
+# 17. Plot count dfs for each ct
+  # Input: shared gene df
+  # Return: bar plot of how many genes are shared among how many groups
+
+PlotNumSharedGenesTot <- function(shared_genes_chr) {
+  tot_plot <- ggplot(shared_genes_chr, aes(condition_count, fill=as.factor(condition_count))) +
+    geom_bar(color="black") +
+    facet_grid(ct ~ sex, scales = "free") +
+    scale_x_continuous(breaks=seq(min(shared_genes_chr$condition_count), max(shared_genes_chr$condition_count),by=1)) +
+    labs(y="Gene absolute count", fill="Number of conditions sharing genes") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          strip.text = element_text(size=8, colour = "black", face="bold"),
+          panel.spacing.x=unit(0, "lines"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          axis.text.y = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
+          axis.title.x = element_blank(),
+          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
+          legend.position = "bottom", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+  return(tot_plot)
+}
+
+# 18. Plot fractions of shared chromosomes
+  # Input: shared gene df, the color palette to use
+  # Return: bar plot with fractions of chr genes shared in how many groups
+
+PlotNumSharedGenesChr <- function(shared_genes_chr, col_palette) {
+  chr_plot <- ggplot(shared_genes_chr, aes(condition_count, fill=chr_simplified)) +
+    geom_bar(position = "fill", color="black") +
+    facet_grid(ct ~ sex, scales = "free") +
+    scale_fill_manual(values = c("X" = col_palette[1],
+                                 "Y"= col_palette[3],
+                                 "Autosome"= col_palette[2])) +
+    scale_x_continuous(breaks=seq(min(shared_genes_chr$condition_count), max(shared_genes_chr$condition_count), by=1)) +
+    labs(x = "Number of conditions sharing genes", y="Chromosome fractions (%)", fill="Chromosomes") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          panel.spacing.x=unit(0, "lines"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          axis.text.y = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
+          axis.title.x = element_text(size=12, face="bold", colour = "black"),
+          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
+          legend.position = "bottom", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+  return(chr_plot)
+}
+
+
+# 19. Plot all count dfs for all cts
   # Input: main directory where to save the plots, the list of count dfs
   # Return: nothing, saves the plot instead
 
 PlotNumSharedGenes <- function(main_dir, gene_count_dfs) {
   plot_path <- paste0(main_dir, "Num_Shared_DEGs_across_conditions/")
   dir.create(plot_path, showWarnings = F, recursive = T)
-  for (ct in names(gene_count_dfs)) {
-    print(ct)
-    ct_plot <- PlotNumSharedGenesCt(gene_count_dfs[[ct]])
-    pdf(paste0(plot_path, ct, ".pdf"))
-    print(ct_plot)
-    dev.off()
+  chr_results <- lapply(gene_count_dfs, function(x) Annot.chr.name(x$gene_id))
+  shared_genes_chr <- list()
+  for(i in names(gene_count_dfs)){
+    shared_genes_ct <- map_chr(gene_count_dfs[[i]], chr_results[[i]])
+    shared_genes_chr <- append(shared_genes_chr, list(shared_genes_ct))
   }
+  names(shared_genes_chr) <- names(gene_count_dfs)
+  shared_genes_chr <- do.call(rbind, shared_genes_chr)
+  shared_genes_chr$chr_simplified <- shared_genes_chr$chromosome_name
+  shared_genes_chr$chr_simplified[which(shared_genes_chr$chr_simplified!= "X" & shared_genes_chr$chr_simplified!= "Y")] <- "Autosome"
+  shared_genes_chr <- cbind("ct" = gsub('\\..*', '', rownames(shared_genes_chr)), shared_genes_chr)
+  rownames(shared_genes_chr) <- NULL
+  col_palette <- hue_pal()(3)
+  pdf(paste0(plot_path, "tot_shared_genes.pdf"), height = 15, width = 10)
+  print(PlotNumSharedGenesTot(shared_genes_chr))
+  dev.off()
+  pdf(paste0(plot_path, "chr_shared_genes.pdf"), height = 15, width = 10)
+  print(PlotNumSharedGenesChr(shared_genes_chr, col_palette))
+  dev.off()
 }
 
-# 19. Extract the genes shared among a minimum percentage of conditions
+# 20. Extract the genes shared among a minimum percentage of conditions
   # Input: the list of count dfs
   # Return: the list of filtered genes (of which cts that are shared across more than 1 condition)
 
@@ -531,13 +598,13 @@ ExtractSharedGenes <- function(gene_count_dfs, min_sharing=0.75, min_num_cond=1)
 }
 
 
-# 20. Function to get chromosome number from gene symbol
+# 21. Function to get chromosome number from gene symbol
   # Input: the genes as vector
   # Return: the annotated genes
 
 Annot.chr.name <- function(gene.list){
   # define biomart object
-  mart <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl",mirror = "uswest")
+  mart <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", mirror = "useast")
   Annot_idf <- getBM(attributes = c("hgnc_symbol",
                                     "chromosome_name"),
                      filters = c("hgnc_symbol") ,
@@ -548,7 +615,7 @@ Annot.chr.name <- function(gene.list){
   return(Annot_df)
 }
 
-# 21. Map genes from intersected genes against chromosome
+# 22. Map genes from intersected genes against chromosome
   # Input: the list of filtered genes, the annotated genes
   # Return: merged dataframe
 
@@ -557,14 +624,14 @@ map_chr <- function(gene_count_filt, Annot_df){
   return(map_chr_df)
 }
 
-# 22. Saves the annotated shared genes to a CSV file 
+# 23. Saves the annotated shared genes to a CSV file 
   # Input: main directory where to save the CSV file, the list of filtered genes
   # Return: nothing, saves the CSV file instead
 
 SaveSharedGenes <- function(main_dir, gene_count_dfs, min_sharing=0.75, min_num_cond=1) {
   out_path <- paste0(main_dir, "Num_Shared_DEGs_across_conditions/")
   dir.create(out_path, showWarnings = F, recursive = T)
-  shared_genes <- ExtractSharedGenes(gene_counts, min_sharing, min_num_cond)
+  shared_genes <- ExtractSharedGenes(gene_count_dfs, min_sharing, min_num_cond)
   chr_results <- lapply(shared_genes, function(x) Annot.chr.name(x$gene_id))
   shared_genes_chr <- list()
   for(i in 1:length(shared_genes)){
@@ -583,7 +650,7 @@ SaveSharedGenes <- function(main_dir, gene_count_dfs, min_sharing=0.75, min_num_
 }
 
 
-# 23. Count DEGs for each ct in each age
+# 24. Count DEGs for each ct in each age
   # Input: list of presence dfs, one per each ct, order of the condition
   # Return: dataframe with num of DEGs for each ct and condition
 
@@ -613,7 +680,7 @@ NumDEGsAcrossConditions <- function(ct_df_list, condition_ordered) {
 }
 
 
-# 24. Plot the total num of DEGs per ct
+# 25. Plot the total num of DEGs per ct
   # Input: dataframe with num of DEGs of one ct
   # Return: plot
 
@@ -641,7 +708,7 @@ PlotNumDEGsCt <- function(ct_degs) {
   return(ct_deg_plot)
 }
 
-# 25. Plot the total num of DEGs per ct for all cts
+# 26. Plot the total num of DEGs per ct for all cts
   # Input: main directory where to save the plots, the dataframe with num of DEGs for each ct and condition
   # Return: nothing, saves the plot instead
 
@@ -656,7 +723,7 @@ PlotNumDEGs <- function(main_dir, num_degs_ct) {
   }
 }
 
-# 26. Plots the total number of DEGs across conditions, faceted by ct and sex
+# 27. Plots the total number of DEGs across conditions, faceted by ct and sex
   # Input: main directory where to save the plots, the dataframe with num of DEGs for each ct and condition
   # Return: nothing, saves the plot instead
 
@@ -690,7 +757,7 @@ PlotNumDEGsFacets <- function(main_dir, num_degs_ct, col_palette) {
   dev.off()
 }
 
-# 27. Plot the num of shared genes between one condition and all others
+# 28. Plot the num of shared genes between one condition and all others
   # Input: main directory where to save the plots, list of presence dfs, one per each ct, and the order in which to plot the conditions
   # Return: nothing, saves plot and CSV instead
 
@@ -761,7 +828,7 @@ PlotDEGsOverlap <- function(main_dir, ct_df_list, condition_ordered) {
   }
 }
 
-# 28. Plot the num of shared genes between one condition and all others
+# 29. Plot the num of shared genes between one condition and all others
 # Input: main directory where to save the plots, list of presence dfs, one per each ct, 
     # the order in which to plot the conditions, and the minimum number of conditions ot have each ref gene
 # Return: nothing, saves plot and CSV instead
@@ -845,3 +912,75 @@ PlotDEGsOverlapHmp <- function(main_dir, ct_df_list, condition_ordered, min_num_
 }
 
 
+NormDf <- function(ls_norm, common_annot) {
+  norm_ls <- list()
+  for (sex in c("F", "M")) {
+    sex_ls <- list()
+    for (id in names(ls_norm)) {
+      proj_sex <- do.call(rbind, ls_norm[[id]][[sex]])
+      proj_sex <- cbind("ct" = gsub("\\..*", "", rownames(proj_sex)), proj_sex)
+      rownames(proj_sex) <- NULL
+      proj_sex$common_annot <- rep(NA, nrow(proj_sex))
+      for (ct in unique(proj_sex)) {
+        proj_sex[which(proj_sex$ct==ct), "common_annot"] <- common_annot[ct]
+      }
+      sex_ls <- append(sex_ls, list(proj_sex))
+    }
+    names(sex_ls) <- names(ls_norm)
+    sex_ls <- do.call(rbind, sex_ls)
+    sex_ls <- cbind("proj_id" = gsub("\\..*", "", rownames(sex_ls)), sex_ls)
+    rownames(sex_ls) <- NULL
+    norm_ls <- append(norm_ls, list(sex_ls))
+  }
+  names(norm_ls) <- c("F", "M")
+  return(norm_ls)
+}
+
+
+CalcCommonGenes <- function(norm_ls, ct_col) {
+  ct_df <- data.frame()
+  for (sex in c("F", "M")) {
+    for (ct in unique(norm_ls[[sex]][, ct_col])) {
+      projs_ct <- unique(norm_ls[[sex]][which(norm_ls[[sex]][, ct_col]==ct), "proj_id"])
+      if (length(projs_ct) == 2) {
+        ct_df <- rbind(ct_df, c(ct, sex, length(Reduce(intersect, list(norm_ls[[sex]][which(norm_ls[[sex]][, ct_col]==ct & norm_ls[[sex]]$proj_id==projs_ct[1]), "Genes"], 
+                                                                         norm_ls[[sex]][which(norm_ls[[sex]][, ct_col]==ct & norm_ls[[sex]]$proj_id==projs_ct[2]), "Genes"])))))
+      } else if (length(projs_ct) == 3) {
+        ct_df <- rbind(ct_df, c(ct, sex, length(Reduce(intersect, list(norm_ls[[sex]][which(norm_ls[[sex]][, ct_col]==ct & norm_ls[[sex]]$proj_id==projs_ct[1]), "Genes"], 
+                                                                         norm_ls[[sex]][which(norm_ls[[sex]][, ct_col]==ct & norm_ls[[sex]]$proj_id==projs_ct[2]), "Genes"],
+                                                                         norm_ls[[sex]][which(norm_ls[[sex]][, ct_col]==ct & norm_ls[[sex]]$proj_id==projs_ct[3]), "Genes"])))))
+      } else {
+        print(paste0(ct, " present only in one project"))
+      }
+    }
+  }
+  colnames(ct_df) <- c("ct", "sex", "num_int_genes")
+  ct_df$num_int_genes <- as.numeric(ct_df$num_int_genes)
+  return(ct_df)
+}
+
+PlotCommonGenes <- function(main_dir, ct_df, folder_name, ct_type) {
+  plot_path <- paste0(main_dir, folder_name, "_common_genes/")
+  dir.create(plot_path, showWarnings = F, recursive = T)
+  pdf(paste0(plot_path, ct_type, ".pdf"))
+  print(
+    ggplot(ct_df, aes(ct, num_int_genes, fill=sex)) +
+      geom_bar(stat="identity", color="black", position = "dodge") +
+      labs(x=paste0(ct_type, " cell types"), y="Number of common genes", fill="Sex") +
+      scale_y_continuous(breaks=seq(min(ct_df$num_int_genes), max(ct_df$num_int_genes), by=2)) +
+      theme(panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(),
+            panel.background = element_blank(), 
+            panel.spacing.x=unit(0, "lines"),
+            plot.title = element_text(size=12, face="bold", colour = "black"),
+            axis.line = element_line(colour = "black"),
+            axis.title.y = element_text(size=12, face="bold", colour = "black"),
+            axis.text.y = element_text(size=8, colour = "black"),
+            axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+            axis.title.x = element_text(size=12, face="bold", colour = "black"),
+            legend.position = "bottom", 
+            legend.title = element_text(size=12, face="bold", colour = "black"))
+    
+  )
+  dev.off()
+}
