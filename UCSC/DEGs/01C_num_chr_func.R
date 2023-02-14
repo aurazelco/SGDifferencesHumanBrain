@@ -37,7 +37,7 @@ ImportDE <- function(path, ext, row_col) {
 # 2. Function to get chromosome number from gene symbol - Pattama
 Annot.chr.name <- function(gene.list){
   # define biomart object
-  mart <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", mirror = "uswest")
+  mart <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", mirror = "useast")
   Annot_idf <- getBM(attributes = c("hgnc_symbol",
                                     "chromosome_name",
                                     "description"),
@@ -107,16 +107,15 @@ ExtractSexGenes <- function(chr_sex, chr) {
 ExtractGenes <- function(chr_list) {
   new_chr_list <- list()
   for (sex in names(chr_list)) {
-    df_sex <- as.data.frame(do.call(rbind, chr_list[[sex]]))
+    df_sex <- do.call(rbind, chr_list[[sex]])
     df_sex$ct <- rownames(df_sex)
     df_sex$ct <- str_remove_all(df_sex$ct, "\\.\\d+")
     rownames(df_sex) <- NULL
     df_sex <- df_sex[, -c(3)]
-    df_sex$chromosome_name <- str_replace_all(df_sex$chromosome_name, "\\d+", "Autosome")
-    df_sex$chromosome_name <- str_replace_all(df_sex$chromosome_name, "MT", "Autosome")
-    #col_factors <- c("ct", "Gene", "chromosome_name")
-    #df_sex[col_factors] <- lapply(df_sex[col_factors], as.factor) 
-    mapped_genes <- unique(df_sex[, c("Gene", "chromosome_name")])
+    df_sex$chr_simplified <- df_sex$chromosome_name
+    df_sex$chr_simplified <- str_replace_all(df_sex$chr_simplified, "\\d+", "Autosome")
+    df_sex$chr_simplified <- str_replace_all(df_sex$chr_simplified, "MT", "Autosome")
+    mapped_genes <- unique(df_sex[, c("Gene", "chromosome_name", "chr_simplified")])
     genes_names <- unique(df_sex$Gene)
     chr_mtx <- matrix(nrow = length(unique(df_sex$ct)), ncol=length(genes_names))
     rownames(chr_mtx) <- unique(df_sex$ct)
@@ -124,19 +123,24 @@ ExtractGenes <- function(chr_list) {
     for (i in rownames(chr_mtx)) {
       df_ct <- subset(df_sex, subset = ct == i)
       for (gene in colnames(chr_mtx)) {
-        if (gene %in% df_ct$Gene) {
-          chr_mtx[i, gene] <- "y"
-        } else {
-          chr_mtx[i, gene] <- "n"
-        }
+        chr_mtx[i, gene] <- ifelse(gene %in% df_ct$Gene, "y", "n")
       }
     }
-    #chr_mtx[rev(order(rowSums(chr_mtx))), ]
     chr_df <- reshape::melt.matrix(chr_mtx)
     colnames(chr_df) <- c("ct", "gene", "DEG")
     chr_df$chr_name <- rep(NA, length=nrow(chr_df))
+    chr_df$chr_simplified <- rep(NA, length=nrow(chr_df))
     for (gene in chr_df$gene) {
-      chr_df[which(chr_df$gene == gene), "chr_name"] <- mapped_genes[which(mapped_genes$Gene == gene), "chromosome_name"]
+      if (gene == "PRODH") {
+        chr_df[which(chr_df$gene == gene), "chr_name"] <- mapped_genes[which(mapped_genes$Gene == gene), "chromosome_name"][1]
+        chr_df[which(chr_df$gene == gene), "chr_simplified"] <- mapped_genes[which(mapped_genes$Gene == gene), "chr_simplified"][1]
+      } else {
+        chr_df[which(chr_df$gene == gene), "chr_name"] <- mapped_genes[which(mapped_genes$Gene == gene), "chromosome_name"]
+        chr_df[which(chr_df$gene == gene), "chr_simplified"] <- mapped_genes[which(mapped_genes$Gene == gene), "chr_simplified"]
+      }
+      
+      
+      
     }
     chr_df$chr_name <- as.factor(chr_df$chr_name)
     new_chr_list <- append(new_chr_list, list(chr_df))
@@ -361,16 +365,16 @@ PlotNumChr <- function(main_dir, num_chr_genes, ct_ordered, pval_file=F) {
 
 # 15. Saves to CSv output the DEGs from one sex shared by al least 50% of the ct
 ExtractSharedGenes <- function(main_dir, chr_sex_list, min_shared=0.75) {
-  output_path <- paste(main_dir, "01C_num_chr", sep="/")
-  dir.create(output_path, showWarnings = F, recursive = T)
-  df_sex_list <- ExtractGenes(chr_sex_list) 
+  out_path <- paste0(main_dir, "01C_num_chr/")
+  dir.create(out_path, showWarnings = F, recursive = T)
+  df_sex_list <- ExtractGenes(chr_sex_list)
   for (sex in names(df_sex_list)) {
     shared_genes <- data.frame()
     thresh <- ceiling(length(levels(df_sex_list[[sex]]$ct)) * min_shared)
     for (gene in unique(df_sex_list[[sex]]$gene)) {
       if (sum(df_sex_list[[sex]][which(df_sex_list[[sex]]$gene==gene), "DEG"]=="y") >= thresh)
-        shared_genes <- rbind(shared_genes, df_sex_list[[sex]][which(df_sex_list[[sex]]$gene==gene & df_sex_list[[sex]]$DEG=="y"), c("ct", "gene", "chr_name")])
+        shared_genes <- rbind(shared_genes, df_sex_list[[sex]][which(df_sex_list[[sex]]$gene==gene & df_sex_list[[sex]]$DEG=="y"), c("ct", "gene", "chr_name", "chr_simplified")])
     }
-    write.csv(shared_genes, paste0(output_path, "/", sex, "_shared_genes.csv"))
+    write.csv(shared_genes, paste0(out_path, "/", sex, "_shared_genes.csv"))
   }
 }
