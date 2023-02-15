@@ -13,11 +13,12 @@
     # enrichR:
       # a. DSigDB
       # b. GWAS_Catalog_2019
+      # c. TANSFAC and JASPAR - TF motifs enrichment
     # disgenet2r:
       # a. Curated DisGeNET
     # comparison with McKenzie
+    # comparison with Chlamydas
   # 4. Saves the plots and CSV results
-
 
 # OBS: since there is a need for manual input, it is recommended to run this script in a R environment/IDE (e.g. RStudio)
 
@@ -138,6 +139,10 @@ EnrichOtherDBFvM(main_comparison, sexes, "EnrichR",  "GWAS_Catalog_2019", condit
 # DisGeNET (CURATED)
 EnrichOtherDB(main_comparison, sexes, "DisGeNET2r",  "DisGeNET (CURATED)", condition_order)
 EnrichOtherDBFvM(main_comparison, sexes, "DisGeNET2r",  "DisGeNET (CURATED)", condition_order)
+
+# TANSFAC and JASPAR - TF motifs enrichment
+EnrichOtherDB(main_comparison, sexes, "EnrichR",  "TRANSFAC_and_JASPAR_PWMs", condition_order)
+EnrichOtherDBFvM(main_comparison, sexes, "EnrichR",  "TRANSFAC_and_JASPAR_PWMs", condition_order)
 
 # Compare disease-related results
 which_comp <- "_comparison_cts"
