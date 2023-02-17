@@ -146,3 +146,193 @@ common_cts <- CalcCommonGenes(normal_disco, "common_annot")
 
 PlotCommonGenes(main_comparison, og_cts, "Normal_DISCO", "Original_annotation")
 PlotCommonGenes(main_comparison, common_cts, "Normal_DISCO", "Unified_annotation")
+
+# Glucocorticoids Binding sites
+gbs <- readxl::read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/Polman_2012_GBS.xlsx", skip=9)
+gbs_genes <- toupper(gbs$`nearest gene`)
+
+for (i in names(sexes)) {
+  for (sex in c("F", "M")) {
+    print(paste(i, sex, sep = " "))
+    print(length(intersect(gbs_genes, sexes[[i]][which(sexes[[i]]$sex==sex), "gene_id"])))
+    print(nrow(sexes[[i]]))
+    if (toupper("Nr3c1") %in% sexes[[i]][which(sexes[[i]]$sex==sex), "gene_id"]) {
+      print(paste0(toupper("Nr3c1"), " found in ", i, " ", sex))
+    } else if (toupper("Nr3c2") %in% sexes[[i]][which(sexes[[i]]$sex==sex), "gene_id"]) {
+      print(paste0(toupper("Nr3c2"), " found in ", i, " ", sex))
+    } 
+  }
+}
+
+all_genes <- do.call(rbind, sexes)
+all_genes$ct <- gsub("\\..*", "", rownames(all_genes))
+all_genes$presence <- str_replace_all(all_genes$presence, c("yes"="Yes", "no"="No"))
+
+grs <- complete(all_genes[which(all_genes$gene_id %in% c( "NR3C1", "NR3C2")),], gene_id, condition,sex,ct )
+
+
+plot_path <- paste0(main_comparison, "Hmp_Presence_Ind_DEGs/")
+dir.create(plot_path, recursive = T, showWarnings = F)
+pdf(paste0(plot_path, "GR_MR.pdf"), width = 15)
+print(
+  ggplot(grs, aes(factor(condition, condition_order[which(condition_order %in% unique(condition))]), gene_id, fill=presence)) +
+    geom_tile() +
+    scale_fill_manual(values = c("Yes"="#F8766D",
+                                 "No"="#00BFC4"),
+                      na.value = "#00BFC4",
+                      guide = guide_legend(reverse = TRUE)) +
+    facet_grid(sex ~ ct , scales = "free") +
+    labs(x="Groups", y="Genes", fill="Genes found") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          panel.spacing.x=unit(0, "lines"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          axis.title.x = element_text(size=12, face="bold", colour = "black"),
+          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+          legend.position = "bottom", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+  
+)
+dev.off()
+
+# Mitochondrial genes
+
+mit_genes_ids <- unique(all_genes$gene_id[which(grepl("^MT-", all_genes$gene_id))])
+mit_genes_ids <- c("XIST", mit_genes_ids)
+
+mit_genes <- all_genes[which(all_genes$gene_id %in% mit_genes_ids), ]
+mit_gene_count <- as.data.frame(table(mit_genes[which(mit_genes$presence=="Yes"), "gene_id"]))
+mit_gene_count <- mit_gene_count[order(mit_gene_count$Freq, decreasing = T),]
+mit_genes$gene_id <- factor(mit_genes$gene_id, unique(mit_gene_count$Var1))
+mit_genes <- complete(mit_genes, gene_id, condition,sex,ct)
+
+plot_path <- paste0(main_comparison, "Hmp_Presence_Ind_DEGs/")
+dir.create(plot_path, recursive = T, showWarnings = F)
+pdf(paste0(plot_path, "MT_genes.pdf"), width = 15)
+print(
+  ggplot(mit_genes, 
+         aes(factor(condition, condition_order[which(condition_order %in% unique(condition))]), gene_id, fill=presence)) +
+    geom_tile() +
+    scale_fill_manual(values = c("Yes"="#F8766D",
+                                 "No"="#00BFC4"),
+                      na.value = "#00BFC4",
+                      guide = guide_legend(reverse = TRUE)) +
+    facet_grid(sex ~ ct , scales = "free") +
+    labs(x="Groups", y="Genes", fill="Genes found") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          panel.spacing.x=unit(0, "lines"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          axis.title.x = element_text(size=12, face="bold", colour = "black"),
+          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+          legend.position = "bottom", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+  
+  
+)
+dev.off()
+
+
+# X-escaping genes
+
+x_escapees <- read.table("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/escape_Xchr.txt", sep="\t", skip = 2)
+
+plot_path <- paste0(main_comparison, "Hmp_Presence_Ind_DEGs/")
+dir.create(plot_path, recursive = T, showWarnings = F)
+pdf(paste0(plot_path, "X_escaping_genes.pdf"), width = 15)
+print(
+  ggplot(complete(all_genes[which(all_genes$gene_id %in% x_escapees$V2), ], gene_id, condition,sex,ct), 
+         aes(factor(condition, condition_order[which(condition_order %in% unique(condition))]), gene_id, fill=presence)) +
+    geom_tile() +
+    scale_fill_manual(values = c("Yes"="#F8766D",
+                                 "No"="#00BFC4"),
+                      na.value = "#00BFC4",
+                      guide = guide_legend(reverse = TRUE)) +
+    facet_grid(sex ~ ct , scales = "free") +
+    labs(x="Groups", y="Genes", fill="Genes found") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          panel.spacing.x=unit(0, "lines"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          axis.title.x = element_text(size=12, face="bold", colour = "black"),
+          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+          legend.position = "bottom", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+  
+  
+)
+dev.off()
+
+# Genes with high difference between M and F
+
+f_count_F <- as.data.frame(table(all_genes[which(all_genes$presence=="Yes" & all_genes$sex=="F"), "gene_id"]))
+f_count_F$sex <- rep("F", nrow(f_count_F))
+m_count_F <- as.data.frame(table(all_genes[which(all_genes$presence=="No" & all_genes$sex=="M"), "gene_id"]))
+m_count_F$sex <- rep("M", nrow(m_count_F))
+sex_count_F <- rbind(f_count_F, m_count_F)
+colnames(sex_count_F) <- c("gene_id", "count", "sex")
+sex_count_F <- complete(sex_count_F, gene_id, sex)
+sex_count_F[which(is.na(sex_count_F$count)), "count"] <- 0
+
+abs_diff_F <- data.frame("gene_id"=unique(sex_count_F$gene_id))
+abs_diff_F$sex_diff <- rep(NA, nrow(abs_diff_F))
+for (i in abs_diff_F$gene_id) {
+  abs_diff_F[which(abs_diff_F$gene_id==i), "sex_diff"] <- abs(sex_count_F[which(sex_count_F$sex=="F" & sex_count_F$gene_id==i), "count"] - sex_count_F[which(sex_count_F$sex=="M" & sex_count_F$gene_id==i), "count"])
+}
+abs_diff_F <- abs_diff_F[order(abs_diff_F$sex_diff, decreasing = T), ]
+
+f_count_M <- as.data.frame(table(all_genes[which(all_genes$presence=="No" & all_genes$sex=="F"), "gene_id"]))
+f_count_M$sex <- rep("F", nrow(f_count_M))
+m_count_M <- as.data.frame(table(all_genes[which(all_genes$presence=="Yes" & all_genes$sex=="M"), "gene_id"]))
+m_count_M$sex <- rep("M", nrow(m_count_M))
+sex_count_M <- rbind(f_count_M, m_count_M)
+colnames(sex_count_M) <- c("gene_id", "count", "sex")
+sex_count_M <- complete(sex_count_M, gene_id, sex)
+sex_count_M[which(is.na(sex_count_M$count)), "count"] <- 0
+
+abs_diff_M <- data.frame("gene_id"=unique(sex_count_M$gene_id))
+abs_diff_M$sex_diff <- rep(NA, nrow(abs_diff_M))
+for (i in abs_diff_M$gene_id) {
+  abs_diff_M[which(abs_diff_M$gene_id==i), "sex_diff"] <- abs(sex_count_M[which(sex_count_M$sex=="F" & sex_count_M$gene_id==i), "count"] - sex_count_M[which(sex_count_M$sex=="M" & sex_count_M$gene_id==i), "count"])
+}
+abs_diff_M <- abs_diff_M[order(abs_diff_M$sex_diff, decreasing = T), ]
+
+most_diff_genes <- as.character(c(abs_diff_F[1:10, "gene_id"], abs_diff_M[1:10, "gene_id"]))
+most_diff_genes <- complete(all_genes[which(all_genes$gene_id %in% most_diff_genes), ], gene_id, condition,sex,ct)
+
+plot_path <- paste0(main_comparison, "Hmp_Presence_Ind_DEGs/")
+dir.create(plot_path, recursive = T, showWarnings = F)
+pdf(paste0(plot_path, "top_20_most_diff_genes.pdf"), width = 15, height = 15)
+print(
+  ggplot(most_diff_genes,
+         aes(factor(condition, condition_order[which(condition_order %in% unique(condition))]), gene_id, fill=presence)) +
+    geom_tile() +
+    scale_fill_manual(values = c("Yes"="#F8766D",
+                                 "No"="#00BFC4"),
+                      na.value = "#00BFC4",
+                      guide = guide_legend(reverse = TRUE)) +
+    facet_grid(sex ~  ct, scales = "free") +
+    labs(x="Groups", y="Genes", fill="Genes found") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          panel.spacing.x=unit(0, "lines"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          axis.title.x = element_text(size=12, face="bold", colour = "black"),
+          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+          legend.position = "bottom", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+  
+)
+dev.off()

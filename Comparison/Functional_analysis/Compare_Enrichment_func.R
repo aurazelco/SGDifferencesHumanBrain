@@ -286,7 +286,7 @@ ExtractSexCt <- function(sex_df, ct, sex, condition_ordered) {
 
 # 7. Compares the GOs of a list of genes
   # Input: list of genes to be compared, which GO (BP, MO or CC),  
-    # if a minimum threshold for how many genes in each module should be used
+    # if a minimum threshold for how many genes in each module should be used,
   # Return: enriched GO (formal class compareClusterResult)
 
 compareGO <- function(sex_list, GO_ont, gene_thresh="no"){
@@ -452,10 +452,10 @@ EnrichFvM <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh=
 # 13. Compares the DEGs from all condition in a specific ct-sex group
   # Input: main directory where to save the plots, the dataframe containing all DEGs, , the enrichment to be analyzed, 
     # the GO to analyze (if GO is the module), if a minimum threshold for how many genes in each module should be used, 
-    # the order in which plot the conditions, and if the x-axis labels should be rotated by 90 degrees
+    # the order in which plot the conditions, and if the x-axis labels should be rotated by 90 degrees, the threshold for the adjusted p-value to use
   # Return: nothing, saves plots and CSVs instead
 
-EnrichCondition <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh="no", condition_ordered, rotate_x_axis=F) {
+EnrichCondition <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh="no", condition_ordered, rotate_x_axis=F, adj_pval_thresh=0.05) {
   out_path <- paste0(main_comparison, enrich_module, "_comparison_cts/")
   dir.create(out_path, recursive = T, showWarnings = F)
   for (ct in unique(sex_df$common_annot)) {
@@ -468,20 +468,25 @@ EnrichCondition <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_t
         try({
           print(paste0("Calculating the ", GO_ont, " results for ", sex))
           sex_cond_GO <-  compareGO(sex_ct, GO_ont, gene_thresh)
-          sex_cond_plot <- dotplot(sex_cond_GO, by = 'count', title=sex)
+          csv_cond_GO <- as.data.frame(sex_cond_GO)
+          print(paste0("Saving the CSV GO results for ", sex))
+          write.csv(csv_cond_GO, paste0(ct_path, "GO_", GO_ont, "_", sex, ".csv"))
+          sex_cond_GO@compareClusterResult <- sex_cond_GO@compareClusterResult[which(sex_cond_GO@compareClusterResult$p.adjust<=adj_pval_thresh),]
+          sex_cond_plot <- dotplot(sex_cond_GO, by = 'count', title=paste(ct, sex, sep=" - "), showCategory=2)
           if (rotate_x_axis) {sex_cond_plot$theme$axis.text.x$angle <- 90}
           png(paste0(ct_path, "GO_", GO_ont, "_", sex, ".png"), height = 20, width = 15, units = "cm", res = 300)
           print(sex_cond_plot)
           dev.off()
-          csv_cond_GO <- as.data.frame(sex_cond_GO)
-          print(paste0("Saving the CSV GO results for ", sex))
-          write.csv(csv_cond_GO, paste0(ct_path, "GO_", GO_ont, "_", sex, ".csv"))
         })
       } else if (enrich_module=="KEGG") {
         try({
           print(paste0("Calculating the KEGG results for ", sex))
           sex_cond_KEGG <-  compareKEGG(sex_ct, gene_thresh)
-          sex_cond_plot <- dotplot(sex_cond_KEGG, by = 'count', title=sex)
+          csv_cond_KEGG <- as.data.frame(sex_cond_KEGG)
+          print(paste0("Saving the CSV KEGG results for ", sex))
+          write.csv(csv_cond_KEGG, paste0(ct_path, "KEGG_", sex, ".csv"))
+          sex_cond_KEGG@compareClusterResult <- sex_cond_KEGG@compareClusterResult[which(sex_cond_KEGG@compareClusterResult$p.adjust<=adj_pval_thresh),]
+          sex_cond_plot <- dotplot(sex_cond_KEGG, by = 'count', title=paste(ct, sex, sep=" - "), showCategory=2)
           if (rotate_x_axis) {sex_cond_plot$theme$axis.text.x$angle <- 90}
           png(paste0(ct_path, "KEGG_", sex, ".png"), height = 20, width = 15, units = "cm", res = 300)
           print(sex_cond_plot)
@@ -489,15 +494,16 @@ EnrichCondition <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_t
           png(paste0(ct_path, "KEGG_", sex, "_cnet.png"), height = 15, width = 20, units = "cm", res = 300)
           print(cnetplot(setReadable(sex_cond_KEGG, 'org.Hs.eg.db', 'ENTREZID'),cex_label_category = 1.2))
           dev.off()
-          csv_cond_KEGG <- as.data.frame(sex_cond_KEGG)
-          print(paste0("Saving the CSV KEGG results for ", sex))
-          write.csv(csv_cond_KEGG, paste0(ct_path, "KEGG_", sex, ".csv"))
         })
       } else if (enrich_module=="DO") {
         try({
           print(paste0("Calculating the DO results for ", sex))
           sex_cond_DO <-  compareDO(sex_ct, gene_thresh)
-          sex_cond_plot <- dotplot(sex_cond_DO, by = 'count', title=sex)
+          csv_cond_DO <- as.data.frame(sex_cond_DO)
+          print(paste0("Saving the CSV DO results for ", sex))
+          write.csv(csv_cond_DO, paste0(ct_path, "DO_", sex, ".csv"))
+          sex_cond_DO@compareClusterResult <- sex_cond_DO@compareClusterResult[which(sex_cond_DO@compareClusterResult$p.adjust<=adj_pval_thresh),]
+          sex_cond_plot <- dotplot(sex_cond_DO, by = 'count', title=paste(ct, sex, sep=" - "), showCategory=2)
           if (rotate_x_axis) {sex_cond_plot$theme$axis.text.x$angle <- 90}
           png(paste0(ct_path, "DO_", sex, ".png"), height = 20, width = 15, units = "cm", res = 300)
           print(sex_cond_plot)
@@ -505,22 +511,20 @@ EnrichCondition <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_t
           png(paste0(ct_path, "DO_", sex, "_cnet.png"), height = 15, width = 20, units = "cm", res = 300)
           print(cnetplot(sex_cond_DO, node_label="category",cex_label_category = 1.2))
           dev.off()
-          csv_cond_DO <- as.data.frame(sex_cond_DO)
-          print(paste0("Saving the CSV DO results for ", sex))
-          write.csv(csv_cond_DO, paste0(ct_path, "DO_", sex, ".csv"))
         })
       } else if (enrich_module=="DGN") {
         try({
         print(paste0("Calculating the DGN results for ", sex))
         sex_cond_DGN <-  compareDGN(sex_ct, gene_thresh)
-        sex_cond_plot <- dotplot(sex_cond_DGN, by = 'count', title=sex)
+        csv_cond_DGN <- as.data.frame(sex_cond_DGN)
+        print(paste0("Saving the CSV DGN results for ", sex))
+        write.csv(csv_cond_DGN, paste0(ct_path, "DGN_", sex, ".csv"))
+        sex_cond_DGN@compareClusterResult <- sex_cond_DGN@compareClusterResult[which(sex_cond_DGN@compareClusterResult$p.adjust<=adj_pval_thresh),]
+        sex_cond_plot <- dotplot(sex_cond_DGN, by = 'count', title=paste(ct, sex, sep=" - "), showCategory=2)
         if (rotate_x_axis) {sex_cond_plot$theme$axis.text.x$angle <- 90}
         png(paste0(ct_path, "DGN_", sex, ".png"), height = 20, width = 15, units = "cm", res = 300)
         print(sex_cond_plot)
         dev.off()
-        csv_cond_DGN <- as.data.frame(sex_cond_DGN)
-        print(paste0("Saving the CSV DGN results for ", sex))
-        write.csv(csv_cond_DGN, paste0(ct_path, "DGN_", sex, ".csv"))
         })
       }
     }

@@ -123,10 +123,10 @@ EnrichFvM(main_comparison, sexes, "DGN")
 
 
 # Saves results, one plot and one CSV for F and M separately of each ct across conditions - GO, KEGG, DO DisGeNET
-EnrichCondition(main_comparison, sexes, "GO", "BP", gene_thresh = 100, condition_ordered = condition_order, rotate_x_axis = T)
-EnrichCondition(main_comparison, sexes, "KEGG", gene_thresh = 100, condition_ordered = condition_order, rotate_x_axis = T)
-EnrichCondition(main_comparison, sexes, "DO", gene_thresh = 100, condition_ordered = condition_order, rotate_x_axis = T)
-EnrichCondition(main_comparison, sexes, "DGN", gene_thresh = 100, condition_ordered = condition_order, rotate_x_axis = T)
+EnrichCondition(main_comparison, sexes, "GO", "BP", gene_thresh = 100, condition_ordered = condition_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
+EnrichCondition(main_comparison, sexes, "KEGG", gene_thresh = 100, condition_ordered = condition_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
+EnrichCondition(main_comparison, sexes, "DO", gene_thresh = 100, condition_ordered = condition_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
+EnrichCondition(main_comparison, sexes, "DGN", gene_thresh = 100, condition_ordered = condition_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
 
 # DSigDB - drug db
 EnrichOtherDB(main_comparison, sexes, "EnrichR",  "DSigDB", condition_order)
