@@ -149,17 +149,16 @@ which_comp <- "_comparison_cts"
 DO <- ImportDBresults(main_comparison, "DO", which_comp)
 DGN <- ImportDBresults(main_comparison, "DGN", which_comp)
 DGN_CURATED <- ImportDBresults(main_comparison, "DisGeNET2r_DisGeNET_CURATED", "")
-DSigDB <- ImportDBresults(main_comparison, "EnrichR_DSigDB", "")
 GWAS <- ImportDBresults(main_comparison, "EnrichR_GWAS_Catalog_2019", "")
 
 
 # Counts how mauch frequent each term is, adn saves the CSV in the directory
-all_dbs <- rbind(DO, DGN, DGN_CURATED, GWAS, DSigDB)
+all_dbs <- rbind(DO, DGN, DGN_CURATED, GWAS)
 all_dbs <- all_dbs[which(all_dbs$condition!="Eze_Nowakowski_integrated_2nd_trimester"),]
 CountDiseases(main_comparison, all_dbs) 
 
 # DGN excluded because too many terms
-all_dbs <- rbind(DO, DGN_CURATED, GWAS, DSigDB)
+all_dbs <- rbind(DO, DGN_CURATED, GWAS)
 all_dbs <- all_dbs[which(all_dbs$condition!="Eze_Nowakowski_integrated_2nd_trimester"),]
 PlotFacetedDB(main_comparison, all_dbs, condition_order )
   

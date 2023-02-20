@@ -286,9 +286,11 @@ sex_count_F[which(is.na(sex_count_F$count)), "count"] <- 0
 abs_diff_F <- data.frame("gene_id"=unique(sex_count_F$gene_id))
 abs_diff_F$sex_diff <- rep(NA, nrow(abs_diff_F))
 for (i in abs_diff_F$gene_id) {
-  abs_diff_F[which(abs_diff_F$gene_id==i), "sex_diff"] <- abs(sex_count_F[which(sex_count_F$sex=="F" & sex_count_F$gene_id==i), "count"] - sex_count_F[which(sex_count_F$sex=="M" & sex_count_F$gene_id==i), "count"])
+  abs_diff_F[which(abs_diff_F$gene_id==i), "sex_diff"] <- sex_count_F[which(sex_count_F$sex=="F" & sex_count_F$gene_id==i), "count"] - sex_count_F[which(sex_count_F$sex=="M" & sex_count_F$gene_id==i), "count"]
 }
+abs_diff_F <- abs_diff_F[which(abs_diff_F$sex_diff > 0 ),]
 abs_diff_F <- abs_diff_F[order(abs_diff_F$sex_diff, decreasing = T), ]
+abs_diff_F$gene_id <- factor(abs_diff_F$gene_id, unique(abs_diff_F$gene_id))
 
 f_count_M <- as.data.frame(table(all_genes[which(all_genes$presence=="No" & all_genes$sex=="F"), "gene_id"]))
 f_count_M$sex <- rep("F", nrow(f_count_M))
@@ -302,12 +304,51 @@ sex_count_M[which(is.na(sex_count_M$count)), "count"] <- 0
 abs_diff_M <- data.frame("gene_id"=unique(sex_count_M$gene_id))
 abs_diff_M$sex_diff <- rep(NA, nrow(abs_diff_M))
 for (i in abs_diff_M$gene_id) {
-  abs_diff_M[which(abs_diff_M$gene_id==i), "sex_diff"] <- abs(sex_count_M[which(sex_count_M$sex=="F" & sex_count_M$gene_id==i), "count"] - sex_count_M[which(sex_count_M$sex=="M" & sex_count_M$gene_id==i), "count"])
+  abs_diff_M[which(abs_diff_M$gene_id==i), "sex_diff"] <- sex_count_M[which(sex_count_M$sex=="M" & sex_count_M$gene_id==i), "count"] - sex_count_M[which(sex_count_M$sex=="F" & sex_count_M$gene_id==i), "count"]
 }
+abs_diff_M <- abs_diff_M[which(abs_diff_M$sex_diff > 0 ),]
 abs_diff_M <- abs_diff_M[order(abs_diff_M$sex_diff, decreasing = T), ]
+abs_diff_M$gene_id <- factor(abs_diff_M$gene_id, unique(abs_diff_M$gene_id))
 
-most_diff_genes <- as.character(c(abs_diff_F[1:10, "gene_id"], abs_diff_M[1:10, "gene_id"]))
+top10F <- as.character(abs_diff_F[1:10, "gene_id"])
+top10M <- as.character(abs_diff_M[1:10, "gene_id"])
+
+common_genes <- intersect(top10F, top10M)
+
+`%!in%` <- Negate(`%in%`)
+
+if (length(common_genes) > 0 ) {
+  top10F_u <- top10F[which(top10F %!in% common_genes)]
+  top10M_u <- top10M[which(top10M %!in% common_genes)]
+  while (length(top10F_u) < 10 & length(top10M_u) < 10) {
+    print(length(top10F_u))
+    print(length(top10M_u))
+    for (i  in common_genes) {
+      if (abs_diff_F[which(abs_diff_F$gene_id==i), "sex_diff"] > abs_diff_M[which(abs_diff_M$gene_id==i), "sex_diff"]) {
+        top10F_u <- c(top10F_u, i)
+      } else {
+        top10M_u <- c(top10M_u, i)
+      }
+    }
+  }
+} else {
+  top10F_u <- top10F
+  top10M_u <- top10M
+}
+
+if (length(top10F_u) < 10) {
+  missing_genes <- as.character(abs_diff_F$gene_id[11:(11+10 - length(top10F_u) - 1)])
+  top10F_u <- c(top10F_u, missing_genes)
+}
+if (length(top10M_u) < 10) {
+  missing_genes <- as.character(abs_diff_M$gene_id[11:(11+10 - length(top10M_u) - 1)])
+  top10M_u <- c(top10M_u, missing_genes)
+}
+
+
+most_diff_genes <- c(top10F_u, top10M_u)
 most_diff_genes <- complete(all_genes[which(all_genes$gene_id %in% most_diff_genes), ], gene_id, condition,sex,ct)
+most_diff_genes$gene_id <- factor(most_diff_genes$gene_id, rev(c(top10F_u, top10M_u)))
 
 plot_path <- paste0(main_comparison, "Hmp_Presence_Ind_DEGs/")
 dir.create(plot_path, recursive = T, showWarnings = F)

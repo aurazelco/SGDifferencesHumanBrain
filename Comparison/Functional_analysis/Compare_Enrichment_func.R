@@ -541,6 +541,9 @@ EnrichR_fun <- function(gene_ls, dbsx){
   enrichR_df <- enrichR_obj[[1]]
   gene_count <-  unlist(lapply(enrichR_df$Overlap, function(x) { unlist(strsplit(x, "/"))[1] } ))
   enrichR_df$gene_count <- gene_count
+  if (dbsx=="TRANSFAC_and_JASPAR_PWMs") {
+    enrichR_df <- enrichR_df[which(grepl("human", enrichR_df$Term)), ]
+  }
   return(enrichR_df)
 }
 
@@ -641,7 +644,7 @@ EnrichOtherDB <- function(main_dir, sex_df, package, dbsx, condition_ordered){
         colnames(filtered_top) <- c("condition", "term", "gene_count", "adj_pval")
         pdf(paste0(ct_path, sex, ".pdf"))
         print(
-          ggplot(filtered_top, aes(condition, term, size = gene_count, color = adj_pval)) + 
+          ggplot(filtered_top, aes(factor(condition, condition_ordered[which(condition_ordered %in% condition)]), term, size = gene_count, color = adj_pval)) + 
             geom_point() + 
             guides(size  = guide_legend(order = 1), color = guide_colorbar(order = 2)) +
             scale_color_continuous(low="red", high="blue",guide=guide_colorbar(reverse=T)) +
