@@ -186,3 +186,10 @@ chlamydas <- drop_na(chlamydas)
 chl_deg <- CreateDisDf(main_comparison, chlamydas, sexes, "Chlamydas_2022")
 
 PlotDisDeg(main_comparison, chl_deg, "Chlamydas_2022")
+
+# TRANSFAC_and_JASPAR_PWMs enrichment
+tj_results <- ImportTJPWMs(main_comparison)
+CalculateSharedTJPWMs(main_comparison, tj_results, 0.5)
+CalculateSharedTJPWMs(main_comparison, tj_results, 0.75)
+
+

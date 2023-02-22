@@ -71,6 +71,8 @@ library(enrichR) # database
 library(disgenet2r) # database
 library(readxl) # to read excel files
 library(dplyr) # to re-arrange dfs
+library(biomaRt) # to query to which chromosome the shared terms belong to
+
 
 # Sets the EnrichR database for Human genes
 setEnrichrSite("Enrichr") 
@@ -1112,4 +1114,85 @@ PlotDisDeg <- function(main_dir, ref_deg, ref_df_name) {
     print(PlotDisDegGroup(ref_deg, dis))
     dev.off()
   }
+}
+
+# 31. Imports TRANSFAC_and_JASPAR_PWMs results
+  # Input: main directory, sub-folders list
+  # Return: dataframe containing all significant terms
+
+ImportTJPWMs <- function(main_dir) {
+  files_path <- paste0(main_dir, "EnrichR_TRANSFAC_and_JASPAR_PWMs/")
+  cts <- list.dirs(files_path, full.names = F, recursive = F)
+  tj_ls <- list()
+  for (ct_id in cts) {
+    tj_files <- list.files(paste0(files_path, ct_id, "/"), pattern = "\\.csv$", full.names = TRUE)
+    tj_names <- list.files(paste0(files_path, ct_id, "/"), pattern = "\\.csv$", full.names = F)
+    ct_ls <- lapply(tj_files, read.csv, row.names=1)
+    names(ct_ls) <- str_remove_all(tj_names, "\\.csv$")
+    names(ct_ls) <- str_remove_all(names(ct_ls), "top5_")
+    tj_ls <- append(tj_ls, list(ct_ls))
+  }
+  names(tj_ls) <- cts
+  tj_df <- do.call(rbind, unlist(tj_ls, recursive = F))
+  tj_groups <- data.frame("groups"=rownames(tj_df))
+  rownames(tj_df) <- NULL
+  tj_groups <- separate(tj_groups, groups, into=c("ct", "sex", "num"), remove = T, sep="\\.")
+  tj_df <- cbind(tj_groups[, c(1:2)], tj_df)
+  tj_df <- tj_df[which(tj_df$Adjusted.P.value < 0.05), ]
+  tj_df$term_simplified <- str_remove_all(tj_df$Term, " \\(human\\)")
+  return(tj_df)
+}
+
+# 32. Function to get chromosome number from term
+  # Input: the terms as vector
+  # Return: the annotated terms with chromosome number
+
+Annot.chr.name <- function(gene.list){
+  # define biomart object
+  mart <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", mirror = "useast")
+  Annot_idf <- getBM(attributes = c("hgnc_symbol",
+                                    "chromosome_name"),
+                     filters = c("hgnc_symbol") ,
+                     values=list(gene.list),
+                     mart = mart)
+  #delete chromosome name with CHR label
+  Annot_df <- Annot_idf[!str_detect(Annot_idf$chromosome_name,  "CHR"),]
+  return(Annot_df)
+}
+
+# 33. Map terms from shared EnrichR_TRANSFAC_and_JASPAR_PWMs against chromosome
+  # Input: dataframe with the shared terms, the annotated terms with chromosome number
+  # Return: merged dataframe
+
+map_chr <- function(gene_count_filt, Annot_df){
+  map_chr_df <- merge(gene_count_filt, Annot_df, by.x= "term", by.y= "hgnc_symbol", all.x=T)
+  return(map_chr_df)
+}
+
+# 34. Caclulates common EnrichR_TRANSFAC_and_JASPAR_PWMs and saves to CSV with chromosome information
+  # Input: main directory where to save the file, the tj dataframe, the percenytage of minimum cts to share each term
+  # Return: nothing, saves CSV instead
+
+CalculateSharedTJPWMs <- function(main_dir, tj_df, min_num_ct) {
+  out_path <- paste0(main_dir, "EnrichR_TRANSFAC_and_JASPAR_PWMs/")
+  sex_tjs_ls <- list()
+  thresh <- ceiling(length(unique(tj_df$ct)) * min_num_ct)
+  for (sex in c("F", "M")) {
+    sex_tjs <- vector()
+    for (ct in unique(tj_df$ct)) {
+      sex_tjs <- c(sex_tjs, unique(tj_df[which(tj_df$ct==ct & tj_df$sex==sex), "term_simplified"]))
+    }
+    sex_tjs <- as.data.frame(table(sex_tjs))
+    sex_tjs <- cbind("sex" = rep(sex, nrow(sex_tjs)), sex_tjs)
+    sex_tjs <- sex_tjs[order(sex_tjs$Freq, decreasing = T), ]
+    sex_tjs <- sex_tjs[which(sex_tjs$Freq >= thresh), ]
+    sex_tjs_ls <- append(sex_tjs_ls, list(sex_tjs))
+  }
+  sex_tjs_ls <- do.call(rbind, sex_tjs_ls)
+  rownames(sex_tjs_ls) <- NULL
+  colnames(sex_tjs_ls) <- c("sex", "term", "ct_count")
+  annot_terms <- Annot.chr.name(sex_tjs_ls$term)
+  sex_tjs_ls <- map_chr(sex_tjs_ls, annot_terms)
+  sex_tjs_ls$chr_simplified <- str_replace_all(sex_tjs_ls$chromosome_name, "\\d+", "Autosome")
+  write.csv(sex_tjs_ls, paste0(out_path, "TRANSFAC_and_JASPAR_PWMs_shared_by_", min_num_ct * 100, "%_cts.csv"))
 }
