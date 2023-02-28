@@ -15,6 +15,7 @@ velm <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Vel
 #eze_nowa <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Eze_Nowakowski_num_cells.csv")
 
 disco$X <- NULL
+disco$disease <- str_replace_all(disco$disease, "Normal", "Healthy")
 velm$X <- NULL
 #eze_nowa$X <- NULL
 #eze_nowa <- cbind(rep("Eze_Nowakowski_2nd_trimester", nrow(eze_nowa)), eze_nowa)
@@ -22,7 +23,7 @@ velm$X <- NULL
 #colnames(eze_nowa) <- c("proj", "sex", "ct", "count")
 colnames(velm) <- c("proj", "sex", "ct", "count")
 #eze_nowa$disease <- rep("Normal", nrow(eze_nowa))
-velm$disease <- rep("Normal", nrow(velm))
+velm$disease <- rep("Healthy", nrow(velm))
 
 #eze_nowa <- eze_nowa %>% relocate(disease, .after = sex)
 velm <- velm %>% relocate(disease, .after = sex)
@@ -55,10 +56,10 @@ order_proj <- c("Eze_Nowakowski_2nd_trimester", "Velmeshev_2022_2nd trimester",
                 "Velmeshev_2022_2-4 years", "Velmeshev_2022_10-20 years", "Velmeshev_2022_Adult",
                 "DISCO_GSE157827", "DISCO_GSE174367","DISCO_PRJNA544731")
 
-norm <- ggplot(all_ds[which(all_ds$disease=="Normal"),], aes(factor(proj, order_proj[-1]), count, fill=sex)) +
+norm <- ggplot(all_ds[which(all_ds$disease=="Healthy"),], aes(factor(proj, order_proj[-1]), count, fill=sex)) +
   geom_bar(stat = "identity", color="black", position = "dodge") +
   labs(x="Datasets", y="Number of cells", fill="Sex") +
-  facet_wrap(~factor(disease, levels=c("Normal", "Alzheimer's disease", "Multiple Sclerosis")), 
+  facet_wrap(~factor(disease, levels=c("Healthy", "Alzheimer's disease", "Multiple Sclerosis")), 
              scales = "free_x") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -72,10 +73,10 @@ norm <- ggplot(all_ds[which(all_ds$disease=="Normal"),], aes(factor(proj, order_
         legend.position = "bottom", 
         legend.title = element_text(size=12, face="bold", colour = "black"))
 
-dis <- ggplot(all_ds[which(all_ds$disease!="Normal"),], aes(factor(proj, order_proj), count, fill=sex)) +
+dis <- ggplot(all_ds[which(all_ds$disease!="Healthy"),], aes(factor(proj, order_proj), count, fill=sex)) +
   geom_bar(stat = "identity", color="black", position = "dodge") +
   labs(x="Datasets", y="Number of cells", fill="Sex") +
-  facet_wrap(~factor(disease, levels=c("Normal", "Alzheimer's disease", "Multiple Sclerosis")), 
+  facet_wrap(~factor(disease, levels=c("Healthy", "Alzheimer's disease", "Multiple Sclerosis")), 
              scales = "free_x") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -165,12 +166,12 @@ write.csv(all_ds_ct, paste0(out_path, "num_cells_per_ct.csv"))
 all_ds_ct <- read.csv(paste0(out_path, "num_cells_per_ct.csv"))
 
 order_proj_dis <- c(
-  "Eze_Nowakowski_2nd_trimester_Normal",  "Velmeshev_2022_2nd trimester_Normal", 
-  "Velmeshev_2022_3rd trimester_Normal",  "Velmeshev_2022_0-1 years_Normal",     
-  "Velmeshev_2022_1-2 years_Normal",      "Velmeshev_2022_2-4 years_Normal",     
-  "Velmeshev_2022_10-20 years_Normal",    "Velmeshev_2022_Adult_Normal",         
-  "DISCO_GSE157827_Normal",  "DISCO_GSE174367_Normal",
-  "DISCO_PRJNA544731_Normal", "DISCO_GSE157827_Alzheimer's disease",             
+  "Eze_Nowakowski_2nd_trimester_Healthy",  "Velmeshev_2022_2nd trimester_Healthy", 
+  "Velmeshev_2022_3rd trimester_Healthy",  "Velmeshev_2022_0-1 years_Healthy",     
+  "Velmeshev_2022_1-2 years_Healthy",      "Velmeshev_2022_2-4 years_Healthy",     
+  "Velmeshev_2022_10-20 years_Healthy",    "Velmeshev_2022_Adult_Healthy",         
+  "DISCO_GSE157827_Healthy",  "DISCO_GSE174367_Healthy",
+  "DISCO_PRJNA544731_Healthy", "DISCO_GSE157827_Alzheimer's disease",             
   "DISCO_GSE174367_Alzheimer's disease", "DISCO_PRJNA544731_Multiple Sclerosis" 
 )
 
