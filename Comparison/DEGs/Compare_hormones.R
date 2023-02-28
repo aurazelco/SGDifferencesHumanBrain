@@ -89,12 +89,29 @@ hormones <- fromJSON(file="/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Compari
 # Generates a df with all DEGs
 sexes <- CreateSexDf(c(UCSC[[1]][-1], disco[[1]]), unified_annotation)
 
-df_horm <- CreateHormonesDf(sexes, hormones, condition_order)
+hormones_filt <- hormones[names(which(lapply(hormones, length)>=10))]
+df_filt <- CreateHormonesDf(sexes, hormones_filt, condition_order)
 
-PlotHormonesRes(main_comparison, df_horm, condition_order, "abs")
-PlotHormonesRes(main_comparison, df_horm, condition_order, "perc_degs")
-#PlotHormonesRes(main_comparison, df_horm, condition_order, "perc_hormones")
+PlotHormonesRes(main_comparison, df_filt, condition_order, "abs")
+PlotHormonesRes(main_comparison, df_filt, condition_order, "perc_degs")
+PlotHormonesRes(main_comparison, df_filt, condition_order, "perc_hormones")
 
-PlotHormonesResFaceted(main_comparison, df_horm, condition_order, "abs")
-PlotHormonesResFaceted(main_comparison, df_horm, condition_order, "perc_degs")
-#PlotHormonesResFaceted(main_comparison, df_horm, condition_order, "perc_hormones")
+PlotHormonesResFaceted(main_comparison, df_filt, condition_order, "abs")
+PlotHormonesResFaceted(main_comparison, df_filt, condition_order, "perc_degs")
+PlotHormonesResFaceted(main_comparison, df_filt, condition_order, "perc_hormones")
+
+hormones_pval <- HormoneEnrichment(df_filt)
+HmpHormoneEnrichment(main_comparison, hormones_pval, condition_order)
+HmpHormoneEnrichment(main_comparison, hormones_pval, condition_order, "Thymosin", "Thymosin")
+
+
+intersect(
+  tolower(unique(sexes[which(sexes$sex=="F" & sexes$common_annot=="Microglia" & sexes$condition=="Alzheimer's disease_GSE157827"), "gene_id"])),
+  hormones_filt$testosterone
+)
+# "dusp1" "calr" 
+intersect(
+  tolower(unique(sexes[which(sexes$sex=="F" & sexes$common_annot=="Microglia" & sexes$condition=="Alzheimer's disease_GSE174367"), "gene_id"])),
+  hormones_filt$testosterone
+)
+#  "spp1"

@@ -142,10 +142,20 @@ PlotDEGsOverlapHmp(main_comparison, sexes, condition_order)
 normal_disco <- NormDf(disco[[1]][c("Normal_GSE157827", "Normal_GSE174367", "Normal_PRJNA544731")], unified_annotation)
 
 og_cts <- CalcCommonGenes(normal_disco, "ct")
+og_cts$ct <- str_to_title(og_cts$ct)
 common_cts <- CalcCommonGenes(normal_disco, "common_annot")
 
 PlotCommonGenes(main_comparison, og_cts, "Normal_DISCO", "Original_annotation")
 PlotCommonGenes(main_comparison, common_cts, "Normal_DISCO", "Unified_annotation")
+
+og_cts$annot_type <- rep("Original annotation", nrow(og_cts))
+common_cts$annot_type <- rep("Unified annotation", nrow(common_cts))
+
+all_annot <- rbind(og_cts, common_cts)
+
+PlotCommonGenes(main_comparison, all_annot, "Normal_DISCO", "both")
+
+
 
 # Glucocorticoids Binding sites
 gbs <- readxl::read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/Polman_2012_GBS.xlsx", skip=9)
@@ -201,7 +211,10 @@ dev.off()
 # Mitochondrial genes
 
 mit_genes_ids <- unique(all_genes$gene_id[which(grepl("^MT-", all_genes$gene_id))])
-mit_genes_ids <- c("XIST", mit_genes_ids)
+timtom_ids <- c(unique(all_genes$gene_id[which(grepl("^TIMM", all_genes$gene_id))]),
+                unique(all_genes$gene_id[which(grepl("^TOMM", all_genes$gene_id))]))
+mit_genes_ids <- c("XIST", timtom_ids, mit_genes_ids)
+
 
 mit_genes <- all_genes[which(all_genes$gene_id %in% mit_genes_ids), ]
 mit_gene_count <- as.data.frame(table(mit_genes[which(mit_genes$presence=="Yes"), "gene_id"]))
@@ -209,12 +222,18 @@ mit_gene_count <- mit_gene_count[order(mit_gene_count$Freq, decreasing = T),]
 mit_genes$gene_id <- factor(mit_genes$gene_id, unique(mit_gene_count$Var1))
 mit_genes <- complete(mit_genes, gene_id, condition,sex,ct)
 
+mit_order <- c(
+  "XIST",    "TIMM13",  "TIMM17A", "TIMM23B", "TIMM44",  "TOMM7",   "TOMM20",  "TOMM70A",
+  "MT-CYB", "MT-ND1",  "MT-ND2", "MT-ND3", "MT-ND4", "MT-ND4L", "MT-ND5", 
+  "MT-CO1", "MT-CO2",  "MT-CO3", "MT-ATP6",   "MT-ATP8",  "MT-RNR1", "MT-RNR2"
+)
+
 plot_path <- paste0(main_comparison, "Hmp_Presence_Ind_DEGs/")
 dir.create(plot_path, recursive = T, showWarnings = F)
-pdf(paste0(plot_path, "MT_genes.pdf"), width = 15)
+pdf(paste0(plot_path, "MT_genes.pdf"), width = 15, height = 15)
 print(
   ggplot(mit_genes, 
-         aes(factor(condition, condition_order[which(condition_order %in% unique(condition))]), gene_id, fill=presence)) +
+         aes(factor(condition, condition_order[which(condition_order %in% unique(condition))]), factor(gene_id, rev(unique(mit_order))), fill=presence)) +
     geom_tile() +
     scale_fill_manual(values = c("Yes"="#F8766D",
                                  "No"="#00BFC4"),
@@ -237,6 +256,48 @@ print(
   
 )
 dev.off()
+
+
+dis_mit_genes <- readxl::read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/Steinmetz_suppl_2022.xlsx", sheet=1, skip=1)
+
+dis_genes <- unique(dis_mit_genes$`gene name`)
+
+
+dis_mit <- all_genes[which(all_genes$gene_id %in% dis_genes), ]
+dis_mit_gene_count <- as.data.frame(table(dis_mit[which(dis_mit$presence=="Yes"), "gene_id"]))
+dis_mit_gene_count <- dis_mit_gene_count[order(dis_mit_gene_count$Freq, decreasing = T),]
+dis_mit$gene_id <- factor(dis_mit$gene_id, unique(dis_mit_gene_count$Var1))
+dis_mit <- complete(dis_mit, gene_id, condition,sex,ct)
+
+plot_path <- paste0(main_comparison, "Hmp_Presence_Ind_DEGs/")
+dir.create(plot_path, recursive = T, showWarnings = F)
+pdf(paste0(plot_path, "MT_genes_Steinmetz.pdf"), width = 15, height = 15)
+print(
+ggplot(dis_mit, 
+       aes(factor(condition, condition_order[which(condition_order %in% unique(condition))]), gene_id, fill=presence)) +
+  geom_tile() +
+  scale_fill_manual(values = c("Yes"="#F8766D",
+                               "No"="#00BFC4"),
+                    na.value = "#00BFC4",
+                    guide = guide_legend(reverse = TRUE)) +
+  facet_grid(sex ~ ct , scales = "free") +
+  labs(x="Groups", y="Genes", fill="Genes found") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        panel.spacing.x=unit(0, "lines"),
+        plot.title = element_text(size=12, face="bold", colour = "black"),
+        axis.line = element_line(colour = "black"),
+        axis.title.y = element_text(size=12, face="bold", colour = "black"),
+        axis.title.x = element_text(size=12, face="bold", colour = "black"),
+        axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+        legend.position = "bottom", 
+        legend.title = element_text(size=12, face="bold", colour = "black"))
+)
+dev.off()
+
+
+
 
 
 # X-escaping genes
@@ -276,7 +337,7 @@ dev.off()
 
 f_count_F <- as.data.frame(table(all_genes[which(all_genes$presence=="Yes" & all_genes$sex=="F"), "gene_id"]))
 f_count_F$sex <- rep("F", nrow(f_count_F))
-m_count_F <- as.data.frame(table(all_genes[which(all_genes$presence=="No" & all_genes$sex=="M"), "gene_id"]))
+m_count_F <- as.data.frame(table(all_genes[which((all_genes$gene_id %in% unique(f_count_F$Var1)) & all_genes$sex=="M" & all_genes$presence=="Yes"), "gene_id"]))
 m_count_F$sex <- rep("M", nrow(m_count_F))
 sex_count_F <- rbind(f_count_F, m_count_F)
 colnames(sex_count_F) <- c("gene_id", "count", "sex")
@@ -292,10 +353,11 @@ abs_diff_F <- abs_diff_F[which(abs_diff_F$sex_diff > 0 ),]
 abs_diff_F <- abs_diff_F[order(abs_diff_F$sex_diff, decreasing = T), ]
 abs_diff_F$gene_id <- factor(abs_diff_F$gene_id, unique(abs_diff_F$gene_id))
 
-f_count_M <- as.data.frame(table(all_genes[which(all_genes$presence=="No" & all_genes$sex=="F"), "gene_id"]))
-f_count_M$sex <- rep("F", nrow(f_count_M))
+
 m_count_M <- as.data.frame(table(all_genes[which(all_genes$presence=="Yes" & all_genes$sex=="M"), "gene_id"]))
 m_count_M$sex <- rep("M", nrow(m_count_M))
+f_count_M <- as.data.frame(table(all_genes[which((all_genes$gene_id %in% unique(m_count_M$Var1)) & all_genes$sex=="F" & all_genes$presence=="Yes"), "gene_id"]))
+f_count_M$sex <- rep("F", nrow(f_count_M))
 sex_count_M <- rbind(f_count_M, m_count_M)
 colnames(sex_count_M) <- c("gene_id", "count", "sex")
 sex_count_M <- complete(sex_count_M, gene_id, sex)

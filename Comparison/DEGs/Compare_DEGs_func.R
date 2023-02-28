@@ -531,13 +531,14 @@ PlotNumSharedGenesTot <- function(shared_genes_chr) {
 
 PlotNumSharedGenesChr <- function(shared_genes_chr, col_palette) {
   chr_plot <- ggplot(shared_genes_chr, aes(condition_count, fill=chr_simplified)) +
-    geom_bar(position = "fill", color="black") +
+    geom_bar(position = "stack", color="black") +
+    scale_y_log10() +
     facet_grid(ct ~ sex, scales = "free") +
     scale_fill_manual(values = c("X" = col_palette[1],
                                  "Y"= col_palette[3],
                                  "Autosome"= col_palette[2])) +
     scale_x_continuous(breaks=seq(min(shared_genes_chr$condition_count), max(shared_genes_chr$condition_count), by=1)) +
-    labs(x = "Number of conditions sharing genes", y="Chromosome fractions (%)", fill="Chromosomes") +
+    labs(x = "Number of conditions sharing genes", y="Log10 counts of shared genes", fill="Chromosomes") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(), 
@@ -962,25 +963,51 @@ CalcCommonGenes <- function(norm_ls, ct_col) {
 PlotCommonGenes <- function(main_dir, ct_df, folder_name, ct_type) {
   plot_path <- paste0(main_dir, folder_name, "_common_genes/")
   dir.create(plot_path, showWarnings = F, recursive = T)
-  pdf(paste0(plot_path, ct_type, ".pdf"))
-  print(
-    ggplot(ct_df, aes(ct, num_int_genes, fill=sex)) +
-      geom_bar(stat="identity", color="black", position = "dodge") +
-      labs(x=paste0(ct_type, " cell types"), y="Number of common genes", fill="Sex") +
-      scale_y_continuous(breaks=seq(min(ct_df$num_int_genes), max(ct_df$num_int_genes), by=2)) +
-      theme(panel.grid.major = element_blank(), 
-            panel.grid.minor = element_blank(),
-            panel.background = element_blank(), 
-            panel.spacing.x=unit(0, "lines"),
-            plot.title = element_text(size=12, face="bold", colour = "black"),
-            axis.line = element_line(colour = "black"),
-            axis.title.y = element_text(size=12, face="bold", colour = "black"),
-            axis.text.y = element_text(size=8, colour = "black"),
-            axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
-            axis.title.x = element_text(size=12, face="bold", colour = "black"),
-            legend.position = "bottom", 
-            legend.title = element_text(size=12, face="bold", colour = "black"))
-    
-  )
-  dev.off()
+  if (ct_type=="both") {
+    pdf(paste0(plot_path, "annot_faceted.pdf"))
+    print(
+      ggplot(ct_df, aes(ct, num_int_genes, fill=sex)) +
+        geom_bar(stat="identity", color="black", position = "dodge") +
+        labs(x="Cell types", y="Number of common genes", fill="Sex") +
+        scale_y_continuous(breaks=seq(min(ct_df$num_int_genes), max(ct_df$num_int_genes), by=2)) +
+        facet_wrap(~annot_type, nrow = 2, scales = "free") +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              panel.spacing.x=unit(0, "lines"),
+              plot.title = element_text(size=12, face="bold", colour = "black"),
+              axis.line = element_line(colour = "black"),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              axis.text.y = element_text(size=8, colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "bottom", 
+              legend.title = element_text(size=12, face="bold", colour = "black"))
+      
+    )
+    dev.off()
+  } else {
+    pdf(paste0(plot_path, ct_type, ".pdf"))
+    print(
+      ggplot(ct_df, aes(ct, num_int_genes, fill=sex)) +
+        geom_bar(stat="identity", color="black", position = "dodge") +
+        labs(x=paste0(ct_type, " cell types"), y="Number of common genes", fill="Sex") +
+        scale_y_continuous(breaks=seq(min(ct_df$num_int_genes), max(ct_df$num_int_genes), by=2)) +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              panel.spacing.x=unit(0, "lines"),
+              plot.title = element_text(size=12, face="bold", colour = "black"),
+              axis.line = element_line(colour = "black"),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              axis.text.y = element_text(size=8, colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "bottom", 
+              legend.title = element_text(size=12, face="bold", colour = "black"))
+      
+    )
+    dev.off()
+  }
+  
 }

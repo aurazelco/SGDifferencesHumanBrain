@@ -29,7 +29,8 @@ library(tidyr) # to clean and re-organize dfs
 #library(biomaRt) # to query to which chromosome the shared genes belong to
 #library(scales) # to set the palette to be used in the PlotDEGsOverlap function
 #library(RColorBrewer) # to set a palette for the number of DEGs palette
-library(rjson)
+library(rjson) # to import the json files containing the genes associated with the corresponding hormone
+library(dplyr) # to re-organize dfs
 
 # 1. Import data for each ct
   # Input: CSV files
@@ -225,6 +226,10 @@ CreateSexDf <- function(list_ds, common_annot) {
   return(sex_dfs)
 }
 
+# 6. Generates a df with the nunmber of found hormone targets as absoluet numbers, percetages fo the hormone gene lists and percentages of  the sex-biased DEGs
+  # Input: one dataframe with all sex-biased DEGs, the hormone gene lists in a list, and the order of the groups
+  # Return: dataframe with all the counts and percentages
+
 CreateHormonesDf <- function(sex_dfs, ref_hormones, condition_ordered) {
   hormone_ls <- list()
   for (horm in names(ref_hormones)) {
@@ -248,7 +253,7 @@ CreateHormonesDf <- function(sex_dfs, ref_hormones, condition_ordered) {
     horm_df$no_tgs <- horm_df$bg_genes - horm_df$hormone_tgs
     hormone_ls <- append(hormone_ls, list(horm_df))
   }
-  names(hormone_ls) <- str_to_title(str_replace_all(names(hormones), "/", "_"))
+  names(hormone_ls) <- str_to_title(str_replace_all(names(ref_hormones), "/", "_"))
   hormones_df <- do.call(rbind, hormone_ls)
   hormones_df <- cbind("hormones"=gsub("\\..*", "", rownames(hormones_df)), hormones_df)
   rownames(hormones_df) <- NULL
@@ -257,6 +262,11 @@ CreateHormonesDf <- function(sex_dfs, ref_hormones, condition_ordered) {
   hormones_df$perc_degs <- hormones_df$hormone_tgs * 100 / hormones_df$bg_genes
   return(hormones_df)
 }
+
+# 7. Plots the results of the hormone analysis as one faceted plot
+  # Input: main directory where to save the plots, the dataframe with all the counts and percentages, 
+    # the order of the groups, and the plot type between abs counts, percetages of hormones or degs
+  # Return: nothing, saves the plot instead
 
 PlotHormonesResFaceted <- function(main_dir, hormones_df, condition_ordered, plot_type="abs") {
   plot_path <- paste0(main_dir, "Hormones/")
@@ -279,7 +289,7 @@ PlotHormonesResFaceted <- function(main_dir, hormones_df, condition_ordered, plo
   pdf(paste0(plot_path, plot_title), height = 20, width = 15)
   print(
     ggplot(hormones_df[which(hormones_df$yvar>0), ], aes(factor(condition, condition_ordered[which(condition_ordered %in% unique(condition))]), yvar, fill = hormones)) +
-      geom_bar(stat="identity", position = "fill", color="black") +
+      geom_bar(stat="identity", position = "stack", color="black") +
       facet_grid(ct ~ sex, scales = "free") +
       labs(x="Groups", y = ytitle, fill="Hormones") +
       theme(panel.grid.major = element_blank(), 
@@ -295,6 +305,12 @@ PlotHormonesResFaceted <- function(main_dir, hormones_df, condition_ordered, plo
   )
   dev.off()
 }
+
+# 8. Plots the results of the hormone analysis for each ct
+  # Input: main directory where to save the plots, the dataframe with all the counts and percentages, 
+    # the order of the groups, and the plot type between abs counts, percetages of hormones or degs
+  # Return: nothing, saves the plots instead
+
 
 PlotHormonesRes <- function(main_dir, hormones_df, condition_ordered, plot_type="abs") {
   if (plot_type=="abs") {
@@ -340,4 +356,82 @@ PlotHormonesRes <- function(main_dir, hormones_df, condition_ordered, plot_type=
       print(paste0(horm, " had no hits in the sex-biased DEGs"))
     }
   }
+}
+
+# 9. Calculates the enrichment of hormones in each sub group with a hypergeometric test
+  # Input: the dataframe with all the counts and percentages, the significant pvalue threshold, the minimum number of conditions to keep
+  # Return: dataframe with all the significant pvalues
+
+HormoneEnrichment <- function(hormones_df, pval_thresh=0.05, min_num_cond=1) {
+  pval_names <- vector()
+  pvalues <- vector()
+  for (horm in unique(hormones_df$hormones)) {
+    for (ct in unique(hormones_df[which(hormones_df$hormones==horm), "ct"])) {
+      for (cond in unique(hormones_df[which(hormones_df$hormones==horm & hormones_df$ct==ct), "condition"])) {
+        for (sex in c("F", "M")) {
+          pval <- phyper(
+            as.numeric(hormones_df[which(hormones_df$hormones==horm & hormones_df$ct==ct & hormones_df$condition==cond & hormones_df$sex==sex), "hormone_tgs"]) - 1,
+            as.numeric(hormones_df[which(hormones_df$hormones==horm & hormones_df$ct==ct & hormones_df$condition==cond & hormones_df$sex==sex), "bg_genes"]),
+            10000 - as.numeric(unique(hormones_df[which(hormones_df$hormones==horm), "tot_horm"])),
+            as.numeric(unique(hormones_df[which(hormones_df$hormones==horm), "tot_horm"])),
+            lower.tail= FALSE
+          )
+          pvalues <- c(pvalues, pval)
+          pval_names <- c(pval_names, paste(horm, ct, cond, sex, sep="/"))
+        }
+      }
+    }
+  }
+  pval_df <- data.frame(pval_names, pvalues)
+  pval_df <- separate(pval_df, pval_names, into = c("hormone_id", "ct", "condition", "sex"), sep = "/", remove = T)
+  pval_df<- pval_df[which(pval_df$pvalues < pval_thresh), ]
+  pval_df <- pval_df %>% group_by(hormone_id) %>% filter(n() > min_num_cond)
+  return(pval_df)
+}
+
+# 10. Plots the results of the hormone analysis as one faceted plot
+  # Input: main directory where to save the plots, dataframe with all the significant pvalues, 
+    # the order of the groups and the hormones to be plotted
+  # Return: nothing, saves the plot instead
+
+HmpHormoneEnrichment <- function(main_dir, pval_df, condition_ordered, features="All_hormones", plot_type="Features") {
+  plot_path <- paste0(main_dir, "Hormones/Hmps/")
+  dir.create(plot_path, showWarnings = F, recursive = T)
+  multi_features <- F
+  if (features[1]!="All_hormones") {
+    pval_df <- pval_df[which(pval_df$hormone_id %in% features),]
+    plot_title <- paste0(plot_path, plot_type, ".pdf")
+    if (length(features) > 1) {
+      multi_features <- T
+      params <- c(20, 15)
+    } else {
+      params <- c(10, 10)
+    }
+  } else {
+    plot_type <- features
+    plot_title <- paste0(plot_path, plot_type, ".pdf")
+    params <- c(20, 15)
+  }
+  pdf(plot_title, height  = params[1], width = params[2])
+  print(
+    ggplot(pval_df, aes(factor(condition, condition_ordered[which(condition_ordered %in% unique(condition))]), ct, fill=pvalues)) +
+      geom_tile() +
+      {if (features[1]=="All_hormones") facet_grid(hormone_id ~ sex, scales = "free")} +
+      {if (features[1]!="All_hormones" & multi_features==F) facet_grid( ~ sex, scales = "free")} +
+      {if (features[1]!="All_hormones" & multi_features==T) facet_grid(hormone_id ~ sex, scales = "free")} +
+      scale_fill_gradient(low="red", high="blue", na.value = "grey") +
+      labs(x="Groups", y="Cell types", fill="P-values", title = str_replace_all(plot_type, "_", " ")) +
+      theme(panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(),
+            panel.background = element_blank(), 
+            axis.line = element_line(colour = "black"),
+            strip.text.y = element_text(size=12, colour = "black",angle = 0),
+            axis.title.x = element_text(size=12, face="bold", colour = "black"),
+            axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+            axis.ticks.x=element_blank(),
+            axis.title.y = element_text(size=12, face="bold", colour = "black"),
+            legend.position = "bottom", 
+            legend.title = element_text(size=12, face="bold", colour = "black"))
+  )
+  dev.off()
 }
