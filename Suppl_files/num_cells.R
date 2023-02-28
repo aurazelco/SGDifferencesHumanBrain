@@ -93,7 +93,7 @@ dis <- ggplot(all_ds[which(all_ds$disease!="Healthy"),], aes(factor(proj, order_
 
 fig <- ggarrange(norm, dis, nrow = 2, common.legend = T, legend = "bottom")
 
-pdf(paste0(plot_path, "num_cells.pdf"))
+png(paste0(plot_path, "num_cells.png"))
 print(fig)
 dev.off()
 
@@ -178,7 +178,7 @@ order_proj_dis <- c(
 all_ds_ct$proj_dis <- factor(all_ds_ct$proj_dis, order_proj_dis[-1])
 all_ds_ct <- all_ds_ct[order(all_ds_ct$proj_dis), ]
 
-pdf(paste0(plot_path, "num_cells_per_ct.pdf"), height = 15, width = 10)
+png(paste0(plot_path, "num_cells_per_ct.png"), height = 15, width = 10, units="in", res = 1200)
 print(
   ggplot(all_ds_ct, aes(proj_dis, count, fill=proj_dis)) +
     geom_bar(stat = "identity", show.legend = T, color="black") +

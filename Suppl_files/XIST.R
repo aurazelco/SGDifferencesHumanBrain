@@ -221,16 +221,20 @@ velm_4_10 <- subset(velm_4_10, age=="4-10 years")
 num_samples_simplified <- rbind(num_samples_simplified,
                                 c("Velmeshev_4_10_years", "F", nrow(velm_4_10[which(velm_4_10$sex=="Female"),])),
                                 c("Velmeshev_4_10_years", "M", nrow(velm_4_10[which(velm_4_10$sex=="Male"),])))
-num_samples_simplified$samples_count <- as.numeric(num_samples_simplified$samples_count)
 
-groups_order <- c("Velmeshev_2nd_trimester", "Velmeshev_3rd_trimester","Velmeshev_0_1_years",          
-                  "Velmeshev_1_2_years", "Velmeshev_2_4_years",  "Velmeshev_4_10_years",         
-                  "Velmeshev_10_20_years", "Velmeshev_Adults",              
-                  "GSE157827_Normal","GSE174367_Normal",              
-                  "PRJNA544731_Normal", "GSE157827_Alzheimer's disease",
+num_samples_simplified$samples_count <- as.numeric(num_samples_simplified$samples_count)
+num_samples_simplified$new_group <- str_replace_all(num_samples_simplified$new_group, "Normal", "Healthy")
+num_samples_simplified[which(grepl("^Velmeshev", num_samples_simplified$new_group)), "new_group"] <- paste(num_samples_simplified[which(grepl("^Velmeshev", num_samples_simplified$new_group)), "new_group"], "Healthy", sep = "_")
+
+groups_order <- c("Velmeshev_2nd_trimester_Healthy", "Velmeshev_3rd_trimester_Healthy","Velmeshev_0_1_years_Healthy",          
+                  "Velmeshev_1_2_years_Healthy", "Velmeshev_2_4_years_Healthy",  "Velmeshev_4_10_years_Healthy",         
+                  "Velmeshev_10_20_years_Healthy", "Velmeshev_Adults_Healthy",              
+                  "GSE157827_Healthy","GSE174367_Healthy",              
+                  "PRJNA544731_Healthy", "GSE157827_Alzheimer's disease",
                   "GSE174367_Alzheimer's disease", "PRJNA544731_Multiple Sclerosis")
 num_samples_simplified$new_group <- factor(num_samples_simplified$new_group, groups_order)
 num_samples_simplified <- num_samples_simplified[order(num_samples_simplified$new_group), ]
+
 
 pdf("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Extra_figures/num_samples.pdf")
 print(
@@ -250,4 +254,24 @@ print(
               legend.position = "bottom", 
               legend.title = element_text(size=12, face="bold", colour = "black"))
   )
+dev.off()
+
+png("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Extra_figures/num_samples.png", res=1200, width = 15, height = 10, units = "in")
+print(
+  ggplot(num_samples_simplified, aes(new_group, samples_count, fill=sex)) +
+    geom_bar(stat = "identity", color="black", position = "dodge") +
+    geom_hline(yintercept = 3, linetype="dashed") +
+    labs(x="Groups", y="Number of samples", fill="Sex") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.x = element_blank(),
+          axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
+          axis.ticks.x=element_blank(),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          legend.position = "bottom", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+)
 dev.off()
