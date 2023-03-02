@@ -31,17 +31,19 @@ ImportDE <- function(path, ext, row_col) {
 }
 
 # 2. Function to filter out ns genes and too low FC, and order based on FC 
-Filter_gene <- function( order.gene.df, pval, FC) {
-  logFC <- log2(1/FC)
-  gene.sig <- order.gene.df[  order.gene.df[["p_val"]] <= pval
+Filter_gene <- function( order.gene.df, pval, FC, min_genes) {
+  logFC <- log2(FC)
+  gene.sig <- order.gene.df[  order.gene.df[["p_val_adj"]] <= pval
                               & order.gene.df[["avg_log2FC"]] >= logFC, ]
-  
   #If there are sig genes add index number for each sig gene
-  if(nrow(gene.sig) > 0) {
+  if(nrow(gene.sig) > min_genes) {
     gene.sig$index <- seq.int(nrow(gene.sig))
+  } else {
+    gene.sig <- data.frame()
   }
   return(gene.sig)
 }
+
 
 # 3. Count DEGs before intersection and plot
 CreateDEGdf <- function(deg_list) {
@@ -86,28 +88,28 @@ PlotDEGs <- function(main_dir, df_count, ct_ordered) {
 }
 
 # 5. Extract gene lists and number of common DEGs
-CountDEG <- function(main_dir, dis_type, pval, FC, ct_ordered) {
+CountDEG <- function(main_dir, dis_type, pval, FC, ct_ordered, min_genes) {
   #print("The script does not check if a folder has only one project - this may raise errors")
   out_path <- paste0(main_dir, dis_type, "/outputs/01B_num_DEGs/")
   dir.create(out_path, showWarnings = FALSE)
   path <- (paste0(main_dir, dis_type, "/outputs/01A_DEGs/"))
   sub_ct <- list.dirs(path, recursive=FALSE, full.names = FALSE)
-  celltypes <- rep(sub_ct, each=2)
-  sex <- rep(c("F", "M"), length.out = length(sub_ct))
-  df <- data.frame(cbind(celltypes, sex))
-  num_genes <- vector()
-  ct_qc <- vector()
   deg_list <- list()
+  ct_names <- vector()
   for (ct in 1:length(sub_ct)) {
     all_DEGs <- ImportDE(paste0(path, sub_ct[ct]))
-    filt_DEGs <- lapply(all_DEGs, function(x) Filter_gene(x, pval, FC))
-    dir.create( paste0(out_path, sub_ct[ct]), recursive = T, showWarnings = F)
-    lapply(1:length(names(filt_DEGs)), function(x) write.csv(filt_DEGs[[x]],
-                                                             paste0(out_path, sub_ct[ct], "/", names(filt_DEGs)[x], "_filt.csv")
-    ))
-    deg_list <- append(deg_list, list(filt_DEGs))
+    filt_DEGs <- lapply(all_DEGs, function(x) Filter_gene(x, pval, FC, min_genes))
+    filt_DEGs <- filt_DEGs[lapply(filt_DEGs,length)>0]
+    if (length(filt_DEGs[["F"]]) != 0 & length(filt_DEGs[["M"]]) != 0) {
+      dir.create( paste0(out_path, sub_ct[ct]), recursive = T, showWarnings = F)
+      lapply(1:length(names(filt_DEGs)), function(x) write.csv(filt_DEGs[[x]],
+                                                               paste0(out_path, sub_ct[ct], "/", names(filt_DEGs)[x], "_filt.csv")
+      ))
+      deg_list <- append(deg_list, list(filt_DEGs))
+      ct_names <- c(ct_names, sub_ct[ct])
+    } 
   }
-  names(deg_list) <- sub_ct
+  names(deg_list) <- ct_names
   deg_df <- CreateDEGdf(deg_list)
   PlotDEGs(out_path, deg_df, ct_ordered)
 }

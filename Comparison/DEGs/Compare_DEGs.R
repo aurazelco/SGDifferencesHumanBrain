@@ -16,14 +16,14 @@
 source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison/DEGs/Compare_DEGs_func.R")
 
 # sets the directories where to find the DEG csv files
-main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_common/outputs/"
+main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj/"
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
 main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/"
 
 # Vectors to save the different sub-groups of DISCO and UCSC
-sub_disease <- list.dirs(main_DISCO, full.names = F, recursive = F)
+sub_disco <- list.dirs(main_DISCO, full.names = F, recursive = F)[-1]
 # the first folder "exta_files" is excluded
 sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)[-1]
 
@@ -32,9 +32,8 @@ pvalue_thresh <- 0.05
 FC_thresh <- 1.2
 
 # Import all the CSVs from the different ages/conditions - slightly different file tree structure requires a different approach for UCSC
-disco_projs <- c("GSE157827", "GSE174367", "PRJNA544731")
-disco <- ImportDataset(main_DISCO, sub_disease, individual_projs = disco_projs, pval = pvalue_thresh, FC = FC_thresh)
-UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes")
+disco <- ImportDatasetSingleProjs(main_DISCO, sub_disco, UCSC_flag = "no", individual_projs = T, pvalue_thresh, FC_thresh)
+UCSC <- ImportDatasetSingleProjs(main_UCSC, sub_UCSC, UCSC_flag = "yes", individual_projs = F, pvalue_thresh, FC_thresh)
 
 # disco[[2]] and UCSC[[2]] can be used to manually create unified_annotation, as done below
 disco[[2]]

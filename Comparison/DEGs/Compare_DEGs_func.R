@@ -139,6 +139,36 @@ ImportCt <- function(main_dir, UCSC_flag="no", individual_projs=vector(), single
   names(df_M) <- tolower(names_M)
   df_F <- df_F[lapply(df_F,length)>0]
   df_M <- df_M[lapply(df_M,length)>0]
+  if (length(df_F) != 0 & length(df_M) != 0) {
+    return(list("F"=df_F, "M"=df_M))
+  } else {
+    return("empty")
+  }
+}
+
+ImportCtSingleProj <- function(main_dir, pval, FC, ext, row_col) {
+  sub_ct <- list.dirs(main_dir, recursive=F, full.names = F)
+  df_F <- list()
+  df_M <- list()
+  names_F <- vector()
+  names_M <- vector()
+  for (ct in 1:length(sub_ct)) {
+    deg <- ImportDE(paste(main_dir, sub_ct[ct], sep="/"), ext, row_col)
+    for (i in names(deg)) {
+      deg_ct <- Filter_gene(deg[[i]], pval, FC)
+      if (grepl("F", i, fixed=TRUE)){
+        df_F <- append(df_F, list(deg_ct))
+        names_F <- c(names_F, sub_ct[ct])
+      } else {
+        df_M <- append(df_M, list(deg_ct))
+        names_M <- c(names_M, sub_ct[ct])
+      }
+    } 
+  }
+  names(df_F) <- tolower(names_F)
+  names(df_M) <- tolower(names_M)
+  df_F <- df_F[lapply(df_F,length)>0]
+  df_M <- df_M[lapply(df_M,length)>0]
   if (length(df_F) != 0 & length(df_F) != 0) {
     return(list("F"=df_F, "M"=df_M))
   } else {
@@ -147,8 +177,40 @@ ImportCt <- function(main_dir, UCSC_flag="no", individual_projs=vector(), single
 }
 
 # 4. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
-  # Input: main directory, sub-folders list, if UCSC or not, list of projects ids, the threshold for p-value and Fc if unfiltered data are imported
-  # Return: list of condition lists, each containing ct lists divided in F and M
+  # Input: main directory, sub-folders list, if UCSC or not, if subfolders are present
+  # Return: list of condition lists, each containing input dfs divided in F and M
+
+ImportDatasetSingleProjs <- function(main_dir, folder_list, UCSC_flag="no", individual_projs=F, pval, FC) {
+  ds_list <- list()
+  ct_list <- vector()
+  group_names <- vector()
+  for (folder in folder_list) {
+    if (UCSC_flag=="no") {
+      shared_folder <- paste0(main_dir, folder)
+    } else {
+      shared_folder <- paste0(main_dir, folder, "/outputs/01A_DEGs")
+    }
+    if (individual_projs==F) {
+      ds_list <- append(ds_list, list(ImportCtSingleProj(shared_folder, pval, FC)))
+      ct_list <-c(ct_list, list.dirs(shared_folder, recursive=FALSE, full.names = FALSE))
+      group_names <- c(group_names, folder)
+    } else {
+      proj_conds <- list.dirs(shared_folder, full.names = F, recursive = F)
+      for (cond in proj_conds) {
+        ds_list <- append(ds_list, list(ImportCtSingleProj(paste0(shared_folder, "/", cond, "/outputs/01A_DEGs"), pval, FC)))
+        ct_list <-c(ct_list, list.dirs(paste0(shared_folder, "/", cond, "/outputs/01A_DEGs"), recursive=FALSE, full.names = FALSE))
+        group_names <- c(group_names, paste(cond, folder, sep = "_"))
+      }
+    }
+  }
+  names(ds_list) <- group_names
+  ds_list[lengths(ds_list) != 0]
+  return(list("genes"=ds_list, "ct"=unique(ct_list)))
+}
+
+# 4. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
+# Input: main directory, sub-folders list, if UCSC or not, list of projects ids, the threshold for p-value and Fc if unfiltered data are imported
+# Return: list of condition lists, each containing ct lists divided in F and M
 
 ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_projs=vector(), pval, FC) {
   ds_list <- list()
@@ -605,7 +667,7 @@ ExtractSharedGenes <- function(gene_count_dfs, min_sharing=0.75, min_num_cond=1)
 
 Annot.chr.name <- function(gene.list){
   # define biomart object
-  mart <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", mirror = "useast")
+  mart <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", mirror = "www")
   Annot_idf <- getBM(attributes = c("hgnc_symbol",
                                     "chromosome_name"),
                      filters = c("hgnc_symbol") ,
@@ -647,7 +709,7 @@ SaveSharedGenes <- function(main_dir, gene_count_dfs, min_sharing=0.75, min_num_
       shared_genes_chr[which(shared_genes_chr$ct==ct_id), "num_conditions"] <- max(gene_count_dfs[[ct_id]]$condition_count)
   }
   write.csv(shared_genes_chr, paste0(out_path, "Shared_genes.csv"))
-  return(shared_genes_chr)
+  #return(shared_genes_chr)
 }
 
 
