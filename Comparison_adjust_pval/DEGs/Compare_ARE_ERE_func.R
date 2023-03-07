@@ -186,8 +186,8 @@ CreateEREDf <- function(ERE_all_list, common_annotation) {
   # Input: ARE df for each ct
   # Return: plot
 
-PlotARECt <- function(ARE_filt_ct, condition_ordered) {
-  ARE_filt_ct$condition <- factor(ARE_filt_ct$condition, condition_ordered)
+PlotARECt <- function(ARE_filt_ct, groups_ordered) {
+  ARE_filt_ct$condition <- factor(ARE_filt_ct$condition, groups_ordered)
   ARE_filt_ct <- ARE_filt_ct[order(ARE_filt_ct$condition),]
   col_palette <- c("#39B600", "#9590FF","#D376FF" , "#FD61D1")
   ARE_ct_plot <- ggplot(ARE_filt_ct, aes(sex, percent, fill=sites)) +
@@ -213,12 +213,12 @@ PlotARECt <- function(ARE_filt_ct, condition_ordered) {
   # Input: main directory where to save the plots, ARE filtered df, the order of the age/condition groups
   # Return: nothing, saves plot instead
 
-PlotARE <- function(main_dir, ARE_filt, condition_ordered) {
+PlotARE <- function(main_dir, ARE_filt, groups_ordered) {
   plot_path <- paste0(main_dir, "ARE_ERE_Across_Conditions/")
   dir.create(plot_path, showWarnings = F, recursive = T)
   for (ct in unique(ARE_filt$ct)) {
     print(ct)
-    ct_plot <- PlotARECt(ARE_filt[which(ARE_filt$ct==ct),], condition_ordered)
+    ct_plot <- PlotARECt(ARE_filt[which(ARE_filt$ct==ct),], groups_ordered)
     pdf(paste0(plot_path, ct, ".pdf"))
     print(ct_plot)
     dev.off()
@@ -229,10 +229,10 @@ PlotARE <- function(main_dir, ARE_filt, condition_ordered) {
   # Input: main directory where to save the plots, ARE filtered df, the order of the age/condition groups
   # Return: nothing, saves plot instead
 
-PlotFacetedARE <- function(main_dir, ARE_filt, condition_ordered, simpl="no") {
+PlotFacetedARE <- function(main_dir, ARE_filt, groups_ordered, simpl="no") {
   plot_path <- paste0(main_dir, "ARE_ERE_Across_Conditions/")
   dir.create(plot_path, showWarnings = F, recursive = T)
-  ARE_filt$condition <- factor(ARE_filt$condition, condition_ordered)
+  ARE_filt$condition <- factor(ARE_filt$condition, groups_ordered)
   ARE_filt <- ARE_filt[order(ARE_filt$condition),]
   if (simpl=="no") {
     col_palette <- c("#39B600", "#9590FF","#D376FF" , "#FD61D1")
@@ -270,10 +270,10 @@ PlotFacetedARE <- function(main_dir, ARE_filt, condition_ordered, simpl="no") {
   # Input: main directory where to save the plots, ERE filtered df, the order of the age/condition groups
   # Return: nothing, saves plot instead
 
-PlotFacetedERE <- function(main_dir, ERE_filt, condition_ordered) {
+PlotFacetedERE <- function(main_dir, ERE_filt, groups_ordered) {
   plot_path <- paste0(main_dir, "ARE_ERE_Across_Conditions/")
   dir.create(plot_path, showWarnings = F, recursive = T)
-  ERE_filt$condition <- factor(ERE_filt$condition, condition_ordered)
+  ERE_filt$condition <- factor(ERE_filt$condition, groups_ordered)
   ERE_filt <- ERE_filt[order(ERE_filt$condition),]
   col_palette <- c("#39B600", "#9590FF")  
   pdf(paste0(plot_path, "ERE_faceted.pdf"), width = 20, height = 25)

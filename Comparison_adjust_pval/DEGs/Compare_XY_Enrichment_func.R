@@ -27,11 +27,11 @@ library(tidyr) # to re-arrange the dfs
 # Return: list of dfs
 
 ImportCondition <- function(main_dir, UCSC_flag="no") {
-  path <- paste0(main_dir, "/02A_Fisher_sex_genes/")
+  path <- paste0(main_dir, "/02A_HyperGeom_sex_genes/")
   if (UCSC_flag=="no") {
-    str_to_remove <- "_Fisher_results.csv"
+    str_to_remove <- "_HyperGeom_results.csv"
   } else {
-    str_to_remove <- "_Fisher_results_v2.csv"
+    str_to_remove <- "_HyperGeom_results_v2.csv"
   }
   
   enrich_files_names <- list.files(path, full.names = F, pattern = "\\.csv$")
@@ -70,7 +70,7 @@ ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_proj
   return(ds_list)
 }
 
-PlotEnrichedPvalues <- function(main_dir, enrich_list, common_annot, condition_ordered) {
+PlotEnrichedPvalues <- function(main_dir, enrich_list, common_annot, groups_ordered) {
   enrich_df <- do.call(rbind, unlist(c(enrich_list), recursive = F, use.names = T))
   enrich_df <- cbind(str_replace_all(rownames(enrich_df), "\\.", "/"), enrich_df[, 4:5])
   rownames(enrich_df) <- NULL
@@ -79,7 +79,7 @@ PlotEnrichedPvalues <- function(main_dir, enrich_list, common_annot, condition_o
   names(enrich_df)[names(enrich_df) == 'variable'] <- 'XY'
   names(enrich_df)[names(enrich_df) == 'value'] <- 'pval'
   enrich_df <- separate(enrich_df, groups, into = c("condition", "sex", "ct"), sep = "/", remove = F)
-  enrich_df$condition <- factor(enrich_df$condition, condition_ordered)
+  enrich_df$condition <- factor(enrich_df$condition, groups_ordered)
   enrich_df <- enrich_df[order(enrich_df$condition), ]
   enrich_df$common_annot <- rep(NA, nrow(enrich_df))
   for (ct_id in names(common_annot)) {
@@ -94,7 +94,7 @@ PlotEnrichedPvalues <- function(main_dir, enrich_list, common_annot, condition_o
   enrich_avg <- data.frame("groups"=unique(enrich_df$new_groups), "pval"=pval_avg)
   enrich_avg <- separate(enrich_avg, groups, into = c("condition", "sex", "ct", "XY"), sep = "/")
   enrich_avg$pval_bin <- ifelse(enrich_avg$pval > 0.05, "Non-significant", "Significant")
-  enrich_avg$condition <- factor(enrich_avg$condition, condition_ordered)
+  enrich_avg$condition <- factor(enrich_avg$condition, groups_ordered)
   enrich_avg <- enrich_avg[order(enrich_avg$condition), ]
   out_path <- paste0(main_dir, "XY_enrichment/")
   dir.create(out_path, recursive = T, showWarnings = F)

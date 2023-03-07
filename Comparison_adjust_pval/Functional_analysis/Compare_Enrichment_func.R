@@ -85,7 +85,7 @@ options(ggrepel.max.overlaps = Inf)
   # Input: CSV files
   # Return: list of dfs
 
-ImportFiles <- function(path, ext, row_col) {
+ImportDE <- function(path, ext, row_col) {
   if (missing(ext)) {
     deg_files <- list.files(path = path, pattern = "\\.csv$",full.names = TRUE)
     if (missing(row_col)) {
@@ -109,79 +109,32 @@ ImportFiles <- function(path, ext, row_col) {
   return(deg)
 }
 
-# 2. Function to filter out ns genes and too low FC, and order based on FC 
-  # Input: dataframe of DEGs
-  # Return: gene list of significant genes as data.frame
-
-Filter_gene <- function( order.gene.df, pval, FC) {
-  logFC <- log2(1/FC)
-  gene.sig <- order.gene.df[  order.gene.df[["p_val"]] <= pval
-                              & order.gene.df[["avg_log2FC"]] >= logFC, ]
-  
-  #If there are sig genes add index number for each sig gene
-  return(data.frame("Genes"=rownames(gene.sig)))
-}
-
-
-# 3. Import All DEGs from F and M for all ct; slight different folder structure requires different inputs
-  # Input: directory where to find ct sub-folders, if UCSC or not, list of projects ids, the individual project id to look for, 
-    # the threshold for p-value and Fc if unfiltered data are imported, file extension, where to find row-names
+# 2. Import All DEGs from F and M for all ct; slight different folder structure requires different inputs
+  # Input: directory where to find ct sub-folders, file extension, where to find row-names
   # Return: list of 2 lists, one for F and one for M dfs
 
-ImportCt <- function(main_dir, UCSC_flag="no", individual_projs=vector(), single_proj="", pval, FC, ext, row_col) {
-  if (length(individual_projs)==0) {
-    path <- paste0(main_dir, "/01B_num_DEGs")
-  } else {
-    path <- paste0(main_dir, "/01A_DEGs")
-  }
-  sub_ct <- list.dirs(path, recursive=FALSE, full.names = FALSE)
+ImportCt <- function(main_dir, ext, row_col) {
+  sub_ct <- list.dirs(main_dir, recursive=FALSE, full.names = FALSE)
   df_F <- list()
   df_M <- list()
   names_F <- vector()
   names_M <- vector()
   for (ct in 1:length(sub_ct)) {
-    deg <- ImportFiles(paste(path, sub_ct[ct], sep="/"))
-    if (length(individual_projs)>0) {
-      if (length(grep(single_proj, names(deg))) > 0) {
-        deg <- deg[grepl(single_proj, names(deg),fixed = T)]
-      } else {
-        next
-      }
+    deg <- ImportDE(paste0(main_dir, sub_ct[ct]), ext, row_col)
+    deg_filt <- list()
+    for (k in 1:length(deg)) {
+      df_filt <- as.data.frame(rownames(deg[[k]]))
+      colnames(df_filt) <- c("Gene")
+      deg_filt <- append(deg_filt, list(df_filt))
     }
-    for (i in names(deg)) {
-      if (UCSC_flag=="no") {
-        if (length(individual_projs)==0) {
-          colnames(deg[[i]]) <- c("Genes")
-          rownames(deg[[i]]) <- NULL
-          if (grepl("F", i, fixed=TRUE)){
-            df_F <- append(df_F, list(deg[[i]]))
-            names_F <- c(names_F, sub_ct[ct])
-          } else {
-            df_M <- append(df_M, list(deg[[i]]))
-            names_M <- c(names_M, sub_ct[ct])
-          }
-        } else {
-          deg_ct <- Filter_gene(deg[[i]], pval, FC)
-          rownames(deg_ct) <- NULL
-          if (grepl("F", i, fixed=TRUE)){
-            df_F <- append(df_F, list(deg_ct))
-            names_F <- c(names_F, sub_ct[ct])
-          } else {
-            df_M <- append(df_M, list(deg_ct))
-            names_M <- c(names_M, sub_ct[ct])
-          }
-        }
+    names(deg_filt) <- lapply(1:length(names(deg)), function(i) str_replace(names(deg)[i], "_filt", ""))
+    for (i in names(deg_filt)) {
+      if (grepl("F", i, fixed=TRUE)){
+        df_F <- append(df_F, list(deg_filt[[i]]))
+        names_F <- c(names_F, sub_ct[ct])
       } else {
-        deg_ct <- as.data.frame(rownames(deg[[i]]))
-        colnames(deg_ct) <- c("Genes")
-        rownames(deg_ct) <- NULL
-        if (grepl("F", i, fixed=TRUE)){
-          df_F <- append(df_F, list(deg_ct))
-          names_F <- c(names_F, sub_ct[ct])
-        } else {
-          df_M <- append(df_M, list(deg_ct))
-          names_M <- c(names_M, sub_ct[ct])
-        }
+        df_M <- append(df_M, list(deg_filt[[i]]))
+        names_M <- c(names_M, sub_ct[ct])
       }
     }
   }
@@ -189,52 +142,37 @@ ImportCt <- function(main_dir, UCSC_flag="no", individual_projs=vector(), single
   names(df_M) <- tolower(names_M)
   df_F <- df_F[lapply(df_F,length)>0]
   df_M <- df_M[lapply(df_M,length)>0]
-  if (length(df_F) != 0 & length(df_F) != 0) {
+  if (length(df_F) != 0 & length(df_M) != 0) {
     return(list("F"=df_F, "M"=df_M))
   } else {
     return("empty")
   }
 }
 
-# 4. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
-  # Input: main directory, sub-folders list, if UCSC or not, list of projects ids, , the threshold for p-value and Fc if unfiltered data are imported
-  # Return: list of condition lists, each containing ct lists divided in F and M
+# 3. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
+  # Input: main directory, sub-folders list, if UCSC or not, if subfolders are present
+  # Return: list of condition lists, each containing input dfs divided in F and M
 
-ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_projs=vector(), pval, FC) {
+ImportDatasets <- function(main_dir, folder_list, UCSC_flag="no", individual_projs=F, ext, row_col) {
   ds_list <- list()
   ct_list <- vector()
   group_names <- vector()
   for (folder in folder_list) {
     if (UCSC_flag=="no") {
-      if (length(individual_projs)==0) {
-        ds_list <- append(ds_list, list(ImportCt(paste0(main_dir, folder), pval, FC)))
-        ct_list <-c(ct_list, list.dirs(paste0(main_dir, folder, "/01B_num_DEGs"), recursive=FALSE, full.names = FALSE))
-        group_names <- c(group_names, folder)
-      } else {
-        for (single_proj in individual_projs) {
-          single_proj_list <- list(ImportCt(paste0(main_dir, folder), individual_projs = individual_projs, single_proj = single_proj, pval, FC))
-          if (single_proj_list!="empty") {
-            ds_list <- append(ds_list, single_proj_list)
-            ct_list <-c(ct_list, list.dirs(paste0(main_dir, folder, "/01A_DEGs"), recursive=FALSE, full.names = FALSE))
-            group_names <- c(group_names, paste(folder, single_proj, sep = "_"))
-          }
-        }
-      }
+      shared_folder <- paste0(main_dir, folder)
     } else {
-      if (length(individual_projs)==0) {
-        ds_list <- append(ds_list, list(ImportCt(paste0(main_dir, folder, "/outputs"), UCSC_flag)))
-        ct_list <-c(ct_list, list.dirs(paste0(main_dir, folder, "/outputs/01B_num_DEGs"), recursive=FALSE, full.names = FALSE))
-        group_names <- c(group_names, folder)
-      } else {
-        for (single_proj in individual_projs) {
-          single_proj_list <- list(ImportCt(paste0(main_dir, folder), UCSC_flag, individual_projs = individual_projs, single_proj = single_proj, pval, FC))
-          if (single_proj_list!="empty") {
-            ds_list <- append(ds_list, single_proj_list)
-            ct_list <-c(ct_list, list.dirs(paste0(main_dir, folder, "/outputs/01A_DEGs"), recursive=FALSE, full.names = FALSE))
-            group_names <- c(group_names, paste(folder, single_proj, sep = "_"))
-          }
-          
-        }
+      shared_folder <- paste0(main_dir, folder, "/outputs/01B_num_DEGs/")
+    }
+    if (individual_projs==F) {
+      ds_list <- append(ds_list, list(ImportCt(shared_folder, ext, row_col)))
+      ct_list <-c(ct_list, list.dirs(shared_folder, recursive=FALSE, full.names = FALSE))
+      group_names <- c(group_names, folder)
+    } else {
+      proj_conds <- list.dirs(shared_folder, full.names = F, recursive = F)
+      for (cond in proj_conds) {
+        ds_list <- append(ds_list, list(ImportCt(paste0(shared_folder, "/", cond, "/outputs/01B_num_DEGs/"), ext, row_col)))
+        ct_list <-c(ct_list, list.dirs(paste0(shared_folder, "/", cond, "/outputs/01B_num_DEGs/"), recursive=FALSE, full.names = FALSE))
+        group_names <- c(group_names, paste(cond, folder, sep = "_"))
       }
     }
   }
@@ -243,9 +181,9 @@ ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_proj
   return(list("genes"=ds_list, "ct"=unique(ct_list)))
 }
 
-# 5. Groups cts according to common annotation
-# Input: list of lists generated from ImportDatasets, here combined in a vector, and the named vector used to harmonize the annotation
-# Return: one dataframe containing all DEGs
+# 4. Groups cts according to common annotation
+  # Input: list of lists generated from ImportDatasets, here combined in a vector, and the named vector used to harmonize the annotation
+  # Return: one dataframe containing all DEGs
 
 CreateSexDf <- function(list_ds, common_annot) {
   all <- unlist(list_ds, recursive = F)
@@ -274,19 +212,19 @@ CreateSexDf <- function(list_ds, common_annot) {
   return(sex_dfs)
 }
 
-# 6. Creates a list, each element the gene list from each condition present for a specific ct and sex
+# 5. Creates a list, each element the gene list from each condition present for a specific ct and sex
   # Input: the dataframe, the ct and sex to be analyzed, the order in which the groups should be plotted
   # Return: the list of gene lists, from a specific ct and sex, for each condition
 
-ExtractSexCt <- function(sex_df, ct, sex, condition_ordered) {
+ExtractSexCt <- function(sex_df, ct, sex, groups_ordered) {
   sex_ct <- sex_df[which(sex_df$common_annot==ct & sex_df$sex==sex), ]
   sex_ct <- split(sex_ct$gene_id, sex_ct$condition)
-  sex_order <- condition_ordered[which(condition_ordered %in% names(sex_ct))]
+  sex_order <- groups_ordered[which(groups_ordered %in% names(sex_ct))]
   sex_ct <- sex_ct[sex_order]
   return(sex_ct)
 }
 
-# 7. Compares the GOs of a list of genes
+# 6. Compares the GOs of a list of genes
   # Input: list of genes to be compared, which GO (BP, MO or CC),  
     # if a minimum threshold for how many genes in each module should be used,
   # Return: enriched GO (formal class compareClusterResult)
@@ -306,7 +244,7 @@ compareGO <- function(sex_list, GO_ont, gene_thresh="no"){
   return(enrich)
 }
 
-# 8. finds the EntrezID for a gene
+# 7. finds the EntrezID for a gene
   # Input: gene symbol
   # Return: EntrezID(s) for the gene
 
@@ -320,7 +258,7 @@ GenetoENTREZ <- function(symbol){
   return(entrez.df)
 }
 
-# 9. Compares the KEGG pathways of a list of genes
+# 8. Compares the KEGG pathways of a list of genes
   # Input: list of genes to be compared, if a minimum threshold for how many genes in each module should be used
   # Return: enriched KEGG (formal class compareClusterResult)
 
@@ -342,7 +280,7 @@ compareKEGG <- function(sex_list, gene_thresh="no"){
   return(enrich)
 }
 
-# 10. Compares the DO of a list of genes
+# 9. Compares the DO of a list of genes
   # Input: list of genes to be compared, if a minimum threshold for how many genes in each module should be used
   # Return: enriched KEGG (formal class compareClusterResult)
 
@@ -363,7 +301,7 @@ compareDO <- function(sex_list, gene_thresh="no"){
   return(enrich)
 }
 
-# 11. Compares the DGN of a list of genes
+# 10. Compares the DGN of a list of genes
   # Input: list of genes to be compared, if a minimum threshold for how many genes in each module should be used
   # Return: enriched KEGG (formal class compareClusterResult)
 
@@ -383,7 +321,7 @@ compareDGN <- function(sex_list, gene_thresh="no"){
   return(enrich)
 }
 
-# 12. Compares the selected enrichment module of a list of genes
+# 11. Compares the selected enrichment module of a list of genes
   # Input: main directory where to save the plots, the dataframe containing all DEGs, the enrichment to be analyzed, 
     # the GO to analyze (if GO is the module), and  if a minimum threshold for how many genes in each module should be used
   # Return: nothing, saves plots and CSVs instead
@@ -451,13 +389,13 @@ EnrichFvM <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh=
 }
 
 
-# 13. Compares the DEGs from all condition in a specific ct-sex group
+# 12. Compares the DEGs from all condition in a specific ct-sex group
   # Input: main directory where to save the plots, the dataframe containing all DEGs, , the enrichment to be analyzed, 
     # the GO to analyze (if GO is the module), if a minimum threshold for how many genes in each module should be used, 
     # the order in which plot the conditions, and if the x-axis labels should be rotated by 90 degrees, the threshold for the adjusted p-value to use
   # Return: nothing, saves plots and CSVs instead
 
-EnrichCondition <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh="no", condition_ordered, rotate_x_axis=F, adj_pval_thresh=0.05) {
+EnrichCondition <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh="no", groups_ordered, rotate_x_axis=F, adj_pval_thresh=0.05) {
   out_path <- paste0(main_comparison, enrich_module, "_comparison_cts/")
   dir.create(out_path, recursive = T, showWarnings = F)
   for (ct in unique(sex_df$common_annot)) {
@@ -465,7 +403,7 @@ EnrichCondition <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_t
     ct_path <- paste0(out_path, ct, "/")
     dir.create(ct_path, recursive = T, showWarnings = F)
     for (sex in c("F", "M")) {
-      sex_ct <- ExtractSexCt(sex_df, ct, sex, condition_ordered)
+      sex_ct <- ExtractSexCt(sex_df, ct, sex, groups_ordered)
       if (enrich_module=="GO") {
         try({
           print(paste0("Calculating the ", GO_ont, " results for ", sex))
@@ -534,7 +472,7 @@ EnrichCondition <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_t
 }
 
 
-# 14. Searches the selected database in enrichR
+# 13. Searches the selected database in enrichR
   # Input: the gene list, the database to look into
   # Return: dataframe with the retrieved information
 
@@ -549,7 +487,7 @@ EnrichR_fun <- function(gene_ls, dbsx){
   return(enrichR_df)
 }
 
-# 15. Searches in the DisGeNET database using disgenet2r
+# 14. Searches in the DisGeNET database using disgenet2r
   # Input: the gene list
   # Return: dataframe with the retrieved information
 
@@ -561,7 +499,7 @@ EnrichDisgenet2r_fun <- function(gene_ls){
   return(dgn_res)
 }
 
-# 16. Searches in the selected packages and databases for disease-enrichment
+# 15. Searches in the selected packages and databases for disease-enrichment
   # Input:  list of genes to be compared, the dtabase to look into, the package to use
   # Return: list of enriched terms for each condition
 
@@ -582,7 +520,7 @@ EnrichCt <- function(sex_ct, package, dbsx){
   return(enrich_ls)
 }
 
-# 17. Selects the top 5 enriched terms to combine in one df for plotting
+# 16. Selects the top 5 enriched terms to combine in one df for plotting
   # Input: the enriched list
   # Return: the filtered list of terms
 
@@ -594,12 +532,12 @@ SelectTop5 <- function(enrich_df){
   return(combind_df)
 }
 
-# 18. Calculates the enrichment in the package and database specified for each ct-sex combo across all cts
+# 17. Calculates the enrichment in the package and database specified for each ct-sex combo across all cts
   # Input: main directory where to save the plots, the dataframe containing all DEGs, the package to be used,
     # the database, the order in which plot the conditions
   # Return: nothing, saves plots and CSVs instead
 
-EnrichOtherDB <- function(main_dir, sex_df, package, dbsx, condition_ordered){
+EnrichOtherDB <- function(main_dir, sex_df, package, dbsx, groups_ordered){
   dbsx_path <- str_replace_all(dbsx, c(" "="_", "\\("="", "\\)"=""))
   out_path <- paste0(main_dir, package, "_", dbsx_path, "/")
   dir.create(out_path, recursive = T, showWarnings = F)
@@ -609,7 +547,7 @@ EnrichOtherDB <- function(main_dir, sex_df, package, dbsx, condition_ordered){
     dir.create(ct_path, recursive = T, showWarnings = F)
     for (sex in c("F", "M")) {
       filt_flag <- T
-      sex_ct <- ExtractSexCt(sex_df, ct, sex, condition_ordered)
+      sex_ct <- ExtractSexCt(sex_df, ct, sex, groups_ordered)
       enrich_df <- EnrichCt(sex_ct, package, dbsx)
       top5 <-SelectTop5(enrich_df)
       write.csv(top5, paste0(ct_path, "top5_", sex,".csv"))
@@ -646,7 +584,7 @@ EnrichOtherDB <- function(main_dir, sex_df, package, dbsx, condition_ordered){
         colnames(filtered_top) <- c("condition", "term", "gene_count", "adj_pval")
         pdf(paste0(ct_path, sex, ".pdf"))
         print(
-          ggplot(filtered_top, aes(factor(condition, condition_ordered[which(condition_ordered %in% condition)]), term, size = gene_count, color = adj_pval)) + 
+          ggplot(filtered_top, aes(factor(condition, groups_ordered[which(groups_ordered %in% condition)]), term, size = gene_count, color = adj_pval)) + 
             geom_point() + 
             guides(size  = guide_legend(order = 1), color = guide_colorbar(order = 2)) +
             scale_color_continuous(low="red", high="blue",guide=guide_colorbar(reverse=T)) +
@@ -668,12 +606,12 @@ EnrichOtherDB <- function(main_dir, sex_df, package, dbsx, condition_ordered){
   }
 }
 
-# 19. Calculates the enrichment in the package and database specified comparing for each ct-condition combo the sexes
+# 18. Calculates the enrichment in the package and database specified comparing for each ct-condition combo the sexes
   # Input: main directory where to save the plots, the dataframe containing all DEGs, the package to be used,
     # the database, the order in which plot the conditions
   # Return: nothing, saves plots and CSVs instead
 
-EnrichOtherDBFvM <- function(main_dir, sex_df, package, dbsx, condition_ordered){
+EnrichOtherDBFvM <- function(main_dir, sex_df, package, dbsx, groups_ordered){
   dbsx_path <- str_replace_all(dbsx, c(" "="_", "\\("="", "\\)"=""))
   out_path <- paste0(main_dir, package, "_", dbsx_path, "_ct_sex/")
   dir.create(out_path, recursive = T, showWarnings = F)
@@ -746,7 +684,7 @@ EnrichOtherDBFvM <- function(main_dir, sex_df, package, dbsx, condition_ordered)
   }
 }
 
-# 20. Plot the presence heatmap
+# 19. Plot the presence heatmap
   # Input: the presence df, the ct to plot
   # Return: the plot
 
@@ -775,7 +713,7 @@ PlotHmpRef <- function(ref_presence_df, ref_ct_id, plot_titles) {
   return(ref_plot)
 }
 
-# 21. Plot the presence number of genes
+# 20. Plot the presence number of genes
   # Input: the presence df, the ct to plot
   # Return: the plot
 
@@ -804,7 +742,7 @@ PlotBarPlotRef <- function(ref_presence_df, ref_ct_id, plot_titles) {
   return(ref_plot)
 }
 
-# 22. Calculates the % of known markers in the DEGs
+# 21. Calculates the % of known markers in the DEGs
   # Input: the presence df, the ct to plot, the gene lists
   # Return: the percent df
 
@@ -828,14 +766,14 @@ RefPerc <- function(ref_presence_df, ref_ct_id, sex_df) {
   return(ref_perc)
 }
 
-# 23. Plot the presence number of genes as percentage
+# 22. Plot the presence number of genes as percentage
   # Input: the presence df, the ct to plot
   # Return: the plot
 
-PlotBarPlotRefPerc <- function(ref_perc, ref_ct_id, plot_titles, condition_ordered) {
-  ref_plot <- ggplot(ref_perc, aes(ct, perc, fill = factor(condition, condition_ordered[which(condition_ordered %in% condition)]))) +
+PlotBarPlotRefPerc <- function(ref_perc, ref_ct_id, plot_titles, groups_ordered) {
+  ref_plot <- ggplot(ref_perc, aes(ct, perc, fill = factor(condition, groups_ordered[which(groups_ordered %in% condition)]))) +
     geom_bar(stat="identity", color="black") +
-    facet_grid(sex ~ factor(condition, condition_ordered[which(condition_ordered %in% condition)]), scales = "free") +
+    facet_grid(sex ~ factor(condition, groups_ordered[which(groups_ordered %in% condition)]), scales = "free") +
     labs(x="Cell types", y="Markers %", fill="Groups", title = plot_titles[ref_ct_id]) +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
@@ -855,15 +793,15 @@ PlotBarPlotRefPerc <- function(ref_perc, ref_ct_id, plot_titles, condition_order
 }
 
 
-# 24. Plots if gebes from a reference df are found or not in the DEGs
+# 23. Plots if gebes from a reference df are found or not in the DEGs
   # Input: main directory where to save the plots, the dataframe containing all DEGs, the reference df, 
     # the order in which plot the conditions (and which conditions to plot), the vector to use for plot titles
   # Return: nothing, saves plot instead
 
-PlotRefCt <- function(main_dir, sex_df, ref_df, condition_ordered, ref_df_name="ref", plot_titles){
+PlotRefCt <- function(main_dir, sex_df, ref_df, groups_ordered, ref_df_name="ref", plot_titles){
   out_path <- paste0(main_dir, "Hmp_", ref_df_name, "/")
   dir.create(out_path, recursive = T, showWarnings = F)
-  sex_df_filt <- sex_df[which(sex_df$condition %in% condition_ordered), ]
+  sex_df_filt <- sex_df[which(sex_df$condition %in% groups_ordered), ]
   presence <- vector()
   ids <- vector()
   gene_ids <- vector()
@@ -885,7 +823,7 @@ PlotRefCt <- function(main_dir, sex_df, ref_df, condition_ordered, ref_df_name="
   }
   ref_presence_df <- data.frame(ids, gene_ids, presence)
   ref_presence_df <- separate(ref_presence_df, ids, into=c("sex", "ref_ct", "condition", "cond_ct"), sep = "/")
-  ref_presence_df$condition <- factor(ref_presence_df$condition, condition_ordered[which(condition_ordered %in% unique(ref_presence_df$condition))])
+  ref_presence_df$condition <- factor(ref_presence_df$condition, groups_ordered[which(groups_ordered %in% unique(ref_presence_df$condition))])
   ref_presence_df <- ref_presence_df[order(ref_presence_df$condition), ]
   for (ref_ct_id in unique(ref_presence_df$ref_ct)) {
     print(plot_titles[[ref_ct_id]])
@@ -897,13 +835,13 @@ PlotRefCt <- function(main_dir, sex_df, ref_df, condition_ordered, ref_df_name="
     dev.off()
     ref_perc <- RefPerc(ref_presence_df, ref_ct_id, sex_df)
     pdf(paste0(out_path, plot_titles[ref_ct_id], "_barplot_perc.pdf"), height = 4, width = 16)
-    print(PlotBarPlotRefPerc(ref_perc, ref_ct_id, plot_titles, condition_ordered))
+    print(PlotBarPlotRefPerc(ref_perc, ref_ct_id, plot_titles, groups_ordered))
     dev.off()
   }
 }
 
 
-# 25. Import results from disease-related enrichments
+# 24. Import results from disease-related enrichments
   # Input: main directory where to find the files, which db to use, which comparison to import
   # Return: list of files
 
@@ -953,7 +891,7 @@ ImportDBresults <- function(main_dir, dbsx, which_dbsx) {
   return(dbsx_df)
 }
 
-# 26. Counts the number of repeated terms
+# 25. Counts the number of repeated terms
   # Input: main directory where to save the files, the merged dataframe, the order in which plot the conditions
   # Return: nothing, saves the files instead
 
@@ -992,13 +930,13 @@ CountDiseases <- function(main_dir, dbsx_all) {
 }
 
 
-# 27. Plots the disease enrichemnt results in facets
+# 26. Plots the disease enrichemnt results in facets
   # Input: main directory where to save the plots, the merged dataframe, the order in which plot the conditions
   # Return: nothing, saves the plots instead
 
-PlotFacetedDB <- function(main_dir, dbsx_all, condition_ordered) {
+PlotFacetedDB <- function(main_dir, dbsx_all, groups_ordered) {
   dbsx_all <- subset(dbsx_all, adj_pval <= 0.05 & gene_count > 1) 
-  dbsx_all$condition <- factor(dbsx_all$condition, condition_ordered[which(condition_ordered %in% unique(dbsx_all$condition))]) 
+  dbsx_all$condition <- factor(dbsx_all$condition, groups_ordered[which(groups_ordered %in% unique(dbsx_all$condition))]) 
   dbsx_all <- dbsx_all[order(dbsx_all$condition), ]
   plot_path <- paste0(main_dir, "/Faceted_Diseases/")
   dir.create(plot_path, recursive = T, showWarnings = F)
@@ -1033,7 +971,7 @@ PlotFacetedDB <- function(main_dir, dbsx_all, condition_ordered) {
   }
 }
 
-# 28. Creates a dataframe with only the gens related to know diseases
+# 27. Creates a dataframe with only the gens related to know diseases
   # Input: main directory where to save the file, the reference dataframe with the diseases and genes, 
     # one dataframe containing all DEGs, the reference name to be used for the output folder
   # Return: the DEG dataframe with the presence of genes-associated genes and saves the results to CSV file
@@ -1072,12 +1010,12 @@ CreateDisDf <- function(main_dir, ref, sex_dfs, ref_df_name) {
   return(ref_deg)
 }
 
-# 29. Plot heatmap with the results of which disease-associated genes are found in the degs
+# 28. Plot heatmap with the results of which disease-associated genes are found in the degs
   # Iput: the DEG data frame with the presence of genes-associated genes, the disease group to plot
   # Return: the faceted plot
 
-PlotDisDegGroup <- function(ref_deg, dis_id) {
-  dis_plot <- ggplot(complete(ref_deg[which(ref_deg$disease_group==dis_id),]), aes(factor(condition, condition_order), dis_gene_id, fill=dis_presence)) +
+PlotDisDegGroup <- function(ref_deg, dis_id, groups_ordered) {
+  dis_plot <- ggplot(complete(ref_deg[which(ref_deg$disease_group==dis_id),]), aes(factor(condition, groups_ordered[which(groups_ordered %in% condition)]), dis_gene_id, fill=dis_presence)) +
     geom_tile(color="white") +
     facet_grid(sex ~ ct, scales = "free") +
     labs(x="Groups", y="Disease-associated genes", fill="Genes found", title =dis_id) +
@@ -1101,22 +1039,22 @@ PlotDisDegGroup <- function(ref_deg, dis_id) {
           legend.title = element_text(size=12, face="bold", colour = "black"))
 }
 
-# 30. Plots the results for the disease-associated genes for all disease groups
+# 29. Plots the results for the disease-associated genes for all disease groups
   # Input: main directory where to save the plots, the DEG dataframe with the presence of genes-associated genes
   # Return: nothing, saves plots instead
 
-PlotDisDeg <- function(main_dir, ref_deg, ref_df_name) {
+PlotDisDeg <- function(main_dir, ref_deg, ref_df_name, groups_ordered) {
   out_path <- paste0(main_dir, "Hmp_", ref_df_name, "/")  
   dir.create(out_path, showWarnings = F, recursive = T)
   for (dis in unique(ref_deg$disease_group)) {
     print(dis)
     pdf(paste0(out_path, dis, ".pdf"), width = 16)
-    print(PlotDisDegGroup(ref_deg, dis))
+    print(PlotDisDegGroup(ref_deg, dis, groups_ordered))
     dev.off()
   }
 }
 
-# 31. Imports TRANSFAC_and_JASPAR_PWMs results
+# 30. Imports TRANSFAC_and_JASPAR_PWMs results
   # Input: main directory, sub-folders list
   # Return: dataframe containing all significant terms
 
@@ -1143,7 +1081,7 @@ ImportTJPWMs <- function(main_dir) {
   return(tj_df)
 }
 
-# 32. Function to get chromosome number from term
+# 31. Function to get chromosome number from term
   # Input: the terms as vector
   # Return: the annotated terms with chromosome number
 
@@ -1160,7 +1098,7 @@ Annot.chr.name <- function(gene.list){
   return(Annot_df)
 }
 
-# 33. Map terms from shared EnrichR_TRANSFAC_and_JASPAR_PWMs against chromosome
+# 32. Map terms from shared EnrichR_TRANSFAC_and_JASPAR_PWMs against chromosome
   # Input: dataframe with the shared terms, the annotated terms with chromosome number
   # Return: merged dataframe
 
@@ -1169,7 +1107,7 @@ map_chr <- function(gene_count_filt, Annot_df){
   return(map_chr_df)
 }
 
-# 34. Caclulates common EnrichR_TRANSFAC_and_JASPAR_PWMs and saves to CSV with chromosome information
+# 33. Caclulates common EnrichR_TRANSFAC_and_JASPAR_PWMs and saves to CSV with chromosome information
   # Input: main directory where to save the file, the tj dataframe, the percenytage of minimum cts to share each term
   # Return: nothing, saves CSV instead
 

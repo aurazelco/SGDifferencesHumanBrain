@@ -60,7 +60,7 @@ ImportDE <- function(path, ext, row_col) {
   return(deg)
 }
 
-# 3. Import All DEGs from F and M for all ct; slight different folder structure requires different inputs
+# 2. Import All DEGs from F and M for all ct; slight different folder structure requires different inputs
   # Input: directory where to find ct sub-folders, file extension, where to find row-names
   # Return: list of 2 lists, one for F and one for M dfs
 
@@ -100,7 +100,7 @@ ImportCt <- function(main_dir, ext, row_col) {
   }
 }
 
-# 4. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
+# 3. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
   # Input: main directory, sub-folders list, if UCSC or not, if subfolders are present
   # Return: list of condition lists, each containing input dfs divided in F and M
 
@@ -133,7 +133,7 @@ ImportDatasets <- function(main_dir, folder_list, UCSC_flag="no", individual_pro
 }
 
 
-# 5. Creates the df for the input ct so that we know if a DEG is found in a certain condition or not -> used to generate hmps
+# 4. Creates the df for the input ct so that we know if a DEG is found in a certain condition or not -> used to generate hmps
   # Input: list of ct dfs, which sex and ct to analyze
   # Return: df with info whether each gene is present in all condition groups in which the ct is found
 
@@ -154,7 +154,7 @@ CreatePresenceCtDf <- function(sex_dfs, sex, ct) {
   return(ct_sex)
 }
 
-# 6. Creates all PresenceDfs for all cts
+# 5. Creates all PresenceDfs for all cts
   # Input: list of lists, each list corresponding to a specific condition-sex-ct combination
   # Return: list of ct dfs, with information on presence of each gene across all conditions
 
@@ -174,7 +174,7 @@ CreatePresenceDf <- function(sex_dfs) {
   }
 }
 
-# 7. Groups cts according to common annotation, then creates the presence dfs
+# 6. Groups cts according to common annotation, then creates the presence dfs
   # Input: list of lists generated from ImportDatasets, here combined in a vector, and the named vector used to harmonize the annotation
   # Return: list of presence dfs, one per each ct
 
@@ -206,13 +206,13 @@ CreateSexDf <- function(list_ds, common_annot) {
   return(ct_df_list)
 }
 
-# 8. Plots the heatmap for a certain ct and sex combo
+# 7. Plots the heatmap for a certain ct and sex combo
   # Input: presence df, which sex to plot, and the order in which to plot the conditions
   # Return: heatmap plot
 
-PlotDEGsConditions <- function(ct_df, sex, condition_ordered) {
+PlotDEGsConditions <- function(ct_df, sex, groups_ordered) {
   ct_df <- ct_df[which(ct_df$sex==sex),]
-  ct_df_ordered <- condition_ordered[which(condition_ordered %in% unique(ct_df$condition))]
+  ct_df_ordered <- groups_ordered[which(groups_ordered %in% unique(ct_df$condition))]
   ct_df$condition <- factor(ct_df$condition, ct_df_ordered)
   ct_df <- ct_df[order(ct_df$condition), ]
   
@@ -247,17 +247,17 @@ PlotDEGsConditions <- function(ct_df, sex, condition_ordered) {
   return(ct_plot)
 }
 
-# 9. Generates the presence hmps for each ct, putting together F and M from the same ct and saving it as a pdf
+# 8. Generates the presence hmps for each ct, putting together F and M from the same ct and saving it as a pdf
   # Input: main directory where to save the plots, the list of presence dfs, and the order in which to plot the conditions
   # Return: nothing, saves the plot instead
 
-PlotCts <- function(main_dir, ct_df_list, condition_ordered) {
+PlotCts <- function(main_dir, ct_df_list, groups_ordered) {
   plot_path <- paste0(main_dir, "Hmp_DEGs_across_conditions/")
   dir.create(plot_path, showWarnings = F, recursive = T)
   for (ct in names(ct_df_list)) {
     print(ct)
-    f_plot <- PlotDEGsConditions(ct_df_list[[ct]], "F", condition_ordered)
-    m_plot <- PlotDEGsConditions(ct_df_list[[ct]], "M", condition_ordered)
+    f_plot <- PlotDEGsConditions(ct_df_list[[ct]], "F", groups_ordered)
+    m_plot <- PlotDEGsConditions(ct_df_list[[ct]], "M", groups_ordered)
     ct_plot <- ggarrange(f_plot, m_plot, common.legend = T, legend = "bottom")
     pdf(paste0(plot_path, ct, ".pdf"))
     print(ct_plot)
@@ -265,7 +265,7 @@ PlotCts <- function(main_dir, ct_df_list, condition_ordered) {
   }
 }
 
-# 10. Creates the df for the input sex so that we know if a DEG is found in a certain ct or not in the condition of interest -> used to generate hmps
+# 9. Creates the df for the input sex so that we know if a DEG is found in a certain ct or not in the condition of interest -> used to generate hmps
   # Input: list of ct dfs, which sex to analyze
   # Return: df with info whether each gene is present in the cts of the condition of interest
 
@@ -285,7 +285,7 @@ CreatePresenceConditionSexDf <- function(sex_dfs, sex) {
   return(ct_sex)
 }
 
-# 11. Creates the presence dfs for both sexes, across all cts
+# 10. Creates the presence dfs for both sexes, across all cts
   # Input: lists of dfs, one per sex with in each all cts
   # Return: df with the presence info
 
@@ -299,7 +299,7 @@ CreatePresenceConditionDf <- function(sex_dfs) {
   }
 }
 
-# 12. Groups cts according to common annotation, then creates the presence dfs
+# 11. Groups cts according to common annotation, then creates the presence dfs
   # Input: list of lists generated from ImportDatasets, here combined in a vector, and the named vector used to harmonize the annotation
   # Return: df with the presnece info for both sexes
 
@@ -332,7 +332,7 @@ CreateConditionDf <- function(list_ds, common_annot, condition_filt) {
   return(condition_df_presence)
 }
 
-# 13. Generate the plot for one sex of the DEGs across all cts in specific condition
+# 12. Generate the plot for one sex of the DEGs across all cts in specific condition
   # Input: condition presence sex df
   # Return: plot
 
@@ -368,7 +368,7 @@ PlotAcrossConditionsSex <- function(condition_df_presence_sex, sex) {
           legend.title = element_text(size=12, face="bold", colour = "black"))
   return(plot_cond)
 }
-# 14. Generates the presence hmps for each ct, putting together F and M from the same ct and saving it as a pdf
+# 13. Generates the presence hmps for each ct, putting together F and M from the same ct and saving it as a pdf
   # Input: main directory where to save the plots, the list of presence dfs, and the order in which to plot the conditions
   # Return: nothing, saves the plot instead
 
@@ -383,7 +383,7 @@ PlotAcrossConditions <- function(main_dir, condition_df_presence, obj_name) {
   dev.off()
 }
 
-# 15. Creates dfs which counts in how many conditions we find each gene, per sex and ct combo
+# 14. Creates dfs which counts in how many conditions we find each gene, per sex and ct combo
   # Input: ct df obtained previously, and the sex to analyze
   # Return: df containing for each gene the number of conditions which had that gene in their DEGs
 
@@ -399,7 +399,7 @@ GroupsSharingGenes <- function(ct_df, sex_id) {
   return(data.frame(gene_id, sex, condition_count))
 }
 
-# 16. Create Count Dfs for all cts
+# 15. Create Count Dfs for all cts
   # Input: presence df list
   # Return: list of df containing the number of conditions for each gene, for each ct
 
@@ -414,7 +414,7 @@ CreateCountDfs <- function(ct_df_list) {
   return(gene_count_dfs)
 }
 
-# 17. Plot count dfs for each ct
+# 16. Plot count dfs for each ct
 # Input: shared gene df
 # Return: bar plot of how many genes are shared among how many groups
 
@@ -595,13 +595,13 @@ SaveSharedGenes <- function(main_dir, gene_count_dfs, min_sharing=0.75, min_num_
   # Input: list of presence dfs, one per each ct, order of the condition
   # Return: dataframe with num of DEGs for each ct and condition
 
-NumDEGsAcrossConditions <- function(ct_df_list, condition_ordered) {
+NumDEGsAcrossConditions <- function(ct_df_list, groups_ordered) {
   ct <- vector()
   condition <- vector()
   count_degs <- vector()
   for (ct_id in names(ct_df_list)) {
     sub_ct <- ct_df_list[[ct_id]]
-    for (cond in condition_ordered) {
+    for (cond in groups_ordered) {
       ct <- c(ct, rep(ct_id, 2))
       condition <- c(condition, rep(cond, 2))
       if (cond %in% unique(sub_ct$condition)) {
@@ -614,8 +614,8 @@ NumDEGsAcrossConditions <- function(ct_df_list, condition_ordered) {
   }
   sex <- rep(c("F", "M"), length(condition)/2)
   num_deg_df <- data.frame(ct, condition, sex, count_degs)
-  condition_ordered <- condition_ordered[which(condition_ordered %in% unique(num_deg_df$condition))]
-  num_deg_df$condition <- factor(num_deg_df$condition, condition_ordered)
+  groups_ordered <- groups_ordered[which(groups_ordered %in% unique(num_deg_df$condition))]
+  num_deg_df$condition <- factor(num_deg_df$condition, groups_ordered)
   num_deg_df <- num_deg_df[order(num_deg_df$condition), ]
   return(num_deg_df)
 }
@@ -702,7 +702,7 @@ PlotNumDEGsFacets <- function(main_dir, num_degs_ct, col_palette) {
   # Input: main directory where to save the plots, list of presence dfs, one per each ct, and the order in which to plot the conditions
   # Return: nothing, saves plot and CSV instead
 
-PlotDEGsOverlap <- function(main_dir, ct_df_list, condition_ordered) {
+PlotDEGsOverlap <- function(main_dir, ct_df_list, groups_ordered) {
   plot_path <- paste0(main_dir, "DEGs_Overlap_across_conditions/")
   dir.create(plot_path, showWarnings = F, recursive = T)
   filt_df <- do.call(rbind, ct_df_list)
@@ -718,7 +718,7 @@ PlotDEGsOverlap <- function(main_dir, ct_df_list, condition_ordered) {
       if (length(unique(sex_df[which(sex_df$ct==ct), "condition"]))>1) {
         ct_names <- c(ct_names, ct)
         print(ct)
-        ct_cond <- condition_ordered[which(condition_ordered %in% unique(sex_df[which(sex_df$ct==ct), "condition"]))]
+        ct_cond <- groups_ordered[which(groups_ordered %in% unique(sex_df[which(sex_df$ct==ct), "condition"]))]
         ct_df <- data.frame()
         for (cond in ct_cond) {
           ref_genes <- sex_df[which(sex_df$ct==ct & sex_df$condition==cond), "gene_id"]
@@ -741,8 +741,8 @@ PlotDEGsOverlap <- function(main_dir, ct_df_list, condition_ordered) {
       ct_df <- comp_list[[ct_id]]
       colnames(ct_df) <- c("comparison", "genes_num")
       ct_df <- separate(ct_df, comparison, into = c("ref_cond", "other_cond"), remove = F, sep = " - ")
-      ct_df$ref_cond <- factor(ct_df$ref_cond, condition_ordered[which(condition_ordered %in% unique(ct_df$ref_cond))])
-      ct_df$other_cond <- factor(ct_df$other_cond, condition_ordered[which(condition_ordered %in% unique(ct_df$other_cond))])
+      ct_df$ref_cond <- factor(ct_df$ref_cond, groups_ordered[which(groups_ordered %in% unique(ct_df$ref_cond))])
+      ct_df$other_cond <- factor(ct_df$other_cond, groups_ordered[which(groups_ordered %in% unique(ct_df$other_cond))])
       cond_palette <- hue_pal()(length(levels(ct_df$ref_cond)))
       names(cond_palette) <- levels(ct_df$ref_cond)
       pdf(paste0(plot_path, ct_id, "_", sex_id, ".pdf"), width = 15)
@@ -774,7 +774,7 @@ PlotDEGsOverlap <- function(main_dir, ct_df_list, condition_ordered) {
     # the order in which to plot the conditions, and the minimum number of conditions ot have each ref gene
 # Return: nothing, saves plot and CSV instead
 
-PlotDEGsOverlapHmp <- function(main_dir, ct_df_list, condition_ordered, min_num_conds=2) {
+PlotDEGsOverlapHmp <- function(main_dir, ct_df_list, groups_ordered, min_num_conds=2) {
   `%!in%` <- Negate(`%in%`)
   plot_path <- paste0(main_dir, "DEGs_Overlap_across_conditions/")
   dir.create(plot_path, showWarnings = F, recursive = T)
@@ -791,7 +791,7 @@ PlotDEGsOverlapHmp <- function(main_dir, ct_df_list, condition_ordered, min_num_
       if (length(unique(sex_df[which(sex_df$ct==ct), "condition"]))>2) {
         ct_names <- c(ct_names, ct)
         print(ct)
-        ct_cond <- condition_ordered[which(condition_ordered %in% unique(sex_df[which(sex_df$ct==ct), "condition"]))]
+        ct_cond <- groups_ordered[which(groups_ordered %in% unique(sex_df[which(sex_df$ct==ct), "condition"]))]
         ct_df <- data.frame()
         for (cond in ct_cond) {
           ref_genes <- sex_df[which(sex_df$ct==ct & sex_df$condition==cond), "gene_id"]
@@ -821,8 +821,8 @@ PlotDEGsOverlapHmp <- function(main_dir, ct_df_list, condition_ordered, min_num_
       ct_df <- comp_list[[ct_id]]
       colnames(ct_df) <- c("comparison", "gene_id", "presence")
       ct_df <- separate(ct_df, comparison, into = c("ref_cond", "other_cond"), remove = F, sep = " - ")
-      ct_df$ref_cond <- factor(ct_df$ref_cond, condition_ordered[which(condition_ordered %in% unique(ct_df$ref_cond))])
-      ct_df$other_cond <- factor(ct_df$other_cond, condition_ordered[which(condition_ordered %in% unique(ct_df$other_cond))])
+      ct_df$ref_cond <- factor(ct_df$ref_cond, groups_ordered[which(groups_ordered %in% unique(ct_df$ref_cond))])
+      ct_df$other_cond <- factor(ct_df$other_cond, groups_ordered[which(groups_ordered %in% unique(ct_df$other_cond))])
       ct_df$other_cond_presence <- paste(ct_df$other_cond, ct_df$presence, sep=" ")
       ct_df <- ct_df[order(ct_df$other_cond_presence), ]
       pdf(paste0(plot_path, ct_id, "_", sex_id, "_hmp.pdf"), width = 15, height = 15)

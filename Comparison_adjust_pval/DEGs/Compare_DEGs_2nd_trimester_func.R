@@ -59,12 +59,25 @@ ImportDE <- function(path, ext, row_col) {
   return(deg)
 }
 
-# 2. Import All DEGs from F and M for all ct
+# 2. Function to filter out ns genes and too low FC, and order based on FC 
+  # Input: dataframe of DEGs
+  # Return: gene list of significant genes as data.frame
+
+Filter_gene <- function( order.gene.df, pval, FC) {
+  logFC <- log2(FC)
+  gene.sig <- order.gene.df[  order.gene.df[["p_val_adj"]] <= pval
+                              & order.gene.df[["avg_log2FC"]] >= logFC, ]
+  
+  #If there are sig genes add index number for each sig gene
+  return(data.frame("Genes"=rownames(gene.sig)))
+}
+
+# 3. Import All DEGs from F and M for all ct
   # Input: directory where to find ct sub-folders, list of projects ids, the individual project id to look for, file extension, where to find row-names
   # Return: list of 2 lists, one for F and one for M dfs
 
-ImportCt <- function(main_dir, individual_projs=vector(), single_proj="", ext, row_col) {
-  path <- paste0(main_dir, "/01B_num_DEGs")
+ImportCt <- function(main_dir, individual_projs=vector(), single_proj="", pval, FC, ext, row_col) {
+  path <- paste0(main_dir, "/01A_DEGs")
   sub_ct <- list.dirs(path, recursive=FALSE, full.names = FALSE)
   df_F <- list()
   df_M <- list()
@@ -80,7 +93,7 @@ ImportCt <- function(main_dir, individual_projs=vector(), single_proj="", ext, r
       }
     }
     for (i in names(deg)) {
-      deg_ct <- as.data.frame(rownames(deg[[i]]))
+      deg_ct <- Filter_gene(deg[[i]], pval, FC)
       colnames(deg_ct) <- c("Genes")
       rownames(deg_ct) <- NULL
       if (grepl("F", i, fixed=TRUE)){
@@ -107,16 +120,16 @@ ImportCt <- function(main_dir, individual_projs=vector(), single_proj="", ext, r
   # Input: main directory, sub-folders list, list of projects ids
   # Return: list of condition lists, each containing ct lists divided in F and M
 
-ImportDataset <- function(main_dir, folder_list, individual_projs=vector()) {
+ImportDataset <- function(main_dir, folder_list, individual_projs=vector(), pval, FC) {
   ds_list <- list()
   group_names <- vector()
   for (folder in folder_list) {
     if (length(individual_projs)==0) {
-      ds_list <- append(ds_list, list(ImportCt(paste0(main_dir, folder, "/outputs"))))
+      ds_list <- append(ds_list, list(ImportCt(paste0(main_dir, folder, "/outputs"),pval = pval, FC = FC)))
       group_names <- c(group_names, folder)
     } else {
       for (single_proj in individual_projs) {
-        single_proj_list <- list(ImportCt(paste0(main_dir, folder), individual_projs = individual_projs, single_proj = single_proj))
+        single_proj_list <- list(ImportCt(paste0(main_dir, folder), individual_projs = individual_projs, single_proj = single_proj, pval, FC))
         if (single_proj_list!="empty") {
           ds_list <- append(ds_list, single_proj_list)
           group_names <- c(group_names, paste(folder, single_proj, sep = "_"))

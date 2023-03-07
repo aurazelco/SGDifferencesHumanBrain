@@ -10,20 +10,23 @@
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison/DEGs/Compare_DEGs_2nd_trimester_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison_adjust_pval/DEGs/Compare_DEGs_2nd_trimester_func.R")
 
 # sets the directories where to find the DEG csv files
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/"
+main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/"
 
 # the 2nd_trimester folders are selected
 sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)
 sub_UCSC <- sub_UCSC[which(grepl("2nd_trimester", sub_UCSC))]
 
+pval_thresh <- 0.05
+FC_thresh <- 1.2
+
 # Import all the CSVs from the different sub-folders
-UCSC <- ImportDataset(main_UCSC, sub_UCSC)
+UCSC <- ImportDataset(main_UCSC, sub_UCSC, pval = pval_thresh, FC = FC_thresh)
 
 # Import the reference from the bioRXiv paper O'Brien et al. 2019
 obrien <- read_xlsx(paste0(main_comparison, "O'Brien_bioRXiv_2019_suppl.xlsx"), sheet = 2, skip = 1)

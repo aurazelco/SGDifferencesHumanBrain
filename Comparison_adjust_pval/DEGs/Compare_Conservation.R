@@ -11,18 +11,18 @@
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison/DEGs/Compare_Conservation_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison_adjust_pval/DEGs/Compare_Conservation_func.R")
 
 # sets the directories where to find the DEG csv files
-main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj/"
-main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/"
+main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/"
+main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/"
+main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/"
 
 # Vectors to save the different sub-groups of DISCO and UCSC
-sub_proj <- list.dirs(main_DISCO, full.names = F, recursive = F)
 # the first folder "exta_files" is excluded
+sub_proj <- list.dirs(main_DISCO, full.names = F, recursive = F)[-1]
 sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)[-1]
 
 conservation_db <- "Primates"
@@ -66,7 +66,7 @@ unified_annotation <- c("CXCL14 IN" = "Interneurons",
 names(unified_annotation) <- tolower(names(unified_annotation))
 
 # defines the order in which to organize the presence heatmaps, so the groups are in developmental order, with the last groups as diseases
-condition_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
+groups_order <- c(
                      "Velmeshev_2022_2nd_trimester",           
                      "Velmeshev_2022_3rd_trimester", 
                      "Velmeshev_2022_0_1_years",                
@@ -74,18 +74,18 @@ condition_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
                      "Velmeshev_2022_2_4_years",  
                      "Velmeshev_2022_10_20_years",      
                      "Velmeshev_2022_Adult",
-                     "Normal_GSE157827",              
-                     "Normal_GSE174367",               
-                     "Normal_PRJNA544731", 
+                     "Healthy_GSE157827",              
+                     "Healthy_GSE174367",               
+                     "Healthy_PRJNA544731", 
                      "Alzheimer's disease_GSE157827",
                      "Alzheimer's disease_GSE174367",
                      "Multiple Sclerosis_PRJNA544731" 
 )
 
 # Imports the conservation results from the different datasets
-disco <- ImportDataset(main_DISCO, sub_proj, individual_projs = T, cons_db = conservation_db)
-UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes", individual_projs = F, cons_db = conservation_db)
+disco <- ImportDataset(main_DISCO, sub_proj, individual_projs = T, cons_db = conservation_db, threshold = 4)
+UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes", individual_projs = F, cons_db = conservation_db, threshold = 4)
 
 # Merges the result dfs in one, averaging duplicates and plots the resulting df
-cons_df <- CreateConservationDf(c(UCSC[-1], disco), unified_annotation, condition_order)
+cons_df <- CreateConservationDf(c(UCSC, disco), unified_annotation, groups_order)
 PlotConservationComparison(main_comparison, cons_df, conservation_db, 4)

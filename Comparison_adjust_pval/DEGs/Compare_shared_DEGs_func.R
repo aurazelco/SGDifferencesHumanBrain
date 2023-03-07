@@ -69,14 +69,14 @@ ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_proj
   # Input: list of input files
   # Return: dataframe with all the information
 
-CreateDf <- function(shared_ls) {
+CreateDf <- function(shared_ls, groups_ordered) {
   all_degs <- do.call(rbind, unlist(shared_ls, recursive = F))
   ids <- as.data.frame(rownames(all_degs))
   colnames(ids) <- c("id")
   ids <- separate(ids, id, into=c("group", "sex", "num"), sep="\\.")
   all_degs <- cbind(ids[, c(1,2)], all_degs)
   rownames(all_degs) <- NULL
-  all_degs$group <- factor(all_degs$group, condition_order[-1])
+  all_degs$group <- factor(all_degs$group, groups_ordered)
   all_degs <- all_degs[order(all_degs$group),]
   return(all_degs)
 }
@@ -114,7 +114,7 @@ CreateChrCounts <- function(all_degs, chr_name) {
   # Input: main directory where to save the plots, the dataframe with all the info, the chromosome of interest, the order of the groups
   # Return: nothing, saves plot instead
 
-PlotSharedDEGs <- function(main_dir, all_degs, chr_name, condition_ordered) {
+PlotSharedDEGs <- function(main_dir, all_degs, chr_name, groups_ordered) {
   chr_df <- CreateChrCounts(all_degs, chr_name)
   plot_path <- paste0(main_comparison, "Shared_DEGs_across cts/")
   dir.create(plot_path, showWarnings = F, recursive = T)
@@ -125,7 +125,7 @@ PlotSharedDEGs <- function(main_dir, all_degs, chr_name, condition_ordered) {
   }
   pdf(paste0(plot_path, chr_name, ".pdf"), height = height_param)
   print(
-    ggplot(chr_df, aes(factor(group, condition_ordered[-1]), gene, fill=presence)) +
+    ggplot(chr_df, aes(factor(group, groups_ordered), gene, fill=presence)) +
       geom_tile() +
       scale_fill_manual(values = c("Yes"="#F8766D",
                                    "No"="#00BFC4"),

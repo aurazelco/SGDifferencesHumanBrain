@@ -11,14 +11,14 @@
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison/DEGs/Compare_XY_Enrichment_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison_adjust_pval/DEGs/Compare_XY_Enrichment_func.R")
 
 # sets the directories where to find the DEG csv files
-main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj/"
-main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/"
+main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/"
+main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/"
+main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/"
 
 # Vectors to save the different sub-groups of DISCO and UCSC
 # the first folder "exta_files" is excluded
@@ -64,7 +64,7 @@ unified_annotation <- c("CXCL14 IN" = "Interneurons",
 names(unified_annotation) <- tolower(names(unified_annotation))
 
 # Defines the order in which to organize the presence heatmaps, so the groups are in developmental order, with the last groups as diseases
-condition_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
+groups_order <- c(
                      "Velmeshev_2022_2nd_trimester",           
                      "Velmeshev_2022_3rd_trimester", 
                      "Velmeshev_2022_0_1_years",                
@@ -82,7 +82,8 @@ condition_order <- c("Eze_Nowakowski_integrated_2nd_trimester",
 
 # Imports XY enrichment from all sub-folders
 disco <- ImportDataset(main_DISCO, sub_projs, individual_projs = T)
+names(disco[[1]]) <- str_replace_all(names(disco[[1]]), "Normal", "Healthy")
 UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes")
 
 # Generates heatmap plot of pvalues and saves it to output folder
-PlotEnrichedPvalues(main_comparison, c(UCSC, disco), unified_annotation, condition_order)
+PlotEnrichedPvalues(main_comparison, c(UCSC, disco), unified_annotation, groups_order)
