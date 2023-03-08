@@ -82,6 +82,7 @@ groups_order <- c(
 
 # Imports ARE from all sub-folders
 disco_ARE <- ImportDataset(main_DISCO, sub_projs, individual_projs = T, ARE_ERE="ARE")
+names(disco_ARE) <- str_replace_all(names(disco_ARE), "Normal", "Healthy")
 UCSC_ARE <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes", ARE_ERE="ARE")
 
 # Combines them in one dataframe (summing the common annotation) and plots the results
@@ -98,6 +99,8 @@ PlotFacetedARE(main_comparison, ARE_simpl, groups_order, simpl = "yes")
 
 # Imports ERE from all sub-folders
 disco_ERE <- ImportDataset(main_DISCO, sub_projs, individual_projs = T, ARE_ERE="ERE")
+names(disco_ERE) <- str_replace_all(names(disco_ERE), "Normal", "Healthy")
+
 UCSC_ERE <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes", ARE_ERE="ERE")
 
 # Combines them in one dataframe (summing the common annotation) and plots the results
