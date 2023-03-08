@@ -264,7 +264,7 @@ AddPval <- function(df, pvalX, pvalY) {
 }
 
 # 13. Plot Heatmap of all DEGs, with heircachy of chromosome origin
-PlotGeneralHeatmap <- function(main_dir, chr_sex_list, ct_ordered) {
+PlotGeneralHeatmap <- function(main_dir, chr_sex_list, ct_ordered, group_name) {
   df_sex_list <- ExtractGenes(chr_sex_list) 
   for (sex in names(df_sex_list)) {
     dis_ct_ordered <- ct_ordered[which(ct_ordered %in% levels(df_sex_list[[sex]]$ct))]
@@ -276,11 +276,12 @@ PlotGeneralHeatmap <- function(main_dir, chr_sex_list, ct_ordered) {
         geom_tile(aes(fill=DEG)) + 
         scale_fill_manual(values = c("y" =  "#F8766D", "n"= "#00BFC4")) +
         scale_color_manual(values = c("y" =  "#F8766D", "n"= "#00BFC4")) +
-        labs(x = "Cell types", y = paste0(sex, " DEGs"), fill = "Expressed", main = sex) +
-        facet_wrap(~chr_name, scales = "free") +
+        labs(x = "Cell types", y = paste0(sex, " DEGs"), fill = "Expressed", title = group_name) +
+        facet_wrap(~chr_simplified, scales = "free") +
         theme(panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
               panel.background = element_blank(), 
+              plot.title = element_text(size=14, face="bold", colour = "black"),
               axis.line = element_line(colour = "black"),
               axis.title.x = element_text(size=12, face="bold", colour = "black"),
               axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),

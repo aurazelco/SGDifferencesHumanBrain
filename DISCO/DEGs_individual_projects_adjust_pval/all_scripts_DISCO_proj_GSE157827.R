@@ -99,13 +99,13 @@ source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs_individual_p
 # NORMAL
 chr_normal <- ProcessCt(main, sub_disease[2])
 ExtractSharedGenes(main, sub_disease[2], chr_normal)
-PlotGeneralHeatmap(main, sub_disease[2], chr_normal, ct_order)
+PlotGeneralHeatmap(main, sub_disease[2], chr_normal, ct_order, "Healthy_GSE157827")
 PlotSexHmp(main, sub_disease[2], chr_normal, ct_order)
 
 # AD
 chr_ad <- ProcessCt(main, sub_disease[1])
 ExtractSharedGenes(main, sub_disease[1], chr_ad)
-PlotGeneralHeatmap(main, sub_disease[1], chr_ad, ct_order)
+PlotGeneralHeatmap(main, sub_disease[1], chr_ad, ct_order, "Alzheimer's disease_GSE157827")
 PlotSexHmp(main, sub_disease[1], chr_ad, ct_order)
 
 ####### 01D_Xpar1,2.R

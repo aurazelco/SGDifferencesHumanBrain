@@ -84,7 +84,7 @@ source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs_adjust_pval/0
 
 chr_adults <- ProcessCt(main_local)
 ExtractSharedGenes(main_local, chr_adults)
-PlotGeneralHeatmap(main_local, chr_adults, ct_order)
+PlotGeneralHeatmap(main_local, chr_adults, ct_order, "Velmeshev_Adults")
 PlotSexHmp(main_local, chr_adults, ct_order)
 
 ####### 01D_Xpar1,2.R

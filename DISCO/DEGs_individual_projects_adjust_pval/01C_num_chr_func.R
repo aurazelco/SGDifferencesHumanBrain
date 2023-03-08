@@ -37,7 +37,7 @@ ImportDE <- function(path, ext, row_col) {
 Annot.chr.name <- function(gene.list){
   
   # define biomart object
-  mart <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl",mirror = "www")
+  mart <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl",mirror = "useast")
   Annot_idf <- getBM(attributes = c("hgnc_symbol",
                                     "chromosome_name",
                                     "description"),
@@ -263,7 +263,7 @@ AddPval <- function(df, pvalX, pvalY) {
 }
 
 # 13. Plot Heatmap of all DEGs, with hierarchy of chromosome origin
-PlotGeneralHeatmap <- function(main_dir, dis_type, chr_sex_list, ct_ordered) {
+PlotGeneralHeatmap <- function(main_dir, dis_type, chr_sex_list, ct_ordered, group_name) {
   out_path <- paste0(main_dir, dis_type, "/outputs/01C_num_chr/")
   dir.create(out_path, showWarnings = F, recursive = T)
   df_sex_list <- ExtractGenes(chr_sex_list) 
@@ -277,11 +277,12 @@ PlotGeneralHeatmap <- function(main_dir, dis_type, chr_sex_list, ct_ordered) {
         geom_tile(aes(fill=DEG)) + 
         scale_fill_manual(values = c("y" =  "#F8766D", "n"= "#00BFC4")) +
         scale_color_manual(values = c("y" =  "#F8766D", "n"= "#00BFC4")) +
-        labs(x = "Cell types", y = paste0(sex, " DEGs"), fill = "Expressed", main = sex) +
+        labs(x = "Cell types", y = paste0(sex, " DEGs"), fill = "Expressed", title = group_name) +
         facet_wrap(~chr_simplified, scales = "free") +
         theme(panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
               panel.background = element_blank(), 
+              plot.title = element_text(size=14, face="bold", colour = "black"),
               axis.line = element_line(colour = "black"),
               axis.title.x = element_text(size=12, face="bold", colour = "black"),
               axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),

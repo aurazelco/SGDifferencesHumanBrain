@@ -84,7 +84,7 @@ source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs_adjust_pval/0
 
 chr_3rd_trim <- ProcessCt(main_local)
 ExtractSharedGenes(main_local, chr_3rd_trim)
-PlotGeneralHeatmap(main_local, chr_3rd_trim, ct_order)
+PlotGeneralHeatmap(main_local, chr_3rd_trim, ct_order, "Velmeshev_3rd_trimester")
 PlotSexHmp(main_local, chr_3rd_trim, ct_order)
 
 ####### 01D_Xpar1,2.R
