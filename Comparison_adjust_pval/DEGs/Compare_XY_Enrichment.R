@@ -72,9 +72,9 @@ groups_order <- c(
                      "Velmeshev_2022_2_4_years",  
                      "Velmeshev_2022_10_20_years",      
                      "Velmeshev_2022_Adult",
-                     "Normal_GSE157827",              
-                     "Normal_GSE174367",               
-                     "Normal_PRJNA544731", 
+                     "Healthy_GSE157827",              
+                     "Healthy_GSE174367",               
+                     "Healthy_PRJNA544731", 
                      "Alzheimer's disease_GSE157827",
                      "Alzheimer's disease_GSE174367",
                      "Multiple Sclerosis_PRJNA544731" 
@@ -82,7 +82,7 @@ groups_order <- c(
 
 # Imports XY enrichment from all sub-folders
 disco <- ImportDataset(main_DISCO, sub_projs, individual_projs = T)
-names(disco[[1]]) <- str_replace_all(names(disco[[1]]), "Normal", "Healthy")
+names(disco) <- str_replace_all(names(disco), "Normal", "Healthy")
 UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes")
 
 # Generates heatmap plot of pvalues and saves it to output folder
