@@ -317,6 +317,16 @@ Venn2ndTrim <- function(main_dir, ref_df, list_degs, ref_name, groups_to_compare
         }
       }
     }
+    if (length(groups_to_compare)==5) {
+      for (sex in c("F", "M")) {
+        sex_comps <- c(ref_name, groups_to_compare[which(grepl(sex, groups_to_compare))])
+        sex_ls <- comp_ls[sex_comps]
+        if (length(Reduce(intersect, sex_ls))>0) {
+          genes <- c(genes, Reduce(intersect, sex_ls))
+          comp <- c(comp, rep(paste(plot_title, sex, sep = " - "), length(Reduce(intersect, sex_ls))))
+        }
+      }
+    }
     write.csv(data.frame("comparison"=comp, "gene_id"= genes), paste0(plot_path, plot_title, "_intersected_genes.csv"))
   }
 }
