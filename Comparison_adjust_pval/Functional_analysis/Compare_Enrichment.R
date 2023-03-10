@@ -124,7 +124,7 @@ sexes <- CreateSexDf(c(disco[[1]], UCSC[[1]]), unified_annotation)
 
 # Saves results, one plot and one CSV for F and M separately of each ct across conditions - GO, KEGG, DO DisGeNET
 EnrichCondition(main_comparison, sexes, "GO", "BP", gene_thresh = 100, groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
-EnrichCondition(main_comparison, sexes, "KEGG", gene_thresh = 100, groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
+EnrichCondition(main_comparison, sexes, "KEGG", gene_thresh = "no", groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
 EnrichCondition(main_comparison, sexes, "DO", gene_thresh = 100, groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
 EnrichCondition(main_comparison, sexes, "DGN", gene_thresh = 100, groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
 
@@ -144,6 +144,12 @@ EnrichOtherDB(main_comparison, sexes, "DisGeNET2r",  "DisGeNET (CURATED)", group
 EnrichOtherDB(main_comparison, sexes, "EnrichR",  "TRANSFAC_and_JASPAR_PWMs", groups_order)
 #EnrichOtherDBFvM(main_comparison, sexes, "EnrichR",  "TRANSFAC_and_JASPAR_PWMs", groups_order)
 
+
+# KEGG - other way instead compareCluster
+EnrichOtherDB(main_comparison, sexes, "EnrichR",  "KEGG_2021_Human", groups_order)
+#EnrichOtherDBFvM(main_comparison, sexes, "EnrichR",  "KEGG_2021_Human", groups_order)
+
+
 # Compare disease-related results
 which_comp <- "_comparison_cts"
 DO <- ImportDBresults(main_comparison, "DO", which_comp)
@@ -153,7 +159,7 @@ GWAS <- ImportDBresults(main_comparison, "EnrichR_GWAS_Catalog_2019", "")
 
 # Counts how mauch frequent each term is, adn saves the CSV in the directory
 all_dbs <- rbind(DO, DGN, DGN_CURATED, GWAS)
-CountDiseases(main_comparison, all_dbs) 
+dis_counts <- CountDiseases(main_comparison, all_dbs) 
 
 # DGN excluded because too many terms
 all_dbs <- rbind(DO, DGN_CURATED, GWAS)

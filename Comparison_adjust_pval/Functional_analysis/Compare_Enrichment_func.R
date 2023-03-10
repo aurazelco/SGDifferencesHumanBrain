@@ -85,7 +85,7 @@ options(ggrepel.max.overlaps = Inf)
   # Input: CSV files
   # Return: list of dfs
 
-ImportDE <- function(path, ext, row_col) {
+ImportFiles <- function(path, ext, row_col) {
   if (missing(ext)) {
     deg_files <- list.files(path = path, pattern = "\\.csv$",full.names = TRUE)
     if (missing(row_col)) {
@@ -120,7 +120,7 @@ ImportCt <- function(main_dir, ext, row_col) {
   names_F <- vector()
   names_M <- vector()
   for (ct in 1:length(sub_ct)) {
-    deg <- ImportDE(paste0(main_dir, sub_ct[ct]), ext, row_col)
+    deg <- ImportFiles(paste0(main_dir, sub_ct[ct]), ext, row_col)
     deg_filt <- list()
     for (k in 1:length(deg)) {
       df_filt <- as.data.frame(rownames(deg[[k]]))
@@ -264,16 +264,16 @@ GenetoENTREZ <- function(symbol){
 
 compareKEGG <- function(sex_list, gene_thresh="no"){
   sex_list_kegg <- lapply(sex_list, function(x) 
-  {gene.df <- GenetoENTREZ(x)
-  return(gene.df$ENTREZID)})
-  length(sex_list_kegg)
+                          {gene.df <- GenetoENTREZ(x)
+                          gene.df <- gene.df[which(!is.na(gene.df$ENTREZID)), ]
+                          return(gene.df$ENTREZID)})
   names(sex_list_kegg) <- names(sex_list)
-  print(sex_list_kegg)
   enrich <- compareCluster(geneCluster  = sex_list_kegg, 
                            fun          = "enrichKEGG",
                            pAdjustMethod= "BH",
                            pvalueCutoff = 0.05,
-                           qvalueCutoff = 0.05)
+                           qvalueCutoff = 0.05
+                           )
   if (is.numeric(gene_thresh)) {
     enrich <- gsfilter(enrich, min=gene_thresh)
   }
@@ -286,8 +286,9 @@ compareKEGG <- function(sex_list, gene_thresh="no"){
 
 compareDO <- function(sex_list, gene_thresh="no"){
   sex_list_DO <- lapply(sex_list, function(x) 
-  {gene.df <- GenetoENTREZ(x)
-  return(gene.df$ENTREZID)})
+                        {gene.df <- GenetoENTREZ(x)
+                        gene.df <- gene.df[which(!is.na(gene.df$ENTREZID)), ]
+                        return(gene.df$ENTREZID)})
   names(sex_list_DO) <- names(sex_list)
   enrich <- compareCluster(geneCluster  = sex_list_DO, 
                            fun          = "enrichDO",
@@ -308,6 +309,7 @@ compareDO <- function(sex_list, gene_thresh="no"){
 compareDGN <- function(sex_list, gene_thresh="no"){
   sex_list_DGN <- lapply(sex_list, function(x) 
                         {gene.df <- GenetoENTREZ(x)
+                        gene.df <- gene.df[which(!is.na(gene.df$ENTREZID)), ]
                         return(gene.df$ENTREZID)})
   names(sex_list_DGN) <- names(sex_list)
   enrich <- compareCluster(geneCluster  = sex_list_DGN, 
@@ -421,7 +423,8 @@ EnrichCondition <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_t
       } else if (enrich_module=="KEGG") {
         try({
           print(paste0("Calculating the KEGG results for ", sex))
-          sex_cond_KEGG <-  compareKEGG(sex_ct, gene_thresh)
+          sex_cond_KEGG <- compareKEGG(sex_ct, gene_thresh)
+          return(sex_cond_KEGG)
           csv_cond_KEGG <- as.data.frame(sex_cond_KEGG)
           print(paste0("Saving the CSV KEGG results for ", sex))
           write.csv(csv_cond_KEGG, paste0(ct_path, "KEGG_", sex, ".csv"))
@@ -588,7 +591,7 @@ EnrichOtherDB <- function(main_dir, sex_df, package, dbsx, groups_ordered){
             geom_point() + 
             guides(size  = guide_legend(order = 1), color = guide_colorbar(order = 2)) +
             scale_color_continuous(low="red", high="blue",guide=guide_colorbar(reverse=T)) +
-            labs(title = sex, y = "", x = "Developmental Conditions", size = "Gene count", color = "Adjusted p-value") +
+            labs(title = paste(ct, sex,sep = " - "), y = "", x = "Groups", size = "Gene count", color = "Adjusted p-value") +
             scale_size_continuous(range=c(3, 8)) + 
             scale_y_discrete(labels=function(x) str_wrap(x,width=40)) +
             theme(
@@ -927,6 +930,7 @@ CountDiseases <- function(main_dir, dbsx_all) {
   }
   count_sex_df <- do.call(rbind, count_sex_df)
   write.csv(count_sex_df, paste0(path, "disease_count.csv"))
+  return(count_ct_df)
 }
 
 
