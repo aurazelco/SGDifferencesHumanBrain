@@ -749,7 +749,7 @@ PlotBarPlotRef <- function(ref_presence_df, ref_ct_id, plot_titles) {
   # Input: the presence df, the ct to plot, the gene lists
   # Return: the percent df
 
-RefPerc <- function(ref_presence_df, ref_ct_id, sex_df) {
+RefPerc <- function(ref_presence_df, ref_ct_id, sex_df, plot_titles="no") {
   pos_markers <- ref_presence_df[which(ref_presence_df$ref_ct==ref_ct_id), ]
   tot_genes <- vector()
   tot_names <- vector()
@@ -762,8 +762,12 @@ RefPerc <- function(ref_presence_df, ref_ct_id, sex_df) {
         tot_genes <- c(tot_genes, length(sex_df[which(sex_df$condition==id & sex_df$common_annot==ct & sex_df$sex=="F"), "gene_id"]))
         tot_genes <- c(tot_genes, length(sex_df[which(sex_df$condition==id & sex_df$common_annot==ct & sex_df$sex=="M"), "gene_id"]))
       }
-    }
-  ref_perc <- data.frame(tot_names, num_pos, tot_genes)
+  }
+  if (plot_titles[1]=="no") {
+    ref_perc <- data.frame(tot_names, num_pos, tot_genes)
+  } else {
+    ref_perc <- data.frame("ref_ct"=rep(plot_titles[ref_ct_id], length(tot_names)), tot_names, num_pos, tot_genes)
+  }
   ref_perc <- separate(ref_perc, tot_names, into = c("condition", "ct", "sex"), sep = "/")
   ref_perc$perc <- ref_perc$num_pos * 100 / ref_perc$tot_genes
   return(ref_perc)
@@ -791,6 +795,33 @@ PlotBarPlotRefPerc <- function(ref_perc, ref_ct_id, plot_titles, groups_ordered)
           axis.text.y = element_text(size=8, colour = "black"),
           axis.ticks.y = element_blank(),
           legend.position = "right", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+  return(ref_plot)
+}
+
+# 24. Plot the presence number of genes as percentage
+# Input: the presence df, the groups order
+# Return: the plot
+
+PlotBarPlotRefPercFaceted <- function(ref_perc, groups_ordered) {
+  ref_plot <- ggplot(ref_perc, aes(factor(condition, groups_ordered[which(groups_ordered %in% condition)]), perc, fill = ref_ct)) +
+    geom_bar(stat="identity", color="black", position = "dodge") +
+    facet_grid(sex ~ ct, scales = "free") +
+    labs(x="Groups", y="Markers %", fill="Reference cell types") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          panel.spacing.x=unit(0, "lines"),
+          strip.text = element_text(size = 8, face="bold", colour = "black"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.x = element_text(size=12, face="bold", colour = "black"),
+          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+          axis.ticks.x=element_blank(),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          axis.text.y = element_text(size=8, colour = "black"),
+          axis.ticks.y = element_blank(),
+          legend.position = "bottom", 
           legend.title = element_text(size=12, face="bold", colour = "black"))
   return(ref_plot)
 }
@@ -841,6 +872,13 @@ PlotRefCt <- function(main_dir, sex_df, ref_df, groups_ordered, ref_df_name="ref
     print(PlotBarPlotRefPerc(ref_perc, ref_ct_id, plot_titles, groups_ordered))
     dev.off()
   }
+  ref_perc <- list()
+  ref_perc <- lapply(1:length(unique(ref_presence_df$ref_ct)), function(x) RefPerc(ref_presence_df, unique(ref_presence_df$ref_ct)[x], sex_df, plot_titles))
+  ref_perc <- do.call(rbind, ref_perc)
+  ref_plot <- PlotBarPlotRefPercFaceted(ref_perc, groups_ordered)
+  pdf(paste0(out_path, "Faceted_barplot_perc.pdf"), height = 8, width = 15)
+  print(ref_plot)
+  dev.off()
 }
 
 
