@@ -93,7 +93,7 @@ dis <- ggplot(all_ds[which(all_ds$disease!="Healthy"),], aes(factor(proj, order_
 
 fig <- ggarrange(norm, dis, nrow = 2, common.legend = T, legend = "bottom")
 
-png(paste0(plot_path, "num_cells.png"))
+png(paste0(plot_path, "num_cells.png"), height = 15, width = 10, units="in", res = 1200 )
 print(fig)
 dev.off()
 
@@ -183,7 +183,7 @@ print(
   ggplot(all_ds_ct, aes(proj_dis, count, fill=proj_dis)) +
     geom_bar(stat = "identity", show.legend = T, color="black") +
     geom_hline(yintercept = 100, linetype="dashed") +
-    labs( y="Number of cells", fill="Developmental Conditions") +
+    labs( y="Number of cells", fill="Datasets") +
     facet_grid(ct ~ sex, scales = "free_y", switch = "y", drop = T) +
     theme(
       panel.grid.major = element_blank(), 
