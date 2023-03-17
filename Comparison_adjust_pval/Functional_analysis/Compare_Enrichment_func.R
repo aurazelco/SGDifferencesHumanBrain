@@ -3,8 +3,8 @@
   # This script is used to run the enrichment analysis on multiple databases/terms, all using the DEGs from the projects
 # Brief procedure:
   # 1. Reads all DEG CSV files from all the different datasets (in this case 2 - DISCO and UCSC)
-  # 2. Extract the genes lists for all cts in all conditions
-  # 3. For each enrichments, compares F v M in each ct-condition combo and in each sex-ct combo across conditions
+  # 2. Extract the genes lists for all cts in all groups
+  # 3. For each enrichments, compares F v M in each ct-groups combo and in each sex-ct combo across groups
     # clusterProfile:
       # a. GO - Gene Ontology 
       # b. KEGG - Kyoto Encyclopedia of Genes and Genomes
@@ -151,7 +151,7 @@ ImportCt <- function(main_dir, ext, row_col) {
 
 # 3. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
   # Input: main directory, sub-folders list, if UCSC or not, if subfolders are present
-  # Return: list of condition lists, each containing input dfs divided in F and M
+  # Return: list of groups lists, each containing input dfs divided in F and M
 
 ImportDatasets <- function(main_dir, folder_list, UCSC_flag="no", individual_projs=F, ext, row_col) {
   ds_list <- list()
@@ -200,7 +200,7 @@ CreateSexDf <- function(list_ds, common_annot) {
         sex_df <- data.frame("groups" = rep(names(sex_filt), sapply(sex_filt, length)),
                              "gene_id" = unlist(sex_filt))
         rownames(sex_df) <- NULL
-        sex_df <- separate(sex_df, groups, into=c("condition", "sex", "ct", "gene_num"), sep="\\.")
+        sex_df <- separate(sex_df, groups, into=c("groups", "sex", "ct", "gene_num"), sep="\\.")
         sex_df$gene_num <- NULL
         sex_df$common_annot <- rep(ct, nrow(sex_df))
         sex_ct <- rbind(sex_ct, sex_df)
@@ -212,19 +212,31 @@ CreateSexDf <- function(list_ds, common_annot) {
   return(sex_dfs)
 }
 
-# 5. Creates a list, each element the gene list from each condition present for a specific ct and sex
+# 5. Creates a list, each element the gene list from each groups present for a specific ct and sex
   # Input: the dataframe, the ct and sex to be analyzed, the order in which the groups should be plotted
-  # Return: the list of gene lists, from a specific ct and sex, for each condition
+  # Return: the list of gene lists, from a specific ct and sex, for each groups
 
 ExtractSexCt <- function(sex_df, ct, sex, groups_ordered) {
   sex_ct <- sex_df[which(sex_df$common_annot==ct & sex_df$sex==sex), ]
-  sex_ct <- split(sex_ct$gene_id, sex_ct$condition)
+  sex_ct <- split(sex_ct$gene_id, sex_ct$groups)
   sex_order <- groups_ordered[which(groups_ordered %in% names(sex_ct))]
   sex_ct <- sex_ct[sex_order]
   return(sex_ct)
 }
 
-# 6. Compares the GOs of a list of genes
+# 6. Creates a list, each element the gene list from each cts present for a specific group and sex
+  # Input: the dataframe, the group and sex to be analyzed, the order in which the cts should be plotted
+  # Return: the list of gene lists, from a specific group and sex, for each ct
+
+ExtractSexGroup <- function(sex_df, group_id, sex, cts_ordered) {
+  sex_gr <- sex_df[which(sex_df$groups==group_id & sex_df$sex==sex), ]
+  sex_gr <- split(sex_gr$gene_id, sex_gr$common_annot)
+  sex_order <- cts_ordered[which(cts_ordered %in% names(sex_gr))]
+  sex_gr <- sex_gr[sex_order]
+  return(sex_gr)
+}
+
+# 7. Compares the GOs of a list of genes
   # Input: list of genes to be compared, which GO (BP, MO or CC),  
     # if a minimum threshold for how many genes in each module should be used,
   # Return: enriched GO (formal class compareClusterResult)
@@ -244,7 +256,7 @@ compareGO <- function(sex_list, GO_ont, gene_thresh="no"){
   return(enrich)
 }
 
-# 7. finds the EntrezID for a gene
+# 8. finds the EntrezID for a gene
   # Input: gene symbol
   # Return: EntrezID(s) for the gene
 
@@ -258,7 +270,7 @@ GenetoENTREZ <- function(symbol){
   return(entrez.df)
 }
 
-# 8. Compares the KEGG pathways of a list of genes
+# 9. Compares the KEGG pathways of a list of genes
   # Input: list of genes to be compared, if a minimum threshold for how many genes in each module should be used
   # Return: enriched KEGG (formal class compareClusterResult)
 
@@ -280,7 +292,7 @@ compareKEGG <- function(sex_list, gene_thresh="no"){
   return(enrich)
 }
 
-# 9. Compares the DO of a list of genes
+# 10. Compares the DO of a list of genes
   # Input: list of genes to be compared, if a minimum threshold for how many genes in each module should be used
   # Return: enriched KEGG (formal class compareClusterResult)
 
@@ -302,7 +314,7 @@ compareDO <- function(sex_list, gene_thresh="no"){
   return(enrich)
 }
 
-# 10. Compares the DGN of a list of genes
+# 11. Compares the DGN of a list of genes
   # Input: list of genes to be compared, if a minimum threshold for how many genes in each module should be used
   # Return: enriched KEGG (formal class compareClusterResult)
 
@@ -323,7 +335,7 @@ compareDGN <- function(sex_list, gene_thresh="no"){
   return(enrich)
 }
 
-# 11. Compares the selected enrichment module of a list of genes
+# 12. Compares the selected enrichment module of a list of genes
   # Input: main directory where to save the plots, the dataframe containing all DEGs, the enrichment to be analyzed, 
     # the GO to analyze (if GO is the module), and  if a minimum threshold for how many genes in each module should be used
   # Return: nothing, saves plots and CSVs instead
@@ -331,11 +343,11 @@ compareDGN <- function(sex_list, gene_thresh="no"){
 EnrichFvM <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh="no") {
   out_path <- paste0(main_comparison, enrich_module, "_comparison_ct_sex/")
   dir.create(out_path, recursive = T, showWarnings = F)
-  for (cond in unique(sex_df$condition)) {
+  for (cond in unique(sex_df$groups)) {
     print(cond)
     cond_path <- paste0(out_path, cond, "/")
     dir.create(cond_path, recursive = T, showWarnings = F)
-    cond_df <- sex_df[which(sex_df$condition==cond), ]
+    cond_df <- sex_df[which(sex_df$groups==cond), ]
     for (ct in unique(cond_df$common_annot)) {
       print(ct)
       f_genes <- cond_df[which(cond_df$common_annot==ct & cond_df$sex=="F"), "gene_id"]
@@ -391,13 +403,13 @@ EnrichFvM <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh=
 }
 
 
-# 12. Compares the DEGs from all condition in a specific ct-sex group
+# 13. Compares the DEGs from all groups in a specific ct-sex group
   # Input: main directory where to save the plots, the dataframe containing all DEGs, , the enrichment to be analyzed, 
     # the GO to analyze (if GO is the module), if a minimum threshold for how many genes in each module should be used, 
-    # the order in which plot the conditions, and if the x-axis labels should be rotated by 90 degrees, the threshold for the adjusted p-value to use
+    # the order in which plot the groups, and if the x-axis labels should be rotated by 90 degrees, the threshold for the adjusted p-value to use
   # Return: nothing, saves plots and CSVs instead
 
-EnrichCondition <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh="no", groups_ordered, rotate_x_axis=F, adj_pval_thresh=0.05) {
+EnrichCts <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh="no", groups_ordered, rotate_x_axis=F, adj_pval_thresh=0.05) {
   out_path <- paste0(main_comparison, enrich_module, "_comparison_cts/")
   dir.create(out_path, recursive = T, showWarnings = F)
   for (ct in unique(sex_df$common_annot)) {
@@ -409,64 +421,64 @@ EnrichCondition <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_t
       if (enrich_module=="GO") {
         try({
           print(paste0("Calculating the ", GO_ont, " results for ", sex))
-          sex_cond_GO <-  compareGO(sex_ct, GO_ont, gene_thresh)
-          csv_cond_GO <- as.data.frame(sex_cond_GO)
+          sex_ct_GO <-  compareGO(sex_ct, GO_ont, gene_thresh)
+          csv_ct_GO <- as.data.frame(sex_ct_GO)
           print(paste0("Saving the CSV GO results for ", sex))
-          write.csv(csv_cond_GO, paste0(ct_path, "GO_", GO_ont, "_", sex, ".csv"))
-          sex_cond_GO@compareClusterResult <- sex_cond_GO@compareClusterResult[which(sex_cond_GO@compareClusterResult$p.adjust<=adj_pval_thresh),]
-          sex_cond_plot <- dotplot(sex_cond_GO, by = 'count', title=paste(ct, sex, sep=" - "), showCategory=2)
-          if (rotate_x_axis) {sex_cond_plot$theme$axis.text.x$angle <- 90}
+          write.csv(csv_ct_GO, paste0(ct_path, "GO_", GO_ont, "_", sex, ".csv"))
+          sex_ct_GO@compareClusterResult <- sex_ct_GO@compareClusterResult[which(sex_ct_GO@compareClusterResult$p.adjust<=adj_pval_thresh),]
+          sex_ct_plot <- dotplot(sex_ct_GO, by = 'count', title=paste(ct, sex, sep=" - "), showCategory=2)
+          if (rotate_x_axis) {sex_ct_plot$theme$axis.text.x$angle <- 90}
           png(paste0(ct_path, "GO_", GO_ont, "_", sex, ".png"), height = 20, width = 15, units = "cm", res = 300)
-          print(sex_cond_plot)
+          print(sex_ct_plot)
           dev.off()
         })
       } else if (enrich_module=="KEGG") {
         try({
           print(paste0("Calculating the KEGG results for ", sex))
-          sex_cond_KEGG <- compareKEGG(sex_ct, gene_thresh)
-          return(sex_cond_KEGG)
-          csv_cond_KEGG <- as.data.frame(sex_cond_KEGG)
+          sex_ct_KEGG <- compareKEGG(sex_ct, gene_thresh)
+          return(sex_ct_KEGG)
+          csv_ct_KEGG <- as.data.frame(sex_ct_KEGG)
           print(paste0("Saving the CSV KEGG results for ", sex))
-          write.csv(csv_cond_KEGG, paste0(ct_path, "KEGG_", sex, ".csv"))
-          sex_cond_KEGG@compareClusterResult <- sex_cond_KEGG@compareClusterResult[which(sex_cond_KEGG@compareClusterResult$p.adjust<=adj_pval_thresh),]
-          sex_cond_plot <- dotplot(sex_cond_KEGG, by = 'count', title=paste(ct, sex, sep=" - "), showCategory=2)
-          if (rotate_x_axis) {sex_cond_plot$theme$axis.text.x$angle <- 90}
+          write.csv(csv_ct_KEGG, paste0(ct_path, "KEGG_", sex, ".csv"))
+          sex_ct_KEGG@compareClusterResult <- sex_ct_KEGG@compareClusterResult[which(sex_ct_KEGG@compareClusterResult$p.adjust<=adj_pval_thresh),]
+          sex_ct_plot <- dotplot(sex_ct_KEGG, by = 'count', title=paste(ct, sex, sep=" - "), showCategory=2)
+          if (rotate_x_axis) {sex_ct_plot$theme$axis.text.x$angle <- 90}
           png(paste0(ct_path, "KEGG_", sex, ".png"), height = 20, width = 15, units = "cm", res = 300)
-          print(sex_cond_plot)
+          print(sex_ct_plot)
           dev.off()
           png(paste0(ct_path, "KEGG_", sex, "_cnet.png"), height = 15, width = 20, units = "cm", res = 300)
-          print(cnetplot(setReadable(sex_cond_KEGG, 'org.Hs.eg.db', 'ENTREZID'),cex_label_category = 1.2))
+          print(cnetplot(setReadable(sex_ct_KEGG, 'org.Hs.eg.db', 'ENTREZID'),cex_label_category = 1.2))
           dev.off()
         })
       } else if (enrich_module=="DO") {
         try({
           print(paste0("Calculating the DO results for ", sex))
-          sex_cond_DO <-  compareDO(sex_ct, gene_thresh)
-          csv_cond_DO <- as.data.frame(sex_cond_DO)
+          sex_ct_DO <-  compareDO(sex_ct, gene_thresh)
+          csv_ct_DO <- as.data.frame(sex_ct_DO)
           print(paste0("Saving the CSV DO results for ", sex))
-          write.csv(csv_cond_DO, paste0(ct_path, "DO_", sex, ".csv"))
-          sex_cond_DO@compareClusterResult <- sex_cond_DO@compareClusterResult[which(sex_cond_DO@compareClusterResult$p.adjust<=adj_pval_thresh),]
-          sex_cond_plot <- dotplot(sex_cond_DO, by = 'count', title=paste(ct, sex, sep=" - "), showCategory=2)
-          if (rotate_x_axis) {sex_cond_plot$theme$axis.text.x$angle <- 90}
+          write.csv(csv_ct_DO, paste0(ct_path, "DO_", sex, ".csv"))
+          sex_ct_DO@compareClusterResult <- sex_ct_DO@compareClusterResult[which(sex_ct_DO@compareClusterResult$p.adjust<=adj_pval_thresh),]
+          sex_ct_plot <- dotplot(sex_ct_DO, by = 'count', title=paste(ct, sex, sep=" - "), showCategory=2)
+          if (rotate_x_axis) {sex_ct_plot$theme$axis.text.x$angle <- 90}
           png(paste0(ct_path, "DO_", sex, ".png"), height = 20, width = 15, units = "cm", res = 300)
-          print(sex_cond_plot)
+          print(sex_ct_plot)
           dev.off()
           png(paste0(ct_path, "DO_", sex, "_cnet.png"), height = 15, width = 20, units = "cm", res = 300)
-          print(cnetplot(sex_cond_DO, node_label="category",cex_label_category = 1.2))
+          print(cnetplot(sex_ct_DO, node_label="category",cex_label_category = 1.2))
           dev.off()
         })
       } else if (enrich_module=="DGN") {
         try({
         print(paste0("Calculating the DGN results for ", sex))
-        sex_cond_DGN <-  compareDGN(sex_ct, gene_thresh)
-        csv_cond_DGN <- as.data.frame(sex_cond_DGN)
+        sex_ct_DGN <-  compareDGN(sex_ct, gene_thresh)
+        csv_ct_DGN <- as.data.frame(sex_ct_DGN)
         print(paste0("Saving the CSV DGN results for ", sex))
-        write.csv(csv_cond_DGN, paste0(ct_path, "DGN_", sex, ".csv"))
-        sex_cond_DGN@compareClusterResult <- sex_cond_DGN@compareClusterResult[which(sex_cond_DGN@compareClusterResult$p.adjust<=adj_pval_thresh),]
-        sex_cond_plot <- dotplot(sex_cond_DGN, by = 'count', title=paste(ct, sex, sep=" - "), showCategory=2)
-        if (rotate_x_axis) {sex_cond_plot$theme$axis.text.x$angle <- 90}
+        write.csv(csv_ct_DGN, paste0(ct_path, "DGN_", sex, ".csv"))
+        sex_ct_DGN@compareClusterResult <- sex_ct_DGN@compareClusterResult[which(sex_ct_DGN@compareClusterResult$p.adjust<=adj_pval_thresh),]
+        sex_ct_plot <- dotplot(sex_ct_DGN, by = 'count', title=paste(ct, sex, sep=" - "), showCategory=2)
+        if (rotate_x_axis) {sex_ct_plot$theme$axis.text.x$angle <- 90}
         png(paste0(ct_path, "DGN_", sex, ".png"), height = 20, width = 15, units = "cm", res = 300)
-        print(sex_cond_plot)
+        print(sex_ct_plot)
         dev.off()
         })
       }
@@ -474,8 +486,90 @@ EnrichCondition <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_t
   }
 }
 
+# 14. Compares the DEGs from all groups in a specific ct-sex group
+  # Input: main directory where to save the plots, the dataframe containing all DEGs, , the enrichment to be analyzed, 
+    # the GO to analyze (if GO is the module), if a minimum threshold for how many genes in each module should be used, 
+    # the order in which plot the cts, and if the x-axis labels should be rotated by 90 degrees, the threshold for the adjusted p-value to use
+  # Return: nothing, saves plots and CSVs instead
 
-# 13. Searches the selected database in enrichR
+EnrichGroups <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh="no", cts_ordered, rotate_x_axis=F, adj_pval_thresh=0.05) {
+  out_path <- paste0(main_comparison, enrich_module, "_comparison_groups/")
+  dir.create(out_path, recursive = T, showWarnings = F)
+  for (group in unique(sex_df$groups)) {
+    print(group)
+    group_path <- paste0(out_path, group, "/")
+    dir.create(group_path, recursive = T, showWarnings = F)
+    for (sex in c("F", "M")) {
+      sex_group <- ExtractSexGroup(sex_df, group, sex, cts_ordered)
+      if (enrich_module=="GO") {
+        try({
+          print(paste0("Calculating the ", GO_ont, " results for ", sex))
+          sex_group_GO <-  compareGO(sex_group, GO_ont, gene_thresh)
+          csv_group_GO <- as.data.frame(sex_group_GO)
+          print(paste0("Saving the CSV GO results for ", sex))
+          write.csv(csv_group_GO, paste0(group_path, "GO_", GO_ont, "_", sex, ".csv"))
+          sex_group_GO@compareClusterResult <- sex_group_GO@compareClusterResult[which(sex_group_GO@compareClusterResult$p.adjust<=adj_pval_thresh),]
+          sex_group_plot <- dotplot(sex_group_GO, by = 'count', title=paste(group, sex, sep=" - "), showCategory=2)
+          if (rotate_x_axis) {sex_group_plot$theme$axis.text.x$angle <- 90}
+          png(paste0(group_path, "GO_", GO_ont, "_", sex, ".png"), height = 20, width = 15, units = "cm", res = 300)
+          print(sex_group_plot)
+          dev.off()
+        })
+      } else if (enrich_module=="KEGG") {
+        try({
+          print(paste0("Calculating the KEGG results for ", sex))
+          sex_group_KEGG <- compareKEGG(sex_group, gene_thresh)
+          csv_group_KEGG <- as.data.frame(sex_group_KEGG)
+          print(paste0("Saving the CSV KEGG results for ", sex))
+          write.csv(csv_group_KEGG, paste0(group_path, "KEGG_", sex, ".csv"))
+          sex_group_KEGG@compareClusterResult <- sex_group_KEGG@compareClusterResult[which(sex_group_KEGG@compareClusterResult$p.adjust<=adj_pval_thresh),]
+          sex_group_plot <- dotplot(sex_group_KEGG, by = 'count', title=paste(group, sex, sep=" - "), showCategory=2)
+          if (rotate_x_axis) {sex_group_plot$theme$axis.text.x$angle <- 90}
+          png(paste0(group_path, "KEGG_", sex, ".png"), height = 20, width = 15, units = "cm", res = 300)
+          print(sex_group_plot)
+          dev.off()
+          png(paste0(group_path, "KEGG_", sex, "_cnet.png"), height = 15, width = 20, units = "cm", res = 300)
+          print(cnetplot(setReadable(sex_group_KEGG, 'org.Hs.eg.db', 'ENTREZID'),cex_label_category = 1.2))
+          dev.off()
+        })
+      } else if (enrich_module=="DO") {
+        try({
+          print(paste0("Calculating the DO results for ", sex))
+          sex_group_DO <-  compareDO(sex_group, gene_thresh)
+          csv_group_DO <- as.data.frame(sex_group_DO)
+          print(paste0("Saving the CSV DO results for ", sex))
+          write.csv(csv_group_DO, paste0(group_path, "DO_", sex, ".csv"))
+          sex_group_DO@compareClusterResult <- sex_group_DO@compareClusterResult[which(sex_group_DO@compareClusterResult$p.adjust<=adj_pval_thresh),]
+          sex_group_plot <- dotplot(sex_group_DO, by = 'count', title=paste(group, sex, sep=" - "), showCategory=2)
+          if (rotate_x_axis) {sex_group_plot$theme$axis.text.x$angle <- 90}
+          png(paste0(group_path, "DO_", sex, ".png"), height = 20, width = 15, units = "cm", res = 300)
+          print(sex_group_plot)
+          dev.off()
+          png(paste0(group_path, "DO_", sex, "_cnet.png"), height = 15, width = 20, units = "cm", res = 300)
+          print(cnetplot(sex_group_DO, node_label="category",cex_label_category = 1.2))
+          dev.off()
+        })
+      } else if (enrich_module=="DGN") {
+        try({
+          print(paste0("Calculating the DGN results for ", sex))
+          sex_group_DGN <-  compareDGN(sex_group, gene_thresh)
+          csv_group_DGN <- as.data.frame(sex_group_DGN)
+          print(paste0("Saving the CSV DGN results for ", sex))
+          write.csv(csv_group_DGN, paste0(group_path, "DGN_", sex, ".csv"))
+          sex_group_DGN@compareClusterResult <- sex_group_DGN@compareClusterResult[which(sex_group_DGN@compareClusterResult$p.adjust<=adj_pval_thresh),]
+          sex_group_plot <- dotplot(sex_group_DGN, by = 'count', title=paste(group, sex, sep=" - "), showCategory=2)
+          if (rotate_x_axis) {sex_group_plot$theme$axis.text.x$angle <- 90}
+          png(paste0(group_path, "DGN_", sex, ".png"), height = 20, width = 15, units = "cm", res = 300)
+          print(sex_group_plot)
+          dev.off()
+        })
+      }
+    }
+  }
+}
+
+
+# 15. Searches the selected database in enrichR
   # Input: the gene list, the database to look into
   # Return: dataframe with the retrieved information
 
@@ -490,7 +584,7 @@ EnrichR_fun <- function(gene_ls, dbsx){
   return(enrichR_df)
 }
 
-# 14. Searches in the DisGeNET database using disgenet2r
+# 16. Searches in the DisGeNET database using disgenet2r
   # Input: the gene list
   # Return: dataframe with the retrieved information
 
@@ -502,28 +596,30 @@ EnrichDisgenet2r_fun <- function(gene_ls){
   return(dgn_res)
 }
 
-# 15. Searches in the selected packages and databases for disease-enrichment
-  # Input:  list of genes to be compared, the dtabase to look into, the package to use
-  # Return: list of enriched terms for each condition
+# 17. Searches in the selected packages and databases for disease-enrichment
+  # Input:  list of genes to be compared, the database to look into, the package to use
+  # Return: list of enriched terms for each id (group or ct)
 
-EnrichCt <- function(sex_ct, package, dbsx){
+EnrichId <- function(sex_id, package, dbsx, name_col){
   if(package == 'EnrichR'){
-    enrich_ls <- lapply(sex_ct, function(x) EnrichR_fun(x, dbsx))
+    enrich_ls <- lapply(sex_id, function(x) EnrichR_fun(x, dbsx))
   }
   else if(package == 'DisGeNET2r'){
-    enrich_ls <- lapply(sex_ct, function(x) EnrichDisgenet2r_fun(x))
+    enrich_ls <- lapply(sex_id, function(x) EnrichDisgenet2r_fun(x))
   }
-  for (cond in names(enrich_ls)) {
-    cond_df <- enrich_ls[[cond]]
-    if  (!is.null(dim(cond_df)) ){
-      cond_df$condition <- rep(cond, nrow(cond_df))
-      enrich_ls[[cond]] <- cond_df
+  for (id in names(enrich_ls)) {
+    id_df <- enrich_ls[[id]]
+    if  (!is.null(dim(id_df)) ){
+      id_df[, name_col] <- rep(id, nrow(id_df))
+      enrich_ls[[id]] <- id_df
     }
   }
   return(enrich_ls)
 }
 
-# 16. Selects the top 5 enriched terms to combine in one df for plotting
+
+
+# 18. Selects the top 5 enriched terms to combine in one df for plotting
   # Input: the enriched list
   # Return: the filtered list of terms
 
@@ -535,9 +631,9 @@ SelectTop5 <- function(enrich_df){
   return(combind_df)
 }
 
-# 17. Calculates the enrichment in the package and database specified for each ct-sex combo across all cts
+# 19. Calculates the enrichment in the package and database specified for each ct-sex combo across all cts
   # Input: main directory where to save the plots, the dataframe containing all DEGs, the package to be used,
-    # the database, the order in which plot the conditions
+    # the database, the order in which plot the groups
   # Return: nothing, saves plots and CSVs instead
 
 EnrichOtherDB <- function(main_dir, sex_df, package, dbsx, groups_ordered){
@@ -551,7 +647,7 @@ EnrichOtherDB <- function(main_dir, sex_df, package, dbsx, groups_ordered){
     for (sex in c("F", "M")) {
       filt_flag <- T
       sex_ct <- ExtractSexCt(sex_df, ct, sex, groups_ordered)
-      enrich_df <- EnrichCt(sex_ct, package, dbsx)
+      enrich_df <- EnrichId(sex_ct, package, dbsx, 'groups')
       top5 <-SelectTop5(enrich_df)
       write.csv(top5, paste0(ct_path, "top5_", sex,".csv"))
       if (package == 'EnrichR') {
@@ -583,11 +679,11 @@ EnrichOtherDB <- function(main_dir, sex_df, package, dbsx, groups_ordered){
         }
       }
       if (filt_flag) {
-        filtered_top <- filtered_top[, c("condition", y_var, size_var, color_var)]
-        colnames(filtered_top) <- c("condition", "term", "gene_count", "adj_pval")
+        filtered_top <- filtered_top[, c("groups", y_var, size_var, color_var)]
+        colnames(filtered_top) <- c("groups", "term", "gene_count", "adj_pval")
         pdf(paste0(ct_path, sex, ".pdf"))
         print(
-          ggplot(filtered_top, aes(factor(condition, groups_ordered[which(groups_ordered %in% condition)]), term, size = gene_count, color = adj_pval)) + 
+          ggplot(filtered_top, aes(factor(groups, groups_ordered[which(groups_ordered %in% groups)]), term, size = gene_count, color = adj_pval)) + 
             geom_point() + 
             guides(size  = guide_legend(order = 1), color = guide_colorbar(order = 2)) +
             scale_color_continuous(low="red", high="blue",guide=guide_colorbar(reverse=T)) +
@@ -609,18 +705,18 @@ EnrichOtherDB <- function(main_dir, sex_df, package, dbsx, groups_ordered){
   }
 }
 
-# 18. Calculates the enrichment in the package and database specified comparing for each ct-condition combo the sexes
+# 20. Calculates the enrichment in the package and database specified comparing for each ct-groups combo the sexes
   # Input: main directory where to save the plots, the dataframe containing all DEGs, the package to be used,
-    # the database, the order in which plot the conditions
+    # the database, the order in which plot the groups
   # Return: nothing, saves plots and CSVs instead
 
 EnrichOtherDBFvM <- function(main_dir, sex_df, package, dbsx, groups_ordered){
   dbsx_path <- str_replace_all(dbsx, c(" "="_", "\\("="", "\\)"=""))
   out_path <- paste0(main_dir, package, "_", dbsx_path, "_ct_sex/")
   dir.create(out_path, recursive = T, showWarnings = F)
-  for (cond in unique(sex_df$condition)) {
+  for (cond in unique(sex_df$groups)) {
     print(cond)
-    cond_df <- sex_df[which(sex_df$condition==cond), ]
+    cond_df <- sex_df[which(sex_df$groups==cond), ]
     for (ct in unique(cond_df$common_annot)) {
       cond_path <- paste0(out_path, cond, "/", ct, "/")
       dir.create(cond_path, recursive = T, showWarnings = F)
@@ -629,7 +725,7 @@ EnrichOtherDBFvM <- function(main_dir, sex_df, package, dbsx, groups_ordered){
       f_genes <- cond_df[which(cond_df$common_annot==ct & cond_df$sex=="F"), "gene_id"]
       m_genes <- cond_df[which(cond_df$common_annot==ct & cond_df$sex=="M"), "gene_id"]
       sex_comp <- list("F"=f_genes, "M"=m_genes)
-      enrich_df <- EnrichCt(sex_comp, package, dbsx)
+      enrich_df <- EnrichId(sex_ct, package, dbsx, 'groups')
       top5 <-SelectTop5(enrich_df)
       write.csv(top5, paste0(cond_path, "top5.csv"))
       if (package == 'EnrichR') {
@@ -661,11 +757,11 @@ EnrichOtherDBFvM <- function(main_dir, sex_df, package, dbsx, groups_ordered){
         }
       }
       if (filt_flag) {
-        filtered_top <- filtered_top[, c("condition", y_var, size_var, color_var)]
-        colnames(filtered_top) <- c("condition", "term", "gene_count", "adj_pval")
+        filtered_top <- filtered_top[, c("groups", y_var, size_var, color_var)]
+        colnames(filtered_top) <- c("groups", "term", "gene_count", "adj_pval")
         pdf(paste0(cond_path, "sexes.pdf"))
         print(
-          ggplot(filtered_top, aes(condition, term, size = gene_count, color = adj_pval)) + 
+          ggplot(filtered_top, aes(groups, term, size = gene_count, color = adj_pval)) + 
             geom_point() + 
             guides(size  = guide_legend(order = 1), color = guide_colorbar(order = 2)) +
             scale_color_continuous(low="red", high="blue",guide=guide_colorbar(reverse=T)) +
@@ -687,14 +783,90 @@ EnrichOtherDBFvM <- function(main_dir, sex_df, package, dbsx, groups_ordered){
   }
 }
 
-# 19. Plot the presence heatmap
+
+# 21. Calculates the enrichment in the package and database specified for each ct-sex combo across all cts
+# Input: main directory where to save the plots, the dataframe containing all DEGs, the package to be used,
+# the database, the order in which plot the groups
+# Return: nothing, saves plots and CSVs instead
+
+EnrichOtherDBGroup <- function(main_dir, sex_df, package, dbsx, cts_ordered){
+  dbsx_path <- str_replace_all(dbsx, c(" "="_", "\\("="", "\\)"=""))
+  out_path <- paste0(main_dir, package, "_", dbsx_path, "_groups/")
+  dir.create(out_path, recursive = T, showWarnings = F)
+  for (group in unique(sex_df$groups)) {
+    print(group)
+    group_path <- paste0(out_path, group, "/")
+    dir.create(group_path, recursive = T, showWarnings = F)
+    for (sex in c("F", "M")) {
+      filt_flag <- T
+      sex_group <- ExtractSexGroup(sex_df, group, sex, cts_ordered)
+      enrich_df <- EnrichId(sex_group, package, dbsx, "cts")
+      top5 <-SelectTop5(enrich_df)
+      write.csv(top5, paste0(group_path, "top5_", sex,".csv"))
+      if (package == 'EnrichR') {
+        if (nrow(top5[top5['Adjusted.P.value']< 0.05,] > 1)) {
+          filtered_top <- top5[top5['Adjusted.P.value']< 0.05,]
+          filtered_top$gene_count <- as.numeric(filtered_top$gene_count)
+          if (nrow(filtered_top[filtered_top['gene_count'] > 1,] > 1)) {
+            filtered_top <- filtered_top[filtered_top['gene_count'] > 1,]
+            y_var = 'Term'
+            size_var = 'gene_count'
+            color_var = 'Adjusted.P.value'
+          } else {
+            print("No significant terms with more than 1 gene")
+            filt_flag <- F
+          }
+        } else {
+          print("No significant terms with adjusted p-value < 0.05")
+          filt_flag <- F
+        }
+      } else if (package == 'DisGeNET2r') {
+        if (nrow(top5[top5['FDR'] < 0.05,])) {
+          filtered_top <- top5[top5['FDR'] < 0.05,]
+          y_var = 'Description'
+          size_var = 'Count'
+          color_var = 'FDR'
+        } else {
+          print("No significant terms with adjusted p-value < 0.05")
+          filt_flag <- F
+        }
+      }
+      if (filt_flag) {
+        filtered_top <- filtered_top[, c("cts", y_var, size_var, color_var)]
+        colnames(filtered_top) <- c("cts", "term", "gene_count", "adj_pval")
+        pdf(paste0(group_path, sex, ".pdf"))
+        print(
+          ggplot(filtered_top, aes(factor(cts, cts_ordered[which(cts_ordered %in% cts)]), term, size = gene_count, color = adj_pval)) + 
+            geom_point() + 
+            guides(size  = guide_legend(order = 1), color = guide_colorbar(order = 2)) +
+            scale_color_continuous(low="red", high="blue",guide=guide_colorbar(reverse=T)) +
+            labs(title = paste(group, sex,sep = " - "), y = "", x = "Cell types", size = "Gene count", color = "Adjusted p-value") +
+            scale_size_continuous(range=c(3, 8)) + 
+            scale_y_discrete(labels=function(x) str_wrap(x,width=40)) +
+            theme(
+              plot.title = element_text(size=14, face="bold", colour = "black"),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+              axis.title.y = element_blank(),
+              axis.text.y = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
+              legend.position = "right", 
+              legend.title = element_text(size=12, face="bold", colour = "black"))
+        )
+        dev.off()
+      }
+    }
+  }
+}
+
+
+# 22. Plot the presence heatmap
   # Input: the presence df, the ct to plot
   # Return: the plot
 
 PlotHmpRef <- function(ref_presence_df, ref_ct_id, plot_titles) {
   ref_plot <- ggplot(ref_presence_df[which(ref_presence_df$ref_ct==ref_ct_id), ], aes(cond_ct, gene_ids, fill=presence)) +
     geom_tile() +
-    facet_grid(condition ~ sex, scales = "free") +
+    facet_grid(groups ~ sex, scales = "free") +
     scale_fill_manual(values = c("Yes"="#F8766D",
                                  "No"="#00BFC4"),
                       guide = guide_legend(reverse = TRUE)) +
@@ -716,14 +888,14 @@ PlotHmpRef <- function(ref_presence_df, ref_ct_id, plot_titles) {
   return(ref_plot)
 }
 
-# 20. Plot the presence number of genes
+# 23. Plot the presence number of genes
   # Input: the presence df, the ct to plot
   # Return: the plot
 
 PlotBarPlotRef <- function(ref_presence_df, ref_ct_id, plot_titles) {
   ref_plot <- ggplot(ref_presence_df[which(ref_presence_df$ref_ct==ref_ct_id), ], aes(cond_ct, fill = presence)) +
     geom_bar(position = "stack") +
-    facet_grid(sex ~ condition, scales = "free") +
+    facet_grid(sex ~ groups, scales = "free") +
     scale_fill_manual(values = c("Yes"="#F8766D",
                                  "No"="#00BFC4"),
                       guide = guide_legend(reverse = TRUE)) +
@@ -745,7 +917,7 @@ PlotBarPlotRef <- function(ref_presence_df, ref_ct_id, plot_titles) {
   return(ref_plot)
 }
 
-# 21. Calculates the % of known markers in the DEGs
+# 24. Calculates the % of known markers in the DEGs
   # Input: the presence df, the ct to plot, the gene lists
   # Return: the percent df
 
@@ -754,13 +926,13 @@ RefPerc <- function(ref_presence_df, ref_ct_id, sex_df, plot_titles="no") {
   tot_genes <- vector()
   tot_names <- vector()
   num_pos <- vector()
-  for (id in unique(pos_markers$condition)) {
-      for (ct in unique(pos_markers[which(pos_markers$condition==id), "cond_ct"])) {
+  for (id in unique(pos_markers$groups)) {
+      for (ct in unique(pos_markers[which(pos_markers$groups==id), "cond_ct"])) {
         tot_names <- c(tot_names, paste(id, ct, "F", sep = "/"), paste(id, ct, "M", sep = "/"))
-        num_pos <- c(num_pos, length(pos_markers[which(pos_markers$condition==id & pos_markers$cond_ct==ct & pos_markers$sex=="F" & pos_markers$presence=="Yes"), "gene_ids"]))
-        num_pos <- c(num_pos, length(pos_markers[which(pos_markers$condition==id & pos_markers$cond_ct==ct & pos_markers$sex=="M" & pos_markers$presence=="Yes"), "gene_ids"]))
-        tot_genes <- c(tot_genes, length(sex_df[which(sex_df$condition==id & sex_df$common_annot==ct & sex_df$sex=="F"), "gene_id"]))
-        tot_genes <- c(tot_genes, length(sex_df[which(sex_df$condition==id & sex_df$common_annot==ct & sex_df$sex=="M"), "gene_id"]))
+        num_pos <- c(num_pos, length(pos_markers[which(pos_markers$groups==id & pos_markers$cond_ct==ct & pos_markers$sex=="F" & pos_markers$presence=="Yes"), "gene_ids"]))
+        num_pos <- c(num_pos, length(pos_markers[which(pos_markers$groups==id & pos_markers$cond_ct==ct & pos_markers$sex=="M" & pos_markers$presence=="Yes"), "gene_ids"]))
+        tot_genes <- c(tot_genes, length(sex_df[which(sex_df$groups==id & sex_df$common_annot==ct & sex_df$sex=="F"), "gene_id"]))
+        tot_genes <- c(tot_genes, length(sex_df[which(sex_df$groups==id & sex_df$common_annot==ct & sex_df$sex=="M"), "gene_id"]))
       }
   }
   if (plot_titles[1]=="no") {
@@ -768,19 +940,19 @@ RefPerc <- function(ref_presence_df, ref_ct_id, sex_df, plot_titles="no") {
   } else {
     ref_perc <- data.frame("ref_ct"=rep(plot_titles[ref_ct_id], length(tot_names)), tot_names, num_pos, tot_genes)
   }
-  ref_perc <- separate(ref_perc, tot_names, into = c("condition", "ct", "sex"), sep = "/")
+  ref_perc <- separate(ref_perc, tot_names, into = c("groups", "ct", "sex"), sep = "/")
   ref_perc$perc <- ref_perc$num_pos * 100 / ref_perc$tot_genes
   return(ref_perc)
 }
 
-# 22. Plot the presence number of genes as percentage
+# 25. Plot the presence number of genes as percentage
   # Input: the presence df, the ct to plot
   # Return: the plot
 
 PlotBarPlotRefPerc <- function(ref_perc, ref_ct_id, plot_titles, groups_ordered) {
-  ref_plot <- ggplot(ref_perc, aes(ct, perc, fill = factor(condition, groups_ordered[which(groups_ordered %in% condition)]))) +
+  ref_plot <- ggplot(ref_perc, aes(ct, perc, fill = factor(groups, groups_ordered[which(groups_ordered %in% groups)]))) +
     geom_bar(stat="identity", color="black") +
-    facet_grid(sex ~ factor(condition, groups_ordered[which(groups_ordered %in% condition)]), scales = "free") +
+    facet_grid(sex ~ factor(groups, groups_ordered[which(groups_ordered %in% groups)]), scales = "free") +
     labs(x="Cell types", y="Markers %", fill="Groups", title = plot_titles[ref_ct_id]) +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
@@ -799,12 +971,12 @@ PlotBarPlotRefPerc <- function(ref_perc, ref_ct_id, plot_titles, groups_ordered)
   return(ref_plot)
 }
 
-# 24. Plot the presence number of genes as percentage
-# Input: the presence df, the groups order
-# Return: the plot
+# 26. Plot the presence number of genes as percentage
+  # Input: the presence df, the groups order
+  # Return: the plot
 
 PlotBarPlotRefPercFaceted <- function(ref_perc, groups_ordered) {
-  ref_plot <- ggplot(ref_perc, aes(factor(condition, groups_ordered[which(groups_ordered %in% condition)]), perc, fill = ref_ct)) +
+  ref_plot <- ggplot(ref_perc, aes(factor(groups, groups_ordered[which(groups_ordered %in% groups)]), perc, fill = ref_ct)) +
     geom_bar(stat="identity", color="black", position = "dodge") +
     facet_grid(sex ~ ct, scales = "free") +
     labs(x="Groups", y="Markers %", fill="Reference cell types") +
@@ -827,25 +999,25 @@ PlotBarPlotRefPercFaceted <- function(ref_perc, groups_ordered) {
 }
 
 
-# 23. Plots if gebes from a reference df are found or not in the DEGs
+# 27. Plots if gebes from a reference df are found or not in the DEGs
   # Input: main directory where to save the plots, the dataframe containing all DEGs, the reference df, 
-    # the order in which plot the conditions (and which conditions to plot), the vector to use for plot titles
+    # the order in which plot the groups (and which groups to plot), the vector to use for plot titles
   # Return: nothing, saves plot instead
 
 PlotRefCt <- function(main_dir, sex_df, ref_df, groups_ordered, ref_df_name="ref", plot_titles){
   out_path <- paste0(main_dir, "Hmp_", ref_df_name, "/")
   dir.create(out_path, recursive = T, showWarnings = F)
-  sex_df_filt <- sex_df[which(sex_df$condition %in% groups_ordered), ]
+  sex_df_filt <- sex_df[which(sex_df$groups %in% groups_ordered), ]
   presence <- vector()
   ids <- vector()
   gene_ids <- vector()
   for (sex_id in unique(sex_df_filt$sex)) {
     for (ct in unique(ref_df$Celltype)) {
       ref_genes <- ref_df[which(ref_df$Celltype==ct), "gene"]
-      for (cond in unique(sex_df_filt[which(sex_df_filt$sex==sex_id), "condition"])) {
-        for (ct_id in unique(sex_df_filt[which(sex_df_filt$sex==sex_id & sex_df_filt$condition==cond), "common_annot"])) {
+      for (cond in unique(sex_df_filt[which(sex_df_filt$sex==sex_id), "groups"])) {
+        for (ct_id in unique(sex_df_filt[which(sex_df_filt$sex==sex_id & sex_df_filt$groups==cond), "common_annot"])) {
           presence <- c(presence, 
-                        ifelse(ref_df[which(ref_df$Celltype==ct), "gene"] %in% sex_df_filt[which(sex_df_filt$sex==sex_id & sex_df_filt$condition==cond & sex_df_filt$common_annot==ct_id), "gene_id"],
+                        ifelse(ref_df[which(ref_df$Celltype==ct), "gene"] %in% sex_df_filt[which(sex_df_filt$sex==sex_id & sex_df_filt$groups==cond & sex_df_filt$common_annot==ct_id), "gene_id"],
                                "Yes", "No"))
           ids <- c(ids, 
                    rep(paste(sex_id, ct, cond, ct_id, sep = "/"), length(ref_genes)))
@@ -856,9 +1028,9 @@ PlotRefCt <- function(main_dir, sex_df, ref_df, groups_ordered, ref_df_name="ref
     }
   }
   ref_presence_df <- data.frame(ids, gene_ids, presence)
-  ref_presence_df <- separate(ref_presence_df, ids, into=c("sex", "ref_ct", "condition", "cond_ct"), sep = "/")
-  ref_presence_df$condition <- factor(ref_presence_df$condition, groups_ordered[which(groups_ordered %in% unique(ref_presence_df$condition))])
-  ref_presence_df <- ref_presence_df[order(ref_presence_df$condition), ]
+  ref_presence_df <- separate(ref_presence_df, ids, into=c("sex", "ref_ct", "groups", "cond_ct"), sep = "/")
+  ref_presence_df$groups <- factor(ref_presence_df$groups, groups_ordered[which(groups_ordered %in% unique(ref_presence_df$groups))])
+  ref_presence_df <- ref_presence_df[order(ref_presence_df$groups), ]
   for (ref_ct_id in unique(ref_presence_df$ref_ct)) {
     print(plot_titles[[ref_ct_id]])
     pdf(paste0(out_path, plot_titles[ref_ct_id], "_hmp.pdf"), height = 15, width = 10)
@@ -882,7 +1054,7 @@ PlotRefCt <- function(main_dir, sex_df, ref_df, groups_ordered, ref_df_name="ref
 }
 
 
-# 24. Import results from disease-related enrichments
+# 28. Import results from disease-related enrichments
   # Input: main directory where to find the files, which db to use, which comparison to import
   # Return: list of files
 
@@ -920,66 +1092,113 @@ ImportDBresults <- function(main_dir, dbsx, which_dbsx) {
   if (dbsx == "DO" | dbsx == "DGN") {
     keep_cols <- c("dbsx", "sex", "ct", "Cluster", "Description", "p.adjust",  "Count")
   } else if (dbsx=="DisGeNET2r_DisGeNET_CURATED") {
-    keep_cols <- c("dbsx", "sex", "ct", "Description", "FDR", "Count", "condition")
+    keep_cols <- c("dbsx", "sex", "ct", "Description", "FDR", "Count", "groups")
   } else {
-    keep_cols <- c( "dbsx", "sex", "ct", "Term", "Adjusted.P.value", "gene_count","condition"  )
+    keep_cols <- c( "dbsx", "sex", "ct", "Term", "Adjusted.P.value", "gene_count", "groups"  )
   }
   dbsx_df <- dbsx_df[, which(colnames(dbsx_df) %in% keep_cols)]
   if (dbsx == "DO" | dbsx == "DGN") {
     dbsx_df <- dbsx_df %>% relocate(Cluster, .after = Count)
   }
-  colnames(dbsx_df) <- c("dbsx", "sex", "ct", "term", "adj_pval", "gene_count", "condition")
+  colnames(dbsx_df) <- c("dbsx", "sex", "ct", "term", "adj_pval", "gene_count", "groups")
   return(dbsx_df)
 }
 
-# 25. Counts the number of repeated terms
-  # Input: main directory where to save the files, the merged dataframe, the order in which plot the conditions
+# 29. Counts the number of repeated terms
+  # Input: main directory where to save the files, the merged dataframe, the order in which plot the groups
   # Return: nothing, saves the files instead
 
-CountDiseases <- function(main_dir, dbsx_all) {
+CountDiseases <- function(main_dir, dbsx_all, adj_pval_thresh=0.05, gene_count_thresh=1, which_comp="sex") {
   path <- paste0(main_dir, "/Faceted_Diseases/")
   dir.create(path, recursive = T, showWarnings = F)
-  dbsx_all <- subset(dbsx_all, adj_pval <= 0.05 & gene_count > 1) 
-  count_ct_df <- list()
-  for (ct in unique(dbsx_all$ct)) {
+  dbsx_all <- subset(dbsx_all, adj_pval <= adj_pval_thresh & gene_count > gene_count_thresh) 
+  if (which_comp=="sex") {
+    count_sex_df <- list()
     for (sex in unique(dbsx_all$sex)) {
-      count_dis <- as.data.frame(table(tolower(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), "term"])))
-      count_dis <- count_dis[order(count_dis$Freq, decreasing = T), ][1:10, ]
-      max <- length(unique(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), "dbsx"])) * length(unique(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), "condition"]))
-      count_dis <- cbind("ct" = rep(ct, nrow(count_dis)),
-                         "sex" = rep(sex, nrow(count_dis)),
-                         count_dis,
-                         "max"= rep(max, nrow(count_dis)))
-      count_ct_df <- append(count_ct_df, list(count_dis))
+      count_dis <- as.data.frame(table(tolower(dbsx_all[which(dbsx_all$sex==sex), "term"])))
+      colnames(count_dis) <- c("term", "freq")
+      count_dis <- count_dis[order(count_dis$freq, decreasing = T), ][1:10, ]
+      max <- length(unique(dbsx_all[which(dbsx_all$sex==sex), "dbsx"])) * length(unique(dbsx_all[which(dbsx_all$sex==sex), "groups"]))
+      count_dis <- cbind(
+        "sex" = rep(sex, nrow(count_dis)),
+        count_dis,
+        "max"= rep(max, nrow(count_dis)))
+      count_sex_df <- append(count_sex_df, list(count_dis))
     }
-  }
-  count_ct_df <- do.call(rbind, count_ct_df)
-  write.csv(count_ct_df, paste0(path, "disease_count_per_ct.csv"))
-  count_sex_df <- list()
-  for (sex in unique(dbsx_all$sex)) {
-    count_dis <- as.data.frame(table(tolower(dbsx_all[which(dbsx_all$sex==sex), "term"])))
-    count_dis <- count_dis[order(count_dis$Freq, decreasing = T), ][1:20, ]
-    max <- length(unique(dbsx_all[which(dbsx_all$sex==sex), "dbsx"])) * length(unique(dbsx_all[which(dbsx_all$sex==sex), "condition"]))
-    count_dis <- cbind(
-                       "sex" = rep(sex, nrow(count_dis)),
-                       count_dis,
-                       "max"= rep(max, nrow(count_dis)))
-    count_sex_df <- append(count_sex_df, list(count_dis))
-  }
-  count_sex_df <- do.call(rbind, count_sex_df)
-  write.csv(count_sex_df, paste0(path, "disease_count.csv"))
-  return(count_ct_df)
+    count_sex_df <- do.call(rbind, count_sex_df)
+    count_df <- transform(count_sex_df, perc = freq * 100 / max)
+    count_df$term <- as.character(count_df$term)
+    write.csv(count_df, paste0(path, "disease_count.csv"))
+    #count_df <- complete(count_df, sex, term, fill = list(freq = 0, max = 0, sex_perc =0))
+  } else if (which_comp=="sex_ct") {
+    count_ct_df <- list()
+    for (ct in unique(dbsx_all$ct)) {
+      for (sex in unique(dbsx_all$sex)) {
+        count_dis <- as.data.frame(table(tolower(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), "term"])))
+        colnames(count_dis) <- c("term", "freq")
+        count_dis <- count_dis[order(count_dis$freq, decreasing = T), ]
+        if (nrow(count_dis) > 5) {
+          count_dis <- count_dis[1:5,]
+        }
+        max <- length(unique(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), "dbsx"])) * length(unique(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), "groups"]))
+        which_dbsx <- vector()
+        num_dbsx <- vector()
+        for (i in count_dis$term) {
+          which_dbsx <- c(which_dbsx, paste(unique(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct & tolower(dbsx_all$term)==i), "dbsx"]), collapse = ", "))
+          num_dbsx <- c(num_dbsx, length(unique(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct & tolower(dbsx_all$term)==i), "dbsx"])))
+        }
+        count_dis <- cbind("ct" = rep(ct, nrow(count_dis)),
+                           "sex" = rep(sex, nrow(count_dis)),
+                           count_dis,
+                           "max"= rep(max, nrow(count_dis)),
+                           "which_dbsx" = which_dbsx,
+                           "num_dbsx" = num_dbsx)
+        count_ct_df <- append(count_ct_df, list(count_dis))
+      }
+    }
+    count_ct_df <- do.call(rbind, count_ct_df)
+    count_df <- transform(count_ct_df, perc = freq * 100 / max)
+    count_df$term <- as.character(count_ct_df$term)
+    write.csv(count_df, paste0(path, "disease_count_per_ct.csv"))
+  } else if (which_comp=="sex_ct_dbsx") {
+    count_ct_df_dbsx <- list()
+    for (ct in unique(dbsx_all$ct)) {
+      for (sex in unique(dbsx_all$sex)) {
+        for (dbsx in unique(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), "dbsx"])) {
+          count_dis <- as.data.frame(table(tolower(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct & dbsx_all$dbsx==dbsx), "term"])))
+          colnames(count_dis) <- c("term", "freq")
+          count_dis <- count_dis[order(count_dis$freq, decreasing = T), ]
+          if (nrow(count_dis) > 5) {
+            count_dis <- count_dis[1:5,]
+          }
+          max <- length(unique(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct & dbsx_all$dbsx==dbsx), "groups"]))
+          count_dis <- cbind("ct" = rep(ct, nrow(count_dis)),
+                                  "sex" = rep(sex, nrow(count_dis)),
+                                  "which_dbsx" = rep(dbsx, nrow(count_dis)),
+                                  count_dis,
+                                  "max"= rep(max, nrow(count_dis)))
+          count_ct_df_dbsx <- append(count_ct_df_dbsx, list(count_dis))
+        }  
+      }
+    }
+    count_ct_df_dbsx <- do.call(rbind, count_ct_df_dbsx)
+    count_df <- transform(count_ct_df_dbsx, perc = freq * 100 / max)
+    count_df$term <- as.character(count_df$term)
+    write.csv(count_df, paste0(path, "disease_count_per_ct_and_dbsx.csv"))
+    #count_df <- complete(count_df, ct, sex, which_dbsx, term, fill = list(freq = 0, max = 0, group_perc =0))
+  } 
+  return(count_df)
 }
 
 
-# 26. Plots the disease enrichemnt results in facets
-  # Input: main directory where to save the plots, the merged dataframe, the order in which plot the conditions
+# 30. Plots the disease enrichemnt results in facets
+  # Input: main directory where to save the plots, the merged dataframe, the order in which plot the groups
   # Return: nothing, saves the plots instead
 
 PlotFacetedDB <- function(main_dir, dbsx_all, groups_ordered) {
   dbsx_all <- subset(dbsx_all, adj_pval <= 0.05 & gene_count > 1) 
-  dbsx_all$condition <- factor(dbsx_all$condition, groups_ordered[which(groups_ordered %in% unique(dbsx_all$condition))]) 
-  dbsx_all <- dbsx_all[order(dbsx_all$condition), ]
+  dbsx_all$groups <- factor(dbsx_all$groups, groups_ordered[which(groups_ordered %in% unique(dbsx_all$groups))]) 
+  dbsx_all <- dbsx_all[order(dbsx_all$groups), ]
   plot_path <- paste0(main_dir, "/Faceted_Diseases/")
   dir.create(plot_path, recursive = T, showWarnings = F)
   for (sex in unique(dbsx_all$sex)) {
@@ -987,11 +1206,11 @@ PlotFacetedDB <- function(main_dir, dbsx_all, groups_ordered) {
       if (nrow(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), ]) > 1) {
         pdf(paste0(plot_path, ct, "_", sex, ".pdf"), width = 25, height = 10)
         print(
-          ggplot(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), ], aes(condition, term, size = gene_count, color = adj_pval)) + 
+          ggplot(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), ], aes(groups, term, size = gene_count, color = adj_pval)) + 
             geom_point() + 
             guides(size  = guide_legend(order = 1), color = guide_colorbar(order = 2)) +
             scale_color_continuous(low="red", high="blue",guide=guide_colorbar(reverse=T)) +
-            labs(title = paste0(ct, "_", sex), y = "", x = "Developmental Conditions", size = "Gene count", color = "Adjusted p-value") +
+            labs(title = paste0(ct, "_", sex), y = "", x = "Groups", size = "Gene count", color = "Adjusted p-value") +
             facet_wrap(~ dbsx, scales = "free", nrow=1) +
             scale_size_continuous(range=c(3, 8)) + 
             scale_y_discrete(labels=function(x) str_wrap(x,width=40)) +
@@ -1013,7 +1232,61 @@ PlotFacetedDB <- function(main_dir, dbsx_all, groups_ordered) {
   }
 }
 
-# 27. Creates a dataframe with only the gens related to know diseases
+# 30. Plots the disease enrichemnt results in facets
+  # Input: main directory where to save the plots, the merged dataframe, the order in which plot the groups, which comparison to plot
+  # Return: nothing, saves the plots instead
+
+PlotFacetedDBSimplified <- function(main_dir, count_df, which_comp="sex", plot_order="no") {
+  plot_path <- paste0(main_dir, "/Faceted_Diseases/")
+  dir.create(plot_path, recursive = T, showWarnings = F)
+  if (which_comp=="sex") {
+    pdf(paste0(plot_path, "top_10_terms_per_sex.pdf"), width = 10, height = 10)
+    print(
+      ggplot(count_df, aes(reorder(term, -perc), perc, fill=sex)) +
+        geom_bar(stat="identity", color="black", position = "dodge") +
+        facet_wrap(~sex, scales = "free_x") +
+        labs(x="Terms", y="% of groups enriched", fill="Sex") +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              strip.text = element_text(size=12, face="bold", colour = "black"),
+              axis.line = element_line(colour = "black"),
+              axis.title.x = element_blank(),
+              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+              axis.ticks.x=element_blank(),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "bottom", 
+              legend.title = element_text(size=12, face="bold", colour = "black"))
+      
+    )
+    dev.off()
+  } else if (which_comp=="sex_ct_dbsx") {
+    count_df$ct <- factor(count_df$ct, plot_order[which(plot_order %in% count_df$ct)])
+    count_df <- count_df[order(count_df$ct),]
+    pdf(paste0(plot_path, "top_10_terms_per_sex_ct_dbsx.pdf"), width = 10, height = 15)
+    print(
+      ggplot(count_df, aes(ct, factor(term, rev(unique(term))),  size = perc , color=which_dbsx)) +
+        geom_point() +
+        facet_grid(~ sex, scales = "free") +
+        labs(x="Cell types", y="Terms", size="% of groups enriched", color="Disease databases") +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              strip.text = element_text(size=12, face="bold", colour = "black"),
+              axis.line = element_line(colour = "black"),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+              axis.ticks.x=element_blank(),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "bottom", 
+              legend.title = element_text(size=12, face="bold", colour = "black"))
+      
+    )
+    dev.off()
+  }
+}
+
+# 32. Creates a dataframe with only the gens related to know diseases
   # Input: main directory where to save the file, the reference dataframe with the diseases and genes, 
     # one dataframe containing all DEGs, the reference name to be used for the output folder
   # Return: the DEG dataframe with the presence of genes-associated genes and saves the results to CSV file
@@ -1028,7 +1301,7 @@ CreateDisDf <- function(main_dir, ref, sex_dfs, ref_df_name) {
     }
   }
   ref_df <- data.frame(group_id, dis_genes)
-  sex_dfs$id <- paste(sex_dfs$condition, sex_dfs$sex, sex_dfs$common_annot, sep = "/")
+  sex_dfs$id <- paste(sex_dfs$groups, sex_dfs$sex, sex_dfs$common_annot, sep = "/")
   dis_presence <- vector()
   dis_names <- vector()
   deg_ids <- vector()
@@ -1044,7 +1317,7 @@ CreateDisDf <- function(main_dir, ref, sex_dfs, ref_df_name) {
   }
   ref_deg <- data.frame(dis_names, deg_ids, genes_ids, dis_presence)
   ref_deg <- separate(ref_deg, dis_names, into = c("disease_group", "disease"), sep = "/")
-  ref_deg <- separate(ref_deg, deg_ids, into = c("condition", "sex", "ct"), sep = "/")
+  ref_deg <- separate(ref_deg, deg_ids, into = c("groups", "sex", "ct"), sep = "/")
   ref_deg$dis_gene_id <- paste(ref_deg$disease, ref_deg$genes_ids, sep =  " - ")
   out_path <- paste0(main_dir, "Hmp_", ref_df_name, "/")  
   dir.create(out_path, showWarnings = F, recursive = T)
@@ -1052,12 +1325,12 @@ CreateDisDf <- function(main_dir, ref, sex_dfs, ref_df_name) {
   return(ref_deg)
 }
 
-# 28. Plot heatmap with the results of which disease-associated genes are found in the degs
+# 33. Plot heatmap with the results of which disease-associated genes are found in the degs
   # Iput: the DEG data frame with the presence of genes-associated genes, the disease group to plot
   # Return: the faceted plot
 
 PlotDisDegGroup <- function(ref_deg, dis_id, groups_ordered) {
-  dis_plot <- ggplot(complete(ref_deg[which(ref_deg$disease_group==dis_id),]), aes(factor(condition, groups_ordered[which(groups_ordered %in% condition)]), dis_gene_id, fill=dis_presence)) +
+  dis_plot <- ggplot(complete(ref_deg[which(ref_deg$disease_group==dis_id),]), aes(factor(groups, groups_ordered[which(groups_ordered %in% groups)]), dis_gene_id, fill=dis_presence)) +
     geom_tile(color="white") +
     facet_grid(sex ~ ct, scales = "free") +
     labs(x="Groups", y="Disease-associated genes", fill="Genes found", title =dis_id) +
@@ -1081,7 +1354,7 @@ PlotDisDegGroup <- function(ref_deg, dis_id, groups_ordered) {
           legend.title = element_text(size=12, face="bold", colour = "black"))
 }
 
-# 29. Plots the results for the disease-associated genes for all disease groups
+# 34. Plots the results for the disease-associated genes for all disease groups
   # Input: main directory where to save the plots, the DEG dataframe with the presence of genes-associated genes
   # Return: nothing, saves plots instead
 
@@ -1096,7 +1369,7 @@ PlotDisDeg <- function(main_dir, ref_deg, ref_df_name, groups_ordered) {
   }
 }
 
-# 30. Imports TRANSFAC_and_JASPAR_PWMs results
+# 35. Imports TRANSFAC_and_JASPAR_PWMs results
   # Input: main directory, sub-folders list
   # Return: dataframe containing all significant terms
 
@@ -1123,7 +1396,7 @@ ImportTJPWMs <- function(main_dir) {
   return(tj_df)
 }
 
-# 31. Function to get chromosome number from term
+# 36. Function to get chromosome number from term
   # Input: the terms as vector
   # Return: the annotated terms with chromosome number
 
@@ -1140,7 +1413,7 @@ Annot.chr.name <- function(gene.list){
   return(Annot_df)
 }
 
-# 32. Map terms from shared EnrichR_TRANSFAC_and_JASPAR_PWMs against chromosome
+# 37. Map terms from shared EnrichR_TRANSFAC_and_JASPAR_PWMs against chromosome
   # Input: dataframe with the shared terms, the annotated terms with chromosome number
   # Return: merged dataframe
 
@@ -1149,7 +1422,7 @@ map_chr <- function(gene_count_filt, Annot_df){
   return(map_chr_df)
 }
 
-# 33. Caclulates common EnrichR_TRANSFAC_and_JASPAR_PWMs and saves to CSV with chromosome information
+# 38. Caclulates common EnrichR_TRANSFAC_and_JASPAR_PWMs and saves to CSV with chromosome information
   # Input: main directory where to save the file, the tj dataframe, the percenytage of minimum cts to share each term
   # Return: nothing, saves CSV instead
 

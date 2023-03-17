@@ -3,8 +3,8 @@
   # This script is used to run the enrichment analysis on multiple databases/terms, all using the DEGs from the projects
 # Brief procedure:
   # 1. Reads all DEG CSV files from all the different datasets (in this case 2 - DISCO and UCSC)
-  # 2. Extract the genes lists for all cts in all conditions
-  # 3. For each enrichments, compares F v M in each ct-condition combo and in each sex-ct combo across conditions
+  # 2. Extract the genes lists for all cts in all groups
+  # 3. For each enrichments, compares F v M in each ct-groups combo and in each sex-ct combo across groups
     # clusterProfile:
       # a. GO - Gene Ontology 
       # b. KEGG - Kyoto Encyclopedia of Genes and Genomes
@@ -47,7 +47,7 @@ Sys.setenv(DISGENET_API_KEY=disgenet_api_key )
 sub_projs <- list.dirs(main_DISCO, full.names = F, recursive = F)[-1]
 sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)[-1]
 
-# Import all the CSVs from the different ages/conditions - slightly different file tree structure requires a different approach for UCSC
+# Import all the CSVs from the different ages/groups - slightly different file tree structure requires a different approach for UCSC
 disco <- ImportDatasets(main_DISCO, sub_projs, UCSC_flag = "no", individual_projs = T)
 names(disco[[1]]) <- str_replace_all(names(disco[[1]]), "Normal", "Healthy")
 UCSC <- ImportDatasets(main_UCSC, sub_UCSC, UCSC_flag = "yes", individual_projs = F)
@@ -77,11 +77,6 @@ unified_annotation <- c("CXCL14 IN" = "Interneurons",
                         "SV2C IN"  = "Interneurons",   
                         "TSHZ2 L4_5 EN" = "Excitatory neurons",  
                         "VIP IN" = "Interneurons",
-                        "Mesenchymal" = "Mesenchymal",      
-                        "Neuroepithelial" =     "Neuroepithelial",
-                        "Neuronal" = "Neurons",            
-                        "Other"    = "Other",                
-                        "Radial Glial"     = "Radial Glia",       
                         "Astrocytes" = "Astrocytes",        
                         "Excitatory neurons"  = "Excitatory neurons",
                         "Interneurons"   = "Interneurons",     
@@ -93,6 +88,7 @@ unified_annotation <- c("CXCL14 IN" = "Interneurons",
                         "Dorsal progenitors"  = "Dorsal progenitors" ,   
                         "Ventral progenitors" = "Ventral progenitors")
 names(unified_annotation) <- tolower(names(unified_annotation))
+
 
 # defines the order in which to organize the presence heatmaps, so the groups are in developmental order, with the last groups as diseases
 groups_order <- c(
@@ -111,22 +107,38 @@ groups_order <- c(
                      "Multiple Sclerosis_PRJNA544731" 
 )
 
+cts_order <- c(
+                      "Excitatory neurons",  
+                      "Interneurons",        
+                      "Astrocytes",          
+                      "Microglia" ,          
+                      "Oligodendrocytes",    
+                      "OPCs",   
+                      "Endothelial cells", 
+                      "Vascular cells",      
+                      "Dorsal progenitors",  
+                      "Ventral progenitors",
+                      "Unknown"   
+)
 
 # Combines all dataframes into one df
 sexes <- CreateSexDf(c(disco[[1]], UCSC[[1]]), unified_annotation)
 
-# Saves results, one plot and one CSV for each F v M comparison for each ct-condition combo - GO, KEGG, DO DisGeNET
+# Saves results, one plot and one CSV for each F v M comparison for each ct-groups combo - GO, KEGG, DO DisGeNET
 #EnrichFvM(main_comparison, sexes, "GO", "BP")
 #EnrichFvM(main_comparison, sexes, "KEGG")
 #EnrichFvM(main_comparison, sexes, "DO")
 #EnrichFvM(main_comparison, sexes, "DGN")
 
 
-# Saves results, one plot and one CSV for F and M separately of each ct across conditions - GO, KEGG, DO DisGeNET
-EnrichCondition(main_comparison, sexes, "GO", "BP", gene_thresh = 100, groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
-EnrichCondition(main_comparison, sexes, "KEGG", gene_thresh = "no", groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
-EnrichCondition(main_comparison, sexes, "DO", gene_thresh = 100, groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
-EnrichCondition(main_comparison, sexes, "DGN", gene_thresh = 100, groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
+# Saves results, one plot and one CSV for F and M separately of each ct across groups - GO, KEGG, DO DisGeNET
+EnrichCts(main_comparison, sexes, "GO", "BP", gene_thresh = 100, groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
+#EnrichCts(main_comparison, sexes, "KEGG", gene_thresh = "no", groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
+EnrichCts(main_comparison, sexes, "DO", gene_thresh = 100, groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
+EnrichCts(main_comparison, sexes, "DGN", gene_thresh = 100, groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
+
+# Saves results, one plot and one CSV for F and M separately for each group across cts - GO, KEGG
+EnrichGroups(main_comparison, sexes, "GO", "BP", gene_thresh = 100, cts_ordered = cts_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
 
 # DSigDB - drug db
 EnrichOtherDB(main_comparison, sexes, "EnrichR",  "DSigDB", groups_order)
@@ -148,7 +160,7 @@ EnrichOtherDB(main_comparison, sexes, "EnrichR",  "TRANSFAC_and_JASPAR_PWMs", gr
 # KEGG - other way instead compareCluster
 EnrichOtherDB(main_comparison, sexes, "EnrichR",  "KEGG_2021_Human", groups_order)
 #EnrichOtherDBFvM(main_comparison, sexes, "EnrichR",  "KEGG_2021_Human", groups_order)
-
+EnrichOtherDBGroup(main_comparison, sexes, "EnrichR",  "KEGG_2021_Human", cts_order)
 
 # Compare disease-related results
 which_comp <- "_comparison_cts"
@@ -159,7 +171,14 @@ GWAS <- ImportDBresults(main_comparison, "EnrichR_GWAS_Catalog_2019", "")
 
 # Counts how mauch frequent each term is, adn saves the CSV in the directory
 all_dbs <- rbind(DO, DGN, DGN_CURATED, GWAS)
-dis_counts <- CountDiseases(main_comparison, all_dbs) 
+all_dbs$dbsx <- str_replace_all(all_dbs$dbsx, c("DisGeNET2r_DisGeNET_CURATED" = "DisGeNET", "EnrichR_GWAS_Catalog_2019" = "GWAS"))
+dis_counts_sex <- CountDiseases(main_comparison, all_dbs, which_comp = "sex") 
+dis_counts_ct <- CountDiseases(main_comparison, all_dbs, which_comp = "sex_ct") 
+dis_counts_dbsx <- CountDiseases(main_comparison, all_dbs,  which_comp = "sex_ct_dbsx") 
+
+PlotFacetedDBSimplified(main_comparison, dis_counts_sex, which_comp = "sex")
+PlotFacetedDBSimplified(main_comparison, dis_counts_ct, which_comp = "sex_ct_dbsx", cts_order)
+
 
 # DGN excluded because too many terms
 all_dbs <- rbind(DO, DGN_CURATED, GWAS)
