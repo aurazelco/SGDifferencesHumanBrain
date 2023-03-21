@@ -294,7 +294,7 @@ compareKEGG <- function(sex_list, gene_thresh="no"){
 
 # 10. Compares the DO of a list of genes
   # Input: list of genes to be compared, if a minimum threshold for how many genes in each module should be used
-  # Return: enriched KEGG (formal class compareClusterResult)
+  # Return: enriched DO (formal class compareClusterResult)
 
 compareDO <- function(sex_list, gene_thresh="no"){
   sex_list_DO <- lapply(sex_list, function(x) 
@@ -316,7 +316,7 @@ compareDO <- function(sex_list, gene_thresh="no"){
 
 # 11. Compares the DGN of a list of genes
   # Input: list of genes to be compared, if a minimum threshold for how many genes in each module should be used
-  # Return: enriched KEGG (formal class compareClusterResult)
+  # Return: enriched DGN (formal class compareClusterResult)
 
 compareDGN <- function(sex_list, gene_thresh="no"){
   sex_list_DGN <- lapply(sex_list, function(x) 
@@ -341,7 +341,7 @@ compareDGN <- function(sex_list, gene_thresh="no"){
   # Return: nothing, saves plots and CSVs instead
 
 EnrichFvM <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh="no") {
-  out_path <- paste0(main_comparison, enrich_module, "_comparison_ct_sex/")
+  out_path <- paste0(main_dir, enrich_module, "_comparison_ct_sex/")
   dir.create(out_path, recursive = T, showWarnings = F)
   for (cond in unique(sex_df$groups)) {
     print(cond)
@@ -410,7 +410,7 @@ EnrichFvM <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh=
   # Return: nothing, saves plots and CSVs instead
 
 EnrichCts <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh="no", groups_ordered, rotate_x_axis=F, adj_pval_thresh=0.05) {
-  out_path <- paste0(main_comparison, enrich_module, "_comparison_cts/")
+  out_path <- paste0(main_dir, enrich_module, "_comparison_cts/")
   dir.create(out_path, recursive = T, showWarnings = F)
   for (ct in unique(sex_df$common_annot)) {
     print(ct)
@@ -436,7 +436,6 @@ EnrichCts <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh=
         try({
           print(paste0("Calculating the KEGG results for ", sex))
           sex_ct_KEGG <- compareKEGG(sex_ct, gene_thresh)
-          return(sex_ct_KEGG)
           csv_ct_KEGG <- as.data.frame(sex_ct_KEGG)
           print(paste0("Saving the CSV KEGG results for ", sex))
           write.csv(csv_ct_KEGG, paste0(ct_path, "KEGG_", sex, ".csv"))
@@ -493,7 +492,7 @@ EnrichCts <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh=
   # Return: nothing, saves plots and CSVs instead
 
 EnrichGroups <- function(main_dir, sex_df, enrich_module, GO_ont="BP", gene_thresh="no", cts_ordered, rotate_x_axis=F, adj_pval_thresh=0.05) {
-  out_path <- paste0(main_comparison, enrich_module, "_comparison_groups/")
+  out_path <- paste0(main_dir, enrich_module, "_comparison_groups/")
   dir.create(out_path, recursive = T, showWarnings = F)
   for (group in unique(sex_df$groups)) {
     print(group)
