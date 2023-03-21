@@ -1255,6 +1255,7 @@ PlotFacetedDBSimplified <- function(main_dir, count_df, which_comp="sex", plot_o
               axis.ticks.x=element_blank(),
               axis.title.y = element_text(size=12, face="bold", colour = "black"),
               legend.position = "bottom", 
+              legend.box = "vertical",
               legend.title = element_text(size=12, face="bold", colour = "black"))
       
     )
@@ -1278,6 +1279,7 @@ PlotFacetedDBSimplified <- function(main_dir, count_df, which_comp="sex", plot_o
               axis.ticks.x=element_blank(),
               axis.title.y = element_text(size=12, face="bold", colour = "black"),
               legend.position = "bottom", 
+              legend.box = "vertical",
               legend.title = element_text(size=12, face="bold", colour = "black"))
       
     )
