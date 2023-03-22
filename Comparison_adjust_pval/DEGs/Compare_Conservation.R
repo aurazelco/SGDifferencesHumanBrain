@@ -79,6 +79,7 @@ groups_order <- c(
 
 # Imports the conservation results from the different datasets
 disco <- ImportDataset(main_DISCO, sub_proj, individual_projs = T, cons_db = conservation_db, threshold = 4)
+names(disco) <- str_replace_all(names(disco), "Normal", "Healthy")
 UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes", individual_projs = F, cons_db = conservation_db, threshold = 4)
 
 # Merges the result dfs in one, averaging duplicates and plots the resulting df

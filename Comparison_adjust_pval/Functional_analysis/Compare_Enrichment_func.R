@@ -1250,7 +1250,7 @@ PlotFacetedDBSimplified <- function(main_dir, count_df, which_comp="sex", plot_o
               panel.background = element_blank(), 
               strip.text = element_text(size=12, face="bold", colour = "black"),
               axis.line = element_line(colour = "black"),
-              axis.title.x = element_blank(),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
               axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
               axis.ticks.x=element_blank(),
               axis.title.y = element_text(size=12, face="bold", colour = "black"),

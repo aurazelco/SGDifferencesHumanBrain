@@ -107,12 +107,13 @@ PlotEnrichedPvalues <- function(main_dir, enrich_list, common_annot, groups_orde
                                    "Non-significant"="#00BFC4"),
                         na.value = "grey",
                         guide = guide_legend(reverse = TRUE)) +
-      labs(x="Age/Condition groups", y="Cell types", fill="P-value") +
+      labs(x="Datasets", y="Cell types", fill="P-value") +
       theme(panel.grid.major = element_blank(), 
             panel.grid.minor = element_blank(),
             panel.background = element_blank(), 
             panel.spacing.x=unit(0, "lines"),
             plot.title = element_text(size=12, face="bold", colour = "black"),
+            strip.text = element_text(size=12, face="bold", colour = "black"),
             axis.line = element_line(colour = "black"),
             axis.title.x = element_text(size=12, face="bold", colour = "black"),
             axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
