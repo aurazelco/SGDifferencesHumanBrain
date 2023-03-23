@@ -26,7 +26,7 @@ sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)[-1]
 
 # Import all the CSVs from the different ages/conditions - slightly different file tree structure requires a different approach for UCSC
 disco <- ImportDataset(main_DISCO, sub_projs, individual_projs = T)
-names(disco[[1]]) <- str_replace_all(names(disco[[1]]), "Normal", "Healthy")
+names(disco) <- str_replace_all(names(disco), "Normal", "Healthy")
 UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes")
 
 # defines the order in which to organize the presence heatmaps, so the groups are in developmental order, with the last groups as diseases
