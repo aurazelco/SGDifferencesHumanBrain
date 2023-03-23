@@ -210,8 +210,8 @@ CreateSexDf <- function(list_ds, common_annot) {
   # Input: presence df, which sex to plot, and the order in which to plot the conditions
   # Return: heatmap plot
 
-PlotDEGsConditions <- function(ct_df, sex, groups_ordered) {
-  ct_df <- ct_df[which(ct_df$sex==sex),]
+PlotDEGsConditions <- function(ct_df, ct_id, groups_ordered) {
+  #ct_df <- ct_df[which(ct_df$sex==sex),]
   ct_df_ordered <- groups_ordered[which(groups_ordered %in% unique(ct_df$condition))]
   ct_df$condition <- factor(ct_df$condition, ct_df_ordered)
   ct_df <- ct_df[order(ct_df$condition), ]
@@ -225,12 +225,14 @@ PlotDEGsConditions <- function(ct_df, sex, groups_ordered) {
   gene_id_order <- unique(ct_df[which(ct_df$presence=="yes"), "gene_id"])
   ct_df$gene_id <- factor(ct_df$gene_id, gene_id_order)
   ct_df <- ct_df[order(ct_df$gene_id), ]
+  ct_df$presence <- str_replace_all(ct_df$presence, c("yes"="Yes", "no"="No"))
   ct_plot <- ggplot(ct_df, aes(condition, gene_id, fill=presence)) +
     geom_tile() +
-    scale_fill_manual(values = c("yes"="#F8766D",
-                                 "no"="#00BFC4"),
+    scale_fill_manual(values = c("Yes"="#F8766D",
+                                 "No"="#00BFC4"),
                       guide = guide_legend(reverse = TRUE)) +
-    labs(x="Developmental conditions", y="Genes", fill="Genes found", title = sex) +
+    labs(x="Datasets", y="Genes", fill="Genes found", title = ct_id) +
+    facet_wrap(~ sex, scales = "free") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(), 
@@ -247,7 +249,7 @@ PlotDEGsConditions <- function(ct_df, sex, groups_ordered) {
   return(ct_plot)
 }
 
-# 8. Generates the presence hmps for each ct, putting together F and M from the same ct and saving it as a pdf
+# 9. Generates the presence hmps for each ct, putting together F and M from the same ct and saving it as a pdf
   # Input: main directory where to save the plots, the list of presence dfs, and the order in which to plot the conditions
   # Return: nothing, saves the plot instead
 
@@ -256,16 +258,17 @@ PlotCts <- function(main_dir, ct_df_list, groups_ordered) {
   dir.create(plot_path, showWarnings = F, recursive = T)
   for (ct in names(ct_df_list)) {
     print(ct)
-    f_plot <- PlotDEGsConditions(ct_df_list[[ct]], "F", groups_ordered)
-    m_plot <- PlotDEGsConditions(ct_df_list[[ct]], "M", groups_ordered)
-    ct_plot <- ggarrange(f_plot, m_plot, common.legend = T, legend = "bottom")
+    #f_plot <- PlotDEGsConditions(ct_df_list[[ct]], "F", groups_ordered)
+    #m_plot <- PlotDEGsConditions(ct_df_list[[ct]], "M", groups_ordered)
+    #ct_plot <- ggarrange(f_plot, m_plot, common.legend = T, legend = "bottom")
+    ct_plot <- PlotDEGsConditions(ct_df_list[[ct]], ct, groups_ordered)
     pdf(paste0(plot_path, ct, ".pdf"))
     print(ct_plot)
     dev.off()
   }
 }
 
-# 9. Creates the df for the input sex so that we know if a DEG is found in a certain ct or not in the condition of interest -> used to generate hmps
+# 10. Creates the df for the input sex so that we know if a DEG is found in a certain ct or not in the condition of interest -> used to generate hmps
   # Input: list of ct dfs, which sex to analyze
   # Return: df with info whether each gene is present in the cts of the condition of interest
 
