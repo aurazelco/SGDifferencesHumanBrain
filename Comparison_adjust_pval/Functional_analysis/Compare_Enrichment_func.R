@@ -1374,24 +1374,28 @@ PlotDisDeg <- function(main_dir, ref_deg, ref_df_name, groups_ordered) {
   # Input: main directory, sub-folders list
   # Return: dataframe containing all significant terms
 
-ImportTJPWMs <- function(main_dir) {
-  files_path <- paste0(main_dir, "EnrichR_TRANSFAC_and_JASPAR_PWMs/")
-  cts <- list.dirs(files_path, full.names = F, recursive = F)
+ImportTJPWMs <- function(main_dir, which_folder="") {
+  files_path <- paste0(main_dir, "EnrichR_TRANSFAC_and_JASPAR_PWMs", which_folder, "/")
+  ids <- list.dirs(files_path, full.names = F, recursive = F)
   tj_ls <- list()
-  for (ct_id in cts) {
-    tj_files <- list.files(paste0(files_path, ct_id, "/"), pattern = "\\.csv$", full.names = TRUE)
-    tj_names <- list.files(paste0(files_path, ct_id, "/"), pattern = "\\.csv$", full.names = F)
-    ct_ls <- lapply(tj_files, read.csv, row.names=1)
-    names(ct_ls) <- str_remove_all(tj_names, "\\.csv$")
-    names(ct_ls) <- str_remove_all(names(ct_ls), "top5_")
-    tj_ls <- append(tj_ls, list(ct_ls))
+  for (id in ids) {
+    tj_files <- list.files(paste0(files_path, id, "/"), pattern = "\\.csv$", full.names = TRUE)
+    tj_names <- list.files(paste0(files_path, id, "/"), pattern = "\\.csv$", full.names = F)
+    id_ls <- lapply(tj_files, read.csv, row.names=1)
+    names(id_ls) <- str_remove_all(tj_names, "\\.csv$")
+    names(id_ls) <- str_remove_all(names(id_ls), "top5_")
+    tj_ls <- append(tj_ls, list(id_ls))
   }
-  names(tj_ls) <- cts
+  names(tj_ls) <- ids
   tj_df <- do.call(rbind, unlist(tj_ls, recursive = F))
-  tj_groups <- data.frame("groups"=rownames(tj_df))
+  tj_meta <- data.frame("ids"=rownames(tj_df))
   rownames(tj_df) <- NULL
-  tj_groups <- separate(tj_groups, groups, into=c("ct", "sex", "num"), remove = T, sep="\\.")
-  tj_df <- cbind(tj_groups[, c(1:2)], tj_df)
+  if (which_folder=="_groups") {
+    tj_meta <- separate(tj_meta, ids, into=c("groups", "sex", "num"), remove = T, sep="\\.")
+  } else if (which_folder=="") {
+    tj_meta <- separate(tj_meta, ids, into=c("ct", "sex", "num"), remove = T, sep="\\.")
+  }
+  tj_df <- cbind(tj_meta[, c(1:2)], tj_df)
   tj_df <- tj_df[which(tj_df$Adjusted.P.value < 0.05), ]
   tj_df$term_simplified <- str_remove_all(tj_df$Term, " \\(human\\)")
   return(tj_df)
@@ -1427,14 +1431,19 @@ map_chr <- function(gene_count_filt, Annot_df){
   # Input: main directory where to save the file, the tj dataframe, the percenytage of minimum cts to share each term
   # Return: nothing, saves CSV instead
 
-CalculateSharedTJPWMs <- function(main_dir, tj_df, min_num_ct) {
-  out_path <- paste0(main_dir, "EnrichR_TRANSFAC_and_JASPAR_PWMs/")
+CalculateSharedTJPWMs <- function(main_dir, tj_df, min_num_ct, which_folder="") {
+  out_path <- paste0(main_dir, "EnrichR_TRANSFAC_and_JASPAR_PWMs", which_folder, "/")
   sex_tjs_ls <- list()
   thresh <- ceiling(length(unique(tj_df$ct)) * min_num_ct)
+  if (which_folder=="_groups") {
+    comp_col <- "groups"
+  } else if (which_folder=="") {
+    comp_col <- "ct"
+  }
   for (sex in c("F", "M")) {
     sex_tjs <- vector()
-    for (ct in unique(tj_df$ct)) {
-      sex_tjs <- c(sex_tjs, unique(tj_df[which(tj_df$ct==ct & tj_df$sex==sex), "term_simplified"]))
+    for (ct in unique(tj_df[, comp_col])) {
+      sex_tjs <- c(sex_tjs, unique(tj_df[which(tj_df[, comp_col]==ct & tj_df$sex==sex), "term_simplified"]))
     }
     sex_tjs <- as.data.frame(table(sex_tjs))
     sex_tjs <- cbind("sex" = rep(sex, nrow(sex_tjs)), sex_tjs)
@@ -1444,9 +1453,9 @@ CalculateSharedTJPWMs <- function(main_dir, tj_df, min_num_ct) {
   }
   sex_tjs_ls <- do.call(rbind, sex_tjs_ls)
   rownames(sex_tjs_ls) <- NULL
-  colnames(sex_tjs_ls) <- c("sex", "term", "ct_count")
+  colnames(sex_tjs_ls) <- c("sex", "term", paste(comp_col, "count", sep = "_"))
   annot_terms <- Annot.chr.name(sex_tjs_ls$term)
   sex_tjs_ls <- map_chr(sex_tjs_ls, annot_terms)
   sex_tjs_ls$chr_simplified <- str_replace_all(sex_tjs_ls$chromosome_name, "\\d+", "Autosome")
-  write.csv(sex_tjs_ls, paste0(out_path, "TRANSFAC_and_JASPAR_PWMs_shared_by_", min_num_ct * 100, "%_cts.csv"))
+  write.csv(sex_tjs_ls, paste0(out_path, "TRANSFAC_and_JASPAR_PWMs_shared_by_", min_num_ct * 100, "%_", comp_col, ".csv"))
 }

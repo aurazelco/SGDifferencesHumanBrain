@@ -155,6 +155,7 @@ EnrichOtherDB(main_comparison, sexes, "DisGeNET2r",  "DisGeNET (CURATED)", group
 # TANSFAC and JASPAR - TF motifs enrichment
 EnrichOtherDB(main_comparison, sexes, "EnrichR",  "TRANSFAC_and_JASPAR_PWMs", groups_order)
 #EnrichOtherDBFvM(main_comparison, sexes, "EnrichR",  "TRANSFAC_and_JASPAR_PWMs", groups_order)
+EnrichOtherDBGroup(main_comparison, sexes, "EnrichR",  "TRANSFAC_and_JASPAR_PWMs", cts_order)
 
 
 # KEGG - other way instead compareCluster
@@ -210,8 +211,12 @@ chl_deg <- CreateDisDf(main_comparison, chlamydas, sexes, "Chlamydas_2022")
 PlotDisDeg(main_comparison, chl_deg, "Chlamydas_2022", groups_order)
 
 # TRANSFAC_and_JASPAR_PWMs enrichment
-tj_results <- ImportTJPWMs(main_comparison)
-CalculateSharedTJPWMs(main_comparison, tj_results, 0.5)
+tj_results_cts <- ImportTJPWMs(main_comparison)
+CalculateSharedTJPWMs(main_comparison, tj_results_cts, 0.5)
 #CalculateSharedTJPWMs(main_comparison, tj_results, 0.75)
+
+tj_results_groups <- ImportTJPWMs(main_comparison, which_folder = "_groups")
+CalculateSharedTJPWMs(main_comparison, tj_results_groups, 0.5, which_folder = "_groups")
+#CalculateSharedTJPWMs(main_comparison, tj_results_groups, 0.75, which_folder = "_groups")
 
 
