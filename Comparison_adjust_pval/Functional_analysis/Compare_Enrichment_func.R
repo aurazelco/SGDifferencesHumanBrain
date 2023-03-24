@@ -1107,7 +1107,7 @@ ImportDBresults <- function(main_dir, dbsx, which_dbsx) {
   # Input: main directory where to save the files, the merged dataframe, the order in which plot the groups
   # Return: nothing, saves the files instead
 
-CountDiseases <- function(main_dir, dbsx_all, adj_pval_thresh=0.05, gene_count_thresh=1, which_comp="sex") {
+CountDiseases <- function(main_dir, dbsx_all, adj_pval_thresh=0.05, gene_count_thresh=1, which_comp="sex", min_num = 5) {
   path <- paste0(main_dir, "/Faceted_Diseases/")
   dir.create(path, recursive = T, showWarnings = F)
   dbsx_all <- subset(dbsx_all, adj_pval <= adj_pval_thresh & gene_count > gene_count_thresh) 
@@ -1116,7 +1116,7 @@ CountDiseases <- function(main_dir, dbsx_all, adj_pval_thresh=0.05, gene_count_t
     for (sex in unique(dbsx_all$sex)) {
       count_dis <- as.data.frame(table(tolower(dbsx_all[which(dbsx_all$sex==sex), "term"])))
       colnames(count_dis) <- c("term", "freq")
-      count_dis <- count_dis[order(count_dis$freq, decreasing = T), ][1:10, ]
+      count_dis <- count_dis[order(count_dis$freq, decreasing = T), ]
       max <- length(unique(dbsx_all[which(dbsx_all$sex==sex), "dbsx"])) * length(unique(dbsx_all[which(dbsx_all$sex==sex), "groups"]))
       count_dis <- cbind(
         "sex" = rep(sex, nrow(count_dis)),
@@ -1127,8 +1127,11 @@ CountDiseases <- function(main_dir, dbsx_all, adj_pval_thresh=0.05, gene_count_t
     count_sex_df <- do.call(rbind, count_sex_df)
     count_df <- transform(count_sex_df, perc = freq * 100 / max)
     count_df$term <- as.character(count_df$term)
-    write.csv(count_df, paste0(path, "disease_count.csv"))
-    #count_df <- complete(count_df, sex, term, fill = list(freq = 0, max = 0, sex_perc =0))
+    top_10_F <- count_df[which(count_df$sex=="F"), "term"][1:min_num]
+    top_10_M <- count_df[which(count_df$sex=="M"), "term"][1:min_num]
+    top_10 <- unique(c(top_10_F, top_10_M))
+    count_df <- count_df[which(count_df$term %in% top_10), ]
+    write.csv(count_df, paste0(path, "disease_count_", min_num, "_terms.csv"))
   } else if (which_comp=="sex_ct") {
     count_ct_df <- list()
     for (ct in unique(dbsx_all$ct)) {
@@ -1136,8 +1139,8 @@ CountDiseases <- function(main_dir, dbsx_all, adj_pval_thresh=0.05, gene_count_t
         count_dis <- as.data.frame(table(tolower(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), "term"])))
         colnames(count_dis) <- c("term", "freq")
         count_dis <- count_dis[order(count_dis$freq, decreasing = T), ]
-        if (nrow(count_dis) > 5) {
-          count_dis <- count_dis[1:5,]
+        if (nrow(count_dis) > min_num) {
+          count_dis <- count_dis[1:min_num,]
         }
         max <- length(unique(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), "dbsx"])) * length(unique(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct), "groups"]))
         which_dbsx <- vector()
@@ -1158,7 +1161,7 @@ CountDiseases <- function(main_dir, dbsx_all, adj_pval_thresh=0.05, gene_count_t
     count_ct_df <- do.call(rbind, count_ct_df)
     count_df <- transform(count_ct_df, perc = freq * 100 / max)
     count_df$term <- as.character(count_ct_df$term)
-    write.csv(count_df, paste0(path, "disease_count_per_ct.csv"))
+    write.csv(count_df, paste0(path, "disease_count_per_ct_", min_num, "_terms.csv"))
   } else if (which_comp=="sex_ct_dbsx") {
     count_ct_df_dbsx <- list()
     for (ct in unique(dbsx_all$ct)) {
@@ -1167,8 +1170,8 @@ CountDiseases <- function(main_dir, dbsx_all, adj_pval_thresh=0.05, gene_count_t
           count_dis <- as.data.frame(table(tolower(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct & dbsx_all$dbsx==dbsx), "term"])))
           colnames(count_dis) <- c("term", "freq")
           count_dis <- count_dis[order(count_dis$freq, decreasing = T), ]
-          if (nrow(count_dis) > 5) {
-            count_dis <- count_dis[1:5,]
+          if (nrow(count_dis) > min_num) {
+            count_dis <- count_dis[1:min_num,]
           }
           max <- length(unique(dbsx_all[which(dbsx_all$sex==sex & dbsx_all$ct==ct & dbsx_all$dbsx==dbsx), "groups"]))
           count_dis <- cbind("ct" = rep(ct, nrow(count_dis)),
@@ -1183,7 +1186,7 @@ CountDiseases <- function(main_dir, dbsx_all, adj_pval_thresh=0.05, gene_count_t
     count_ct_df_dbsx <- do.call(rbind, count_ct_df_dbsx)
     count_df <- transform(count_ct_df_dbsx, perc = freq * 100 / max)
     count_df$term <- as.character(count_df$term)
-    write.csv(count_df, paste0(path, "disease_count_per_ct_and_dbsx.csv"))
+    write.csv(count_df, paste0(path, "disease_count_per_ct_and_dbsx_", min_num, "_terms.csv"))
     #count_df <- complete(count_df, ct, sex, which_dbsx, term, fill = list(freq = 0, max = 0, group_perc =0))
   } 
   return(count_df)
@@ -1235,15 +1238,17 @@ PlotFacetedDB <- function(main_dir, dbsx_all, groups_ordered) {
   # Input: main directory where to save the plots, the merged dataframe, the order in which plot the groups, which comparison to plot
   # Return: nothing, saves the plots instead
 
-PlotFacetedDBSimplified <- function(main_dir, count_df, which_comp="sex", plot_order="no") {
+PlotFacetedDBSimplified <- function(main_dir, count_df, which_comp="sex", plot_order="no", min_num=10) {
   plot_path <- paste0(main_dir, "/Faceted_Diseases/")
   dir.create(plot_path, recursive = T, showWarnings = F)
   if (which_comp=="sex") {
-    pdf(paste0(plot_path, "top_10_terms_per_sex.pdf"), width = 10, height = 10)
+    terms_order <- unique(count_df$term)
+    count_df$term <- factor(count_df$term, terms_order)
+    count_df <- count_df[order(count_df$term), ]
+    pdf(paste0(plot_path, "disease_top_", min_num, "_terms_per_sex.pdf"), width = 10, height = 10)
     print(
-      ggplot(count_df, aes(reorder(term, -perc), perc, fill=sex)) +
+      ggplot(count_df, aes(term, perc, fill=sex)) +
         geom_bar(stat="identity", color="black", position = "dodge") +
-        facet_wrap(~sex, scales = "free_x") +
         labs(x="Terms", y="% of groups enriched", fill="Sex") +
         theme(panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
@@ -1260,10 +1265,10 @@ PlotFacetedDBSimplified <- function(main_dir, count_df, which_comp="sex", plot_o
       
     )
     dev.off()
-  } else if (which_comp=="sex_ct_dbsx") {
+  } else if (which_comp=="sex_ct") {
     count_df$ct <- factor(count_df$ct, plot_order[which(plot_order %in% count_df$ct)])
     count_df <- count_df[order(count_df$ct),]
-    pdf(paste0(plot_path, "top_10_terms_per_sex_ct_dbsx.pdf"), width = 10, height = 15)
+    pdf(paste0(plot_path, "disease_top_", min_num, "_terms_per_sex_ct_dbsx.pdf"), width = 10, height = 15)
     print(
       ggplot(count_df, aes(ct, factor(term, rev(unique(term))),  size = perc , color=which_dbsx)) +
         geom_point() +
@@ -1458,4 +1463,120 @@ CalculateSharedTJPWMs <- function(main_dir, tj_df, min_num_ct, which_folder="") 
   sex_tjs_ls <- map_chr(sex_tjs_ls, annot_terms)
   sex_tjs_ls$chr_simplified <- str_replace_all(sex_tjs_ls$chromosome_name, "\\d+", "Autosome")
   write.csv(sex_tjs_ls, paste0(out_path, "TRANSFAC_and_JASPAR_PWMs_shared_by_", min_num_ct * 100, "%_", comp_col, ".csv"))
+}
+
+# 39. Counts the number of repeated terms for drugs
+  # Input: main directory where to save the files, the merged dataframe, the order in which plot the groups
+  # Return: count df
+
+CountDrugs <- function(main_dir, drugs_enriched, adj_pval_thresh=0.05, gene_count_thresh=1, which_comp="sex", min_num = 5) {
+  path <- paste0(main_dir, "/Faceted_Drugs/")
+  dir.create(path, recursive = T, showWarnings = F)
+  drugs_enriched <- subset(drugs_enriched, adj_pval <= adj_pval_thresh & gene_count > gene_count_thresh) 
+  if (which_comp=="sex") {
+    count_sex_df <- list()
+    for (sex in unique(drugs_enriched$sex)) {
+      count_drug <- as.data.frame(table(tolower(drugs_enriched[which(drugs_enriched$sex==sex), "term"])))
+      colnames(count_drug) <- c("term", "freq")
+      count_drug <- count_drug[order(count_drug$freq, decreasing = T), ]
+      max <- length(unique(drugs_enriched[which(drugs_enriched$sex==sex), "groups"]))
+      count_drug <- cbind(
+        "sex" = rep(sex, nrow(count_drug)),
+        count_drug,
+        "max"= rep(max, nrow(count_drug)))
+        count_sex_df <- append(count_sex_df, list(count_drug))
+    }
+    count_sex_df <- do.call(rbind, count_sex_df)
+    count_df <- transform(count_sex_df, perc = freq * 100 / max)
+    count_df$term <- as.character(count_df$term)
+    top_10_F <- count_df[which(count_df$sex=="F"), "term"][1:min_num]
+    top_10_M <- count_df[which(count_df$sex=="M"), "term"][1:min_num]
+    top_10 <- unique(c(top_10_F, top_10_M))
+    count_df <- count_df[which(count_df$term %in% top_10), ]
+    write.csv(count_df, paste0(path, "drug_count_", min_num, "_terms.csv"))
+  } else if (which_comp=="sex_ct") {
+    count_ct_df <- list()
+    for (ct in unique(drugs_enriched$ct)) {
+      for (sex in unique(drugs_enriched$sex)) {
+        count_drug <- as.data.frame(table(tolower(drugs_enriched[which(drugs_enriched$sex==sex & drugs_enriched$ct==ct), "term"])))
+        colnames(count_drug) <- c("term", "freq")
+        count_drug <- count_drug[order(count_drug$freq, decreasing = T), ]
+        if (nrow(count_drug) > min_num) {
+          count_drug <- count_drug[1:min_num,]
+        }
+        max <- length(unique(drugs_enriched[which(drugs_enriched$sex==sex & drugs_enriched$ct==ct), "groups"]))
+        count_drug <- cbind("ct" = rep(ct, nrow(count_drug)),
+                           "sex" = rep(sex, nrow(count_drug)),
+                           count_drug,
+                           "max"= rep(max, nrow(count_drug)))
+        count_ct_df <- append(count_ct_df, list(count_drug))
+      }
+    }
+    count_ct_df <- do.call(rbind, count_ct_df)
+    count_df <- transform(count_ct_df, perc = freq * 100 / max)
+    count_df$term <- as.character(count_ct_df$term)
+    write.csv(count_df, paste0(path, "drug_count_per_ct_", min_num, "_terms.csv"))
+  } 
+  return(count_df)
+}
+
+
+
+# 40. Plots the disease enrichemnt results in facets
+# Input: main directory where to save the plots, the merged dataframe, the order in which plot the groups, which comparison to plot
+# Return: nothing, saves the plots instead
+
+PlotFacetedDrugs <- function(main_dir, count_df, which_comp="sex", plot_order="no", min_num=10) {
+  plot_path <- paste0(main_dir, "/Faceted_Drugs/")
+  dir.create(plot_path, recursive = T, showWarnings = F)
+  if (which_comp=="sex") {
+    terms_order <- unique(count_df$term)
+    count_df$term <- factor(count_df$term, terms_order)
+    count_df <- count_df[order(count_df$term), ]
+    pdf(paste0(plot_path, "drugs_top_", min_num, "_terms_per_sex.pdf"), width = 10, height = 10)
+    print(
+      ggplot(complete(count_df, sex, term, fill = list(freq = 0, max = 0, perc =0)), aes(term, perc, fill=sex)) +
+        geom_bar(stat="identity", color="black", position = "dodge") +
+        labs(x="Terms", y="% of groups enriched", fill="Sex") +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              strip.text = element_text(size=12, face="bold", colour = "black"),
+              axis.line = element_line(colour = "black"),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+              axis.ticks.x=element_blank(),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "bottom", 
+              legend.box = "vertical",
+              legend.title = element_text(size=12, face="bold", colour = "black"))
+      
+    )
+    dev.off()
+  } else if (which_comp=="sex_ct") {
+    count_df$ct <- factor(count_df$ct, plot_order[which(plot_order %in% count_df$ct)])
+    count_df <- count_df[order(count_df$ct),]
+    pdf(paste0(plot_path, "drugs_top_", min_num, "_terms_per_sex_ct.pdf"), width = 10, height = 15)
+    print(
+      ggplot(count_df, aes(ct, term,  size=perc, color=sex)) +
+        geom_point() +
+        facet_grid(~ sex, scales = "free", space = "free") +
+        scale_y_discrete(labels = function(x) str_wrap(x, width = 70)) +
+        labs(y="Terms", x="Cell types", size="% of groups enriched", color="Sex") +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              strip.text = element_text(size=12, face="bold", colour = "black"),
+              axis.line = element_line(colour = "black"),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+              axis.ticks.x=element_blank(),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "bottom", 
+              legend.box = "vertical",
+              legend.title = element_text(size=12, face="bold", colour = "black"))
+      
+    )
+    dev.off()
+  }
 }

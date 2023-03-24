@@ -173,17 +173,30 @@ GWAS <- ImportDBresults(main_comparison, "EnrichR_GWAS_Catalog_2019", "")
 # Counts how mauch frequent each term is, adn saves the CSV in the directory
 all_dbs <- rbind(DO, DGN, DGN_CURATED, GWAS)
 all_dbs$dbsx <- str_replace_all(all_dbs$dbsx, c("DisGeNET2r_DisGeNET_CURATED" = "DisGeNET", "EnrichR_GWAS_Catalog_2019" = "GWAS"))
-dis_counts_sex <- CountDiseases(main_comparison, all_dbs, which_comp = "sex") 
-dis_counts_ct <- CountDiseases(main_comparison, all_dbs, which_comp = "sex_ct") 
-dis_counts_dbsx <- CountDiseases(main_comparison, all_dbs,  which_comp = "sex_ct_dbsx") 
+dis_counts_sex <- CountDiseases(main_comparison, all_dbs, which_comp = "sex", min_num = 10) 
+dis_counts_ct <- CountDiseases(main_comparison, all_dbs, which_comp = "sex_ct", min_num = 5) 
+dis_counts_ct2 <- CountDiseases(main_comparison, all_dbs, which_comp = "sex_ct", min_num = 2) 
 
-PlotFacetedDBSimplified(main_comparison, dis_counts_sex, which_comp = "sex")
-PlotFacetedDBSimplified(main_comparison, dis_counts_ct, which_comp = "sex_ct_dbsx", cts_order)
+dis_counts_dbsx <- CountDiseases(main_comparison, all_dbs,  which_comp = "sex_ct_dbsx", min_num = 5) 
 
+
+PlotFacetedDBSimplified(main_comparison, dis_counts_sex, which_comp = "sex", min_num = 10)
+PlotFacetedDBSimplified(main_comparison, dis_counts_ct, which_comp = "sex_ct", cts_order, min_num = 5)
+PlotFacetedDBSimplified(main_comparison, dis_counts_ct2, which_comp = "sex_ct", cts_order, min_num = 2)
 
 # DGN excluded because too many terms
 all_dbs <- rbind(DO, DGN_CURATED, GWAS)
 PlotFacetedDB(main_comparison, all_dbs, groups_order)
+
+# Drug comparison
+drugs <- ImportDBresults(main_comparison, "EnrichR_DSigDB", "")
+drugs_counts_sex <- CountDrugs(main_comparison, drugs, which_comp = "sex", min_num = 10) 
+drugs_counts_ct <- CountDrugs(main_comparison, drugs, which_comp = "sex_ct", min_num = 5) 
+
+PlotFacetedDrugs(main_comparison, drugs_counts_sex, which_comp = "sex", min_num = 10)
+PlotFacetedDrugs(main_comparison, drugs_counts_ct, which_comp = "sex_ct", cts_order, min_num = 5)
+
+
   
 # Cell Enrichment - only adults compared to McKenzie 2018
 ct_ref <- as.data.frame(read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/McKenzie_2018_suppl.xlsx",
