@@ -233,3 +233,12 @@ CalculateSharedTJPWMs(main_comparison, tj_results_groups, 0.5, which_folder = "_
 #CalculateSharedTJPWMs(main_comparison, tj_results_groups, 0.75, which_folder = "_groups")
 
 
+# SFARI autism db
+sfari <- read.csv(paste0(main_comparison, "SFARI-Gene_genes.csv"))
+
+count_sfari <- CountSFARI(main_comparison, sexes, sfari, groups_order)
+
+PlotSFARI(main_comparison, count_sfari)
+
+PlotSFARI(main_comparison, count_sfari, which_comp = "chr")
+

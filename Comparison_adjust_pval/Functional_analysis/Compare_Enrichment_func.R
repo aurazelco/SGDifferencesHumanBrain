@@ -72,7 +72,7 @@ library(disgenet2r) # database
 library(readxl) # to read excel files
 library(dplyr) # to re-arrange dfs
 library(biomaRt) # to query to which chromosome the shared terms belong to
-
+library(scales)
 
 # Sets the EnrichR database for Human genes
 setEnrichrSite("Enrichr") 
@@ -1523,8 +1523,8 @@ CountDrugs <- function(main_dir, drugs_enriched, adj_pval_thresh=0.05, gene_coun
 
 
 # 40. Plots the disease enrichemnt results in facets
-# Input: main directory where to save the plots, the merged dataframe, the order in which plot the groups, which comparison to plot
-# Return: nothing, saves the plots instead
+  # Input: main directory where to save the plots, the merged dataframe, the order in which plot the groups, which comparison to plot
+  # Return: nothing, saves the plots instead
 
 PlotFacetedDrugs <- function(main_dir, count_df, which_comp="sex", plot_order="no", min_num=10) {
   plot_path <- paste0(main_dir, "/Faceted_Drugs/")
@@ -1576,6 +1576,99 @@ PlotFacetedDrugs <- function(main_dir, count_df, which_comp="sex", plot_order="n
               legend.box = "vertical",
               legend.title = element_text(size=12, face="bold", colour = "black"))
       
+    )
+    dev.off()
+  }
+}
+
+# 41. Counts the number of repeated terms for drugs
+  # Input: main directory where to save the files, the merged dataframe, the order in which plot the groups
+  # Return: count df
+
+CountSFARI <- function(main_dir, sex_dfs, ref_df, groups_ordered) {
+  path <- paste0(main_dir, "/SFARI/")
+  dir.create(path, recursive = T, showWarnings = F)
+  ids <- vector()
+  chr_count <- vector()
+  tot_count <- vector()
+  ref_df$chr_simplified <- str_replace_all(ref_df$chr, "\\d+", "Autosome")
+  for (sex in c("F", "M")) {
+    for (group in unique(sex_dfs$groups)) {
+      for (ct in unique(sex_dfs[which(sex_dfs$groups==group), "common_annot"])) {
+        id_count <- vector()
+        for (chr in unique(ref_df$chr_simplified)) {
+          id_count <- c(id_count, length(intersect(ref_df[which(ref_df$chr_simplified==chr), "gene.symbol"], 
+                                        sex_dfs[which(sex_dfs$groups==group & sex_dfs$sex==sex & sex_dfs$common_annot==ct), "gene_id"])))
+          ids <- c(ids, paste(group, sex, ct, chr, sep = "/"))
+        }
+        chr_count <- c(chr_count, id_count)
+        tot_count <- c(tot_count, rep(sum(id_count), length(id_count)))
+      }
+    }
+  }
+  ref_count <- data.frame(ids, chr_count, tot_count)
+  ref_count <- separate(ref_count, ids, into = c("groups","sex",  "ct", "chr"), sep = "/", remove = T)
+  ref_count$groups <- factor(ref_count$groups, groups_ordered)
+  ref_count <- ref_count[order(ref_count$groups), ]
+  write.csv(ref_count, paste0(path, "SFARI_count_per_chr.csv"))
+  return(ref_count)
+}
+
+# 42. Plots the SFARI count results
+# Input: main directory where to save the plots, the SFARI count df, the order in which plot the groups
+# Return: nothing, saves the plots instead
+
+PlotSFARI <- function(main_dir, ref_count, which_comp = "tot") {
+  plot_path <- paste0(main_dir, "/SFARI/")
+  dir.create(plot_path, recursive = T, showWarnings = F)
+  if (which_comp=="tot") {
+    pdf(paste0(plot_path, "SFARI_count_total.pdf"), width = 10, height = 15)
+    print(
+      ggplot(ref_count, aes(sex, tot_count, fill=sex)) +
+        geom_bar(stat="identity", color="black", position = "dodge") +
+        labs(x="Sex", y="SFARI gene count", fill="") +
+        facet_grid(ct ~ groups, scales = "free") +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              strip.text.x = element_text(size=12, face="bold", colour = "black", angle = 90),
+              strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
+              axis.line = element_line(colour = "black"),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black"),
+              axis.ticks.x=element_blank(),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "bottom", 
+              legend.box = "vertical",
+              legend.title = element_blank())
+      
+    )
+    dev.off()
+  } else if (which_comp=="chr") {
+    col_palette <- hue_pal()(3)
+    pdf(paste0(plot_path, "SFARI_count_chr.pdf"), width = 12, height = 15)
+    print(
+      ggplot(ref_count[which(ref_count$chr_count>0), ], aes(sex, chr_count, fill=chr)) +
+        geom_bar(stat="identity", color="black", position = "stack") +
+        labs(x="Sex", y="SFARI gene count", fill="Chromosomes") +
+        scale_fill_manual(values = c("X" = col_palette[1],
+                                     "Y"= col_palette[3],
+                                     "Autosome"= col_palette[2],
+                                     "X,Y"="#C77CFF")) +
+        facet_grid(ct ~ groups, scales = "free") +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              strip.text.x = element_text(size=12, face="bold", colour = "black", angle = 90),
+              strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
+              axis.line = element_line(colour = "black"),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+              axis.ticks.x=element_blank(),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "bottom", 
+              legend.box = "vertical",
+              legend.title = element_text(size=12, face="bold", colour = "black"))
     )
     dev.off()
   }
