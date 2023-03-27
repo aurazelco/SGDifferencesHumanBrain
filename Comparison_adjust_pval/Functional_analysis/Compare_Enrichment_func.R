@@ -1479,7 +1479,7 @@ CountDrugs <- function(main_dir, drugs_enriched, adj_pval_thresh=0.05, gene_coun
       count_drug <- as.data.frame(table(tolower(drugs_enriched[which(drugs_enriched$sex==sex), "term"])))
       colnames(count_drug) <- c("term", "freq")
       count_drug <- count_drug[order(count_drug$freq, decreasing = T), ]
-      max <- length(unique(drugs_enriched[which(drugs_enriched$sex==sex), "groups"]))
+      max <- length(unique(drugs_enriched[which(drugs_enriched$sex==sex), "groups"])) * length(unique(drugs_enriched[which(drugs_enriched$sex==sex), "ct"]))
       count_drug <- cbind(
         "sex" = rep(sex, nrow(count_drug)),
         count_drug,

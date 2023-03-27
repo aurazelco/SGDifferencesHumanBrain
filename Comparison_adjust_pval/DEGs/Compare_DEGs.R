@@ -265,8 +265,9 @@ dev.off()
 mit_genes_ids <- unique(all_genes$gene_id[which(grepl("^MT-", all_genes$gene_id))])
 timtom_ids <- c(unique(all_genes$gene_id[which(grepl("^TIMM", all_genes$gene_id))]),
                 unique(all_genes$gene_id[which(grepl("^TOMM", all_genes$gene_id))]))
-mit_genes_ids <- c("XIST", timtom_ids, mit_genes_ids)
-
+tca_genes <- c("ACO2", "CS", "FH", "MDH1", "OGDH", "PDHA1", "PDHA2", "SDHC", "SUCLG1")
+# https://maayanlab.cloud/Harmonizome/gene_set/TCA+cycle/PANTHER+Pathways
+mit_genes_ids <- c("XIST", timtom_ids, tca_genes, mit_genes_ids)
 
 mit_genes <- all_genes[which(all_genes$gene_id %in% mit_genes_ids), ]
 mit_gene_count <- as.data.frame(table(mit_genes[which(mit_genes$presence=="Yes"), "gene_id"]))
@@ -277,11 +278,12 @@ mit_genes <- complete(mit_genes, gene_id, condition,sex,ct)
 mit_order <- c(
   "XIST", "TIMM17A", "TIMM23B", "TOMM7", "TOMM20", "MT-CYB", "MT-ND1",  
   "MT-ND2",  "MT-ND3", "MT-ND4", "MT-ND4L", "MT-ND5", "MT-CO1", "MT-CO2",  
-  "MT-CO3", "MT-ATP6", "MT-ATP8", "MT-RNR1", "MT-RNR2")
+  "MT-CO3", "MT-ATP6", "MT-ATP8", "MT-RNR1", "MT-RNR2", "ACO2", "CS", "FH", 
+  "MDH1", "OGDH", "PDHA1", "PDHA2", "SDHC", "SUCLG1")
 
 plot_path <- paste0(main_comparison, "Hmp_Presence_Ind_DEGs/")
 dir.create(plot_path, recursive = T, showWarnings = F)
-pdf(paste0(plot_path, "MT_genes.pdf"), width = 15, height = 15)
+pdf(paste0(plot_path, "MT_genes.pdf"), width = 15, height = 10)
 print(
   ggplot(mit_genes, 
          aes(factor(condition, groups_order[which(groups_order %in% unique(condition))]), factor(gene_id, rev(unique(mit_order))), fill=presence)) +
@@ -490,3 +492,37 @@ print(
   
 )
 dev.off()
+
+# Blokland et al
+
+disorders <- complete(all_genes[which(all_genes$gene_id %in% c( "NKAIN2", "SLTM", "MOCOS", "IDO2", "XIST")),], gene_id, condition,sex, ct )
+disorders <- disorders[which(disorders$gene_id!="XIST"), ]
+
+
+plot_path <- paste0(main_comparison, "Hmp_Presence_Ind_DEGs/")
+dir.create(plot_path, recursive = T, showWarnings = F)
+pdf(paste0(plot_path, "Blokland_snp_disorders.pdf"), width = 15)
+print(
+  ggplot(disorders, aes(factor(condition, groups_order[which(groups_order %in% unique(condition))]), gene_id, fill=presence)) +
+    geom_tile() +
+    scale_fill_manual(values = c("Yes"="#F8766D",
+                                 "No"="#00BFC4"),
+                      na.value = "#00BFC4",
+                      guide = guide_legend(reverse = TRUE)) +
+    facet_grid(sex ~ ct , scales = "free") +
+    labs(x="Groups", y="Genes", fill="Genes found") +
+    theme(panel.grid.major = element_blank(), 
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(), 
+          panel.spacing.x=unit(0, "lines"),
+          plot.title = element_text(size=12, face="bold", colour = "black"),
+          axis.line = element_line(colour = "black"),
+          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          axis.title.x = element_text(size=12, face="bold", colour = "black"),
+          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+          legend.position = "bottom", 
+          legend.title = element_text(size=12, face="bold", colour = "black"))
+  
+)
+dev.off()
+
