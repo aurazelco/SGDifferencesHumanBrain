@@ -92,6 +92,7 @@ PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "perc_degs")
 PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "perc_hormones")
 
 hormones_pval <- HormoneEnrichment(df_filt)
+write.csv(hormones_pval, paste0(main_comparison, "Hormones/hormone_target_enrichment.csv"))
 HmpHormoneEnrichment(main_comparison, hormones_pval, groups_order)
 HmpHormoneEnrichment(main_comparison, hormones_pval, groups_order, "Thymosin", "Thymosin")
 

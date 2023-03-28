@@ -242,3 +242,15 @@ PlotSFARI(main_comparison, count_sfari)
 
 PlotSFARI(main_comparison, count_sfari, which_comp = "chr")
 
+# Create supplementary files
+SaveCPResults(main_comparison, "GO_comparison_cts", "GO_cts")
+SaveCPResults(main_comparison, "GO_comparison_groups", "GO_groups")
+SaveCPResults(main_comparison, "EnrichR_KEGG_2021_Human", "KEGG_cts")
+SaveCPResults(main_comparison, "EnrichR_KEGG_2021_Human_groups", "KEGG_groups")
+SaveCPResults(main_comparison, "DGN_comparison_cts", "DGN_cts")
+SaveCPResults(main_comparison, "DO_comparison_cts", "DO_cts")
+SaveCPResults(main_comparison, "EnrichR_GWAS_Catalog_2019", "GWAS_cts")
+SaveCPResults(main_comparison, "DisGeNET2r_DisGeNET_CURATED", "DisGeNET2r_cts")
+SaveCPResults(main_comparison, "EnrichR_TRANSFAC_and_JASPAR_PWMs", "TF_cts")
+SaveCPResults(main_comparison, "EnrichR_TRANSFAC_and_JASPAR_PWMs_groups", "TF_groups")
+SaveCPResults(main_comparison, "EnrichR_DSigDB", "DSigDB_cts")

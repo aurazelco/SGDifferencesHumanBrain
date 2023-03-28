@@ -72,7 +72,8 @@ library(disgenet2r) # database
 library(readxl) # to read excel files
 library(dplyr) # to re-arrange dfs
 library(biomaRt) # to query to which chromosome the shared terms belong to
-library(scales)
+library(scales) # to select palette
+library(openxlsx)
 
 # Sets the EnrichR database for Human genes
 setEnrichrSite("Enrichr") 
@@ -1672,4 +1673,29 @@ PlotSFARI <- function(main_dir, ref_count, which_comp = "tot") {
     )
     dev.off()
   }
+}
+
+# 43. Import results from disease-related enrichments
+  # Input: main directory where to find the files, subfolder
+  # Return: list of files
+
+SaveCPResults <- function(main_dir, subfolder, file_name) {
+  files_path <- paste0(main_dir, subfolder)
+  ids <- list.dirs(files_path, recursive = F, full.names = F)
+  ids_names <- vector()
+  files_ls <- list()
+  for (id in ids) {
+    id_files <- ImportFiles(paste(files_path, id, sep = "/"))
+    for (i in names(id_files)) {
+      files_ls <- append(files_ls, list(id_files[[i]]))
+      id <- str_replace_all(id, c("Multiple Sclerosis"="MS", "Alzheimer's disease"="AD", "Velmeshev_2022"="Velmeshev"))
+      if (grepl("F", i, fixed=TRUE)){
+        ids_names <- c(ids_names, paste(id, "F", sep = "_"))
+      } else {
+        ids_names <- c(ids_names, paste(id, "M", sep = "_"))
+      }
+    }
+  }
+  names(files_ls) <- ids_names
+  write.xlsx(files_ls, paste0(files_path, "/", file_name, ".xlsx"))
 }
