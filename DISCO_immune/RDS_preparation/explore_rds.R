@@ -1,7 +1,7 @@
 library(Seurat)
 library(SeuratObject)
 
-rds_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCO_immune/"
+rds_path <- "/Home/ii/auraz/data/DISCO_immune/"
 
 ## BONE MARROW
 
