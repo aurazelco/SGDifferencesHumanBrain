@@ -29,7 +29,7 @@ library(ggplot2) # to plot
 library(tidyr) # to clean and re-organize dfs
 library(reshape2) # to re-organize dfs
 library(Polychrome) # to set the palette to be used in the plot
-
+library(RColorBrewer) # to set the palette to be used in the p-values plot
 
 # 1. Import data for each ct
   # Input: CSV files
@@ -212,6 +212,7 @@ CreateSexDf <- function(list_ds, common_annot) {
 ExtractLocation <- function(ct_df_list, loc_ref, groups_ordered, features="no") {
   ids <- vector()
   count_df <- list()
+  num_genes <- vector()
   for (ct in names(ct_df_list)) {
     for (group in unique(ct_df_list[[ct]]$groups)) {
       for (sex in c("F", "M")) {
@@ -221,6 +222,7 @@ ExtractLocation <- function(ct_df_list, loc_ref, groups_ordered, features="no") 
           genes <- unique(ct_df_list[[ct]][which(ct_df_list[[ct]]$sex==sex & ct_df_list[[ct]]$groups==group & ct_df_list[[ct]]$presence=="yes"), "gene_id"])
           genes <- genes[which(genes %in% features)]
         }
+        num_genes <- c(num_genes, length(genes))
         sub_loc <- loc_ref[which(loc_ref$Gene %in% genes & loc_ref$Reliability!="Uncertain"), ]
         sub_loc_uncertain <- loc_ref[which(loc_ref$Gene %in% genes & loc_ref$Reliability=="Uncertain"), ]
         counts <- c(colSums(sub_loc[,4:32]), "Uncertain"=sum(colSums(sub_loc_uncertain[,4:32])))
@@ -233,8 +235,158 @@ ExtractLocation <- function(ct_df_list, loc_ref, groups_ordered, features="no") 
   count_df <- cbind(ids, count_df)
   count_df <- melt(count_df, value.name = "loc_count")
   names(count_df)[names(count_df) == 'variable'] <- 'locations'
+  num_df <- cbind(ids, num_genes)
+  count_df <- merge(count_df, num_df, by="ids")
   count_df <- separate(count_df, ids, into=c("ct", "groups", "sex"), remove = T, sep="/")
   count_df$locations <- as.character(count_df$locations)
+  count_df$num_genes <- as.numeric(count_df$num_genes)
   count_df$groups <- factor(count_df$groups, rev(groups_ordered[which(groups_ordered %in% count_df$groups)]))
   return(count_df)
+}
+
+# 8. Plot abs number of genes per cellular compartment
+  # Input: main directory where to save plots, the count df, the plot title
+  # Return: nothing, saves plot instead
+
+PlotLocation <- function(main_dir, count_df, plot_title="Locations") {
+  out_path <- paste0(main_dir, "Genes_location/")
+  dir.create(out_path, showWarnings = F, recursive = T)
+  custom_pal <- createPalette(30, c("#010101", "#ff0000"), M=1000)
+  names(custom_pal) <- c("Uncertain", unique(count_df$locations)[1:29])
+  pdf(paste0(out_path, plot_title, ".pdf"), height = 15, width = 11)
+  print(
+    ggplot(count_df, aes(locations, groups, size=loc_count, color=locations)) +
+      geom_point() +
+      facet_grid(ct ~ sex, scales = "free", space = "free") +
+      scale_colour_manual(values=custom_pal) +
+      labs(x="", y="Groups", size="Genes found in location", color="Cellular locations") +
+      theme(panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(),
+            panel.background = element_blank(), 
+            strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
+            strip.text.x = element_text(size=12, face="bold", colour = "black"),
+            axis.line = element_line(colour = "black"),
+            axis.title.x = element_text(size=12, face="bold", colour = "black"),
+            axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+            axis.ticks.x=element_blank(),
+            axis.title.y = element_text(size=12, face="bold", colour = "black"),
+            legend.position = "bottom", 
+            legend.box = "vertical",
+            legend.title = element_text(size=12, face="bold", colour = "black"))
+  )
+  dev.off()
+}
+
+
+# 9. Calculates hypergeometric distribution for each location
+  # Input: main directory where to save the files, count df, the background number of genes
+  # Return: df with p-values for each combination of group/ct/sex/chr
+
+HyperGeomLocation <- function(main_dir, count_df, genes_tot, loc_ref) {
+  pvalues <- vector()
+  ids <- vector()
+  for (group_id in unique(count_df$groups)) {
+    for (ct_id in unique(count_df[which(count_df$groups==group_id), "ct"])) {
+      for (sex_id in c("F", "M")) {
+        for (loc_id in names(loc_ref)) {
+          pvalues <- c(pvalues, 
+                       phyper(
+                         count_df[which(count_df$sex==sex_id & count_df$locations==loc_id & count_df$groups==group_id & count_df$ct==ct_id), "loc_count"] - 1,
+                         count_df[which(count_df$sex==sex_id & count_df$locations==loc_id & count_df$groups==group_id & count_df$ct==ct_id), "num_genes"],
+                         genes_tot - loc_ref[[loc_id]],
+                         loc_ref[[loc_id]],
+                         lower.tail= FALSE
+                       ))
+          ids <- c(ids, paste(group_id, ct_id, sex_id, loc_id, sep = "--"))
+        }
+      }
+    }
+  }
+  loc_hypergeom <- data.frame(ids, pvalues)
+  loc_hypergeom <- separate(loc_hypergeom, ids, into = c("groups", "ct", "sex", "locations"), sep = "--")
+  path <- paste0(main_dir, "Genes_location/")
+  dir.create(path, recursive = T, showWarnings = F)
+  write.csv(loc_hypergeom, paste0(path, "Cellular_locations_enrichment_pvalues.csv"))
+  loc_hypergeom$pval_sign <- rep(NA, nrow(loc_hypergeom))
+  loc_hypergeom[which(loc_hypergeom$pvalues>0.05), "pval_sign"] <- "NS"
+  loc_hypergeom[which(loc_hypergeom$pvalues<=0.05 & loc_hypergeom$pvalues>0.01), "pval_sign"] <- "*"
+  loc_hypergeom[which(loc_hypergeom$pvalues<=0.01 & loc_hypergeom$pvalues>0.001), "pval_sign"] <- "**"
+  loc_hypergeom[which(loc_hypergeom$pvalues<=0.001 & loc_hypergeom$pvalues>0.0001), "pval_sign"] <- "***"
+  loc_hypergeom[which(loc_hypergeom$pvalues<=0.0001), "pval_sign"] <- "****"
+  loc_hypergeom$pval_sign <- factor(loc_hypergeom$pval_sign, c("NS","*", "**","***","****"))
+  return(loc_hypergeom)
+}
+
+# 10. Plots the SFARI enrichment results
+  # Input: main directory where to save the plots, the location enriched df, 
+    # the order in which plot the groups and the cell types, which plot type
+  # Return: nothing, saves the plots instead
+
+PlotEnrichedPvalues <- function(main_dir, loc_hypergeom_merged, groups_ordered, cts_ordered, plot_type="dot") {
+  plot_path <- paste0(main_dir, "Genes_location/")
+  dir.create(plot_path, recursive = T, showWarnings = F)
+  brewer_palette <- brewer.pal(6,"Purples")
+  if(plot_type=="dot") {
+    pdf(paste0(plot_path, "Celular_location_hypergeom.pdf"), width = 10, height = 14)
+    print(
+      ggplot(loc_hypergeom_merged, aes(locations, groups, fill=pval_sign, size=loc_count)) +
+        geom_point(color="black", shape=21) +
+        facet_grid(ct ~ sex, scales = "free", space = "free") +
+        scale_fill_manual(values = c("NS"="#5A5A5A", 
+                                     "*"=brewer_palette[3],
+                                     "**"=brewer_palette[4],
+                                     "***"=brewer_palette[5],
+                                     "****"=brewer_palette[6]),
+                          na.value = "gray") +
+        labs(x="Cellular compartments", y="Groups", size="Genes found in location", fill="P-values") +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              panel.spacing.x=unit(0.5, "lines"),
+              strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
+              strip.text.x = element_text(size=12, face="bold", colour = "black"),
+              axis.line = element_line(colour = "black"),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+              axis.text.y = element_text(size=8, colour = "black"),
+              axis.ticks.x=element_blank(),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "bottom", 
+              legend.box = "vertical",
+              legend.title = element_text(size=12, face="bold", colour = "black"))
+    )
+    dev.off()
+  } else if (plot_type=="hmp") {
+    pdf(paste0(plot_path, "Celular_location_hypergeom_hmp.pdf"), width = 10, height = 14)
+    print(
+      ggplot(loc_hypergeom_merged, aes(locations, groups, fill=pval_sign)) +
+        geom_tile(color="black") +
+        facet_grid(ct ~ sex, scales = "free", space = "free") +
+        scale_fill_manual(values = c("NS"="#5A5A5A", 
+                                     "*"=brewer_palette[3],
+                                     "**"=brewer_palette[4],
+                                     "***"=brewer_palette[5],
+                                     "****"=brewer_palette[6]),
+                          na.value = "gray") +
+        labs(x="Cellular compartments", y="Groups", fill="P-values") +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              panel.spacing.x=unit(0.5, "lines"),
+              strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
+              strip.text.x = element_text(size=12, face="bold", colour = "black"),
+              axis.line = element_line(colour = "black"),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+              axis.text.y = element_text(size=8, colour = "black"),
+              axis.ticks.x=element_blank(),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "bottom", 
+              legend.box = "vertical",
+              legend.title = element_text(size=12, face="bold", colour = "black"))
+    )
+    dev.off()
+  }
+  
+  
 }

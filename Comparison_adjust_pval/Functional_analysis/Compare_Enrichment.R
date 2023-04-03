@@ -238,9 +238,20 @@ sfari <- read.csv(paste0(main_comparison, "SFARI-Gene_genes.csv"))
 
 count_sfari <- CountSFARI(main_comparison, sexes, sfari, groups_order)
 
-PlotSFARI(main_comparison, count_sfari)
 
+sfari_chr_gene_counts <- c("Autosome" = nrow(sfari[!is.na(as.numeric(sfari$chromosome)),]),
+                           "X" = nrow(sfari[which(sfari$chromosome=="X"), ]),      
+                           "X,Y" = nrow(sfari[which(sfari$chromosome=="X,Y"), ]),  
+                           "Y" = nrow(sfari[which(sfari$chromosome=="Y"), ])
+  
+)
+
+PlotSFARI(main_comparison, count_sfari)
 PlotSFARI(main_comparison, count_sfari, which_comp = "chr")
+
+tot_genes <- 20000
+enriched_sfari <- HyperGeomSFARI(main_comparison, count_sfari, tot_genes, sfari_chr_gene_counts)
+PlotEnrichedPvalues(main_comparison, enriched_sfari, groups_order, cts_order)
 
 # Create supplementary files
 SaveCPResults(main_comparison, "GO_comparison_cts", "GO_cts")

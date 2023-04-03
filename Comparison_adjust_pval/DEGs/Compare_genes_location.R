@@ -86,6 +86,20 @@ groups_order <- c(
                "Multiple Sclerosis_PRJNA544731" 
 )
 
+cts_order <- c(
+  "Excitatory neurons",  
+  "Interneurons",        
+  "Astrocytes",          
+  "Microglia" ,          
+  "Oligodendrocytes",    
+  "OPCs",   
+  "Endothelial cells", 
+  "Vascular cells",      
+  "Dorsal progenitors",  
+  "Ventral progenitors",
+  "Unknown"   
+)
+
 # Generates a df with all DEGs
 presence <- CreateSexDf(c(UCSC[[1]], disco[[1]]), unified_annotation)
 
@@ -93,35 +107,23 @@ location_df <- readxl::read_xlsx(paste0(main_comparison,"Thul_2017_sm_table_s6.x
 
 genes_loc <- ExtractLocation(presence, location_df, groups_order)
 
-out_path <- paste0(main_comparison, "Genes_location/")
-dir.create(out_path, showWarnings = F, recursive = T)
+PlotLocation(main_comparison, genes_loc, plot_title = "Cellular_compartments")
 
-custom_pal <- createPalette(30, c("#010101", "#ff0000"), M=1000)
-names(custom_pal) <- c("Uncertain", unique(genes_loc$locations)[1:29])
+loc_counts <- c(colSums(location_df[which(location_df$Reliability!="Uncertain"), c(4:32)]),
+                "Uncertain"=sum(colSums(location_df[which(location_df$Reliability=="Uncertain"), c(4:32)])))
 
-pdf(paste0(out_path, "Locations.pdf"), height = 15, width = 11)
-print(
-  ggplot(genes_loc, aes(locations, groups, size=loc_count, color=locations)) +
-    geom_point() +
-    facet_grid(ct ~ sex, scales = "free", space = "free") +
-    scale_colour_manual(values=custom_pal) +
-    labs(x="", y="Groups", size="Genes found in location", color="Cellular locations") +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          panel.background = element_blank(), 
-          strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
-          strip.text.x = element_text(size=12, face="bold", colour = "black"),
-          axis.line = element_line(colour = "black"),
-          axis.title.x = element_text(size=12, face="bold", colour = "black"),
-          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
-          axis.ticks.x=element_blank(),
-          axis.title.y = element_text(size=12, face="bold", colour = "black"),
-          legend.position = "bottom", 
-          legend.box = "vertical",
-          legend.title = element_text(size=12, face="bold", colour = "black"))
-)
-dev.off()
+tot_genes <- 20000
 
+enriched_loc <- HyperGeomLocation(main_comparison, genes_loc, tot_genes, loc_counts)
+
+
+location_results <- merge(genes_loc, enriched_loc, by=c("groups", "ct", "sex", "locations"))
+
+
+PlotEnrichedPvalues(main_comparison, location_results, groups_order, cts_order, plot_type="dot")
+PlotEnrichedPvalues(main_comparison, location_results, groups_order, cts_order, plot_type="hmp")
+
+# Plot location of MT genes
 all_genes <- do.call(rbind, presence)
 all_genes$ct <- gsub("\\..*", "", rownames(all_genes))
 all_genes$presence <- str_replace_all(all_genes$presence, c("yes"="Yes", "no"="No"))
@@ -132,26 +134,4 @@ timtom_ids <- c(unique(all_genes$gene_id[which(grepl("^TIMM", all_genes$gene_id)
 mit_genes_ids <- c("XIST", timtom_ids, mit_genes_ids)
 
 MT_loc <- ExtractLocation(presence, location_df, groups_order, mit_genes_ids)
-
-pdf(paste0(out_path, "MT_genes_locations.pdf"), height = 15, width = 11)
-print(
-  ggplot(MT_loc, aes(locations, groups, size=loc_count, color=locations)) +
-    geom_point() +
-    facet_grid(ct ~ sex, scales = "free", space = "free") +
-    scale_colour_manual(values=custom_pal) +
-    labs(x="", y="Groups", size="Genes found in location", color="Cellular locations") +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          panel.background = element_blank(), 
-          strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
-          strip.text.x = element_text(size=12, face="bold", colour = "black"),
-          axis.line = element_line(colour = "black"),
-          axis.title.x = element_text(size=12, face="bold", colour = "black"),
-          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
-          axis.ticks.x=element_blank(),
-          axis.title.y = element_text(size=12, face="bold", colour = "black"),
-          legend.position = "bottom", 
-          legend.box = "vertical",
-          legend.title = element_text(size=12, face="bold", colour = "black"))
-)
-dev.off()
+PlotLocation(main_comparison, MT_loc, "MT_genes_locations")

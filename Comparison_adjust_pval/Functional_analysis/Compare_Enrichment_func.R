@@ -73,7 +73,8 @@ library(readxl) # to read excel files
 library(dplyr) # to re-arrange dfs
 library(biomaRt) # to query to which chromosome the shared terms belong to
 library(scales) # to select palette
-library(openxlsx)
+library(openxlsx) # to import xlsx files
+library(RColorBrewer) # for palette
 
 # Sets the EnrichR database for Human genes
 setEnrichrSite("Enrichr") 
@@ -978,13 +979,14 @@ PlotBarPlotRefPerc <- function(ref_perc, ref_ct_id, plot_titles, groups_ordered)
 PlotBarPlotRefPercFaceted <- function(ref_perc, groups_ordered) {
   ref_plot <- ggplot(ref_perc, aes(factor(groups, groups_ordered[which(groups_ordered %in% groups)]), perc, fill = ref_ct)) +
     geom_bar(stat="identity", color="black", position = "dodge") +
-    facet_grid(sex ~ ct, scales = "free") +
+    facet_grid(ct ~ sex, space = "free", scales = "free") +
     labs(x="Groups", y="Markers %", fill="Reference cell types") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(), 
-          panel.spacing.x=unit(0, "lines"),
-          strip.text = element_text(size = 8, face="bold", colour = "black"),
+          panel.spacing.x=unit(0.5, "lines"),
+          strip.text.x = element_text(size = 12, face="bold", colour = "black"),
+          strip.text.y = element_text(size = 12, face="bold", colour = "black", angle = 0),
           plot.title = element_text(size=12, face="bold", colour = "black"),
           axis.line = element_line(colour = "black"),
           axis.title.x = element_text(size=12, face="bold", colour = "black"),
@@ -1048,7 +1050,7 @@ PlotRefCt <- function(main_dir, sex_df, ref_df, groups_ordered, ref_df_name="ref
   ref_perc <- lapply(1:length(unique(ref_presence_df$ref_ct)), function(x) RefPerc(ref_presence_df, unique(ref_presence_df$ref_ct)[x], sex_df, plot_titles))
   ref_perc <- do.call(rbind, ref_perc)
   ref_plot <- PlotBarPlotRefPercFaceted(ref_perc, groups_ordered)
-  pdf(paste0(out_path, "Faceted_barplot_perc.pdf"), height = 8, width = 15)
+  pdf(paste0(out_path, ref_df_name, "_faceted_barplot_perc.pdf"), height = 14, width = 9)
   print(ref_plot)
   dev.off()
 }
@@ -1587,7 +1589,7 @@ PlotFacetedDrugs <- function(main_dir, count_df, which_comp="sex", plot_order="n
 
 # 41. Counts the number of repeated terms for drugs
   # Input: main directory where to save the files, the merged dataframe, the order in which plot the groups
-  # Return: count df
+  # Return: count df fo SFARI genes
 
 CountSFARI <- function(main_dir, sex_dfs, ref_df, groups_ordered) {
   path <- paste0(main_dir, "/SFARI/")
@@ -1618,9 +1620,48 @@ CountSFARI <- function(main_dir, sex_dfs, ref_df, groups_ordered) {
   return(ref_count)
 }
 
-# 42. Plots the SFARI count results
-# Input: main directory where to save the plots, the SFARI count df, the order in which plot the groups
-# Return: nothing, saves the plots instead
+# 42. Calculates hypergeometric distribution for each chr
+  # Input: main directory where to save the files, count df fo SFARI genes, the background number of genes, the sfari gene counts by chromosome
+  # Return: df with p-values for each combination of group/ct/sex/chr
+
+HyperGeomSFARI <- function(main_dir, sfari_df, genes_tot, sfari_count) {
+  pvalues <- vector()
+  ids <- vector()
+  for (group_id in unique(sfari_df$groups)) {
+    for (ct_id in unique(sfari_df[which(sfari_df$groups==group_id), "ct"])) {
+      for (sex_id in c("F", "M")) {
+        for (chr_id in names(sfari_count)) {
+          pvalues <- c(pvalues, 
+                       phyper(
+                         sfari_df[which(sfari_df$sex==sex_id & sfari_df$chr==chr_id & sfari_df$groups==group_id & sfari_df$ct==ct_id), "chr_count"] - 1,
+                         sfari_df[which(sfari_df$sex==sex_id & sfari_df$chr==chr_id & sfari_df$groups==group_id & sfari_df$ct==ct_id), "tot_count"],
+                         genes_tot - sfari_chr_gene_counts[[chr_id]],
+                         sfari_chr_gene_counts[[chr_id]],
+                         lower.tail= FALSE
+                       ))
+          ids <- c(ids, paste(group_id, ct_id, sex_id, chr_id, sep = "--"))
+        }
+      }
+    }
+  }
+  sfari_hypergeom <- data.frame(ids, pvalues)
+  sfari_hypergeom <- separate(sfari_hypergeom, ids, into = c("groups", "ct", "sex", "chr"), sep = "--")
+  path <- paste0(main_dir, "/SFARI/")
+  dir.create(path, recursive = T, showWarnings = F)
+  write.csv(sfari_hypergeom, paste0(path, "SFARI_enrichment_pvalues.csv"))
+  sfari_hypergeom$pval_sign <- rep(NA, nrow(sfari_hypergeom))
+  sfari_hypergeom[which(sfari_hypergeom$pvalues>0.05), "pval_sign"] <- "NS"
+  sfari_hypergeom[which(sfari_hypergeom$pvalues<=0.05 & sfari_hypergeom$pvalues>0.01), "pval_sign"] <- "*"
+  sfari_hypergeom[which(sfari_hypergeom$pvalues<=0.01 & sfari_hypergeom$pvalues>0.001), "pval_sign"] <- "**"
+  sfari_hypergeom[which(sfari_hypergeom$pvalues<=0.001 & sfari_hypergeom$pvalues>0.0001), "pval_sign"] <- "***"
+  sfari_hypergeom[which(sfari_hypergeom$pvalues<=0.0001), "pval_sign"] <- "****"
+  sfari_hypergeom$pval_sign <- factor(sfari_hypergeom$pval_sign, c("NS","*", "**","***","****"))
+  return(sfari_hypergeom)
+}
+
+# 43. Plots the SFARI count results
+  # Input: main directory where to save the plots, the SFARI count df, the order in which plot the groups
+  # Return: nothing, saves the plots instead
 
 PlotSFARI <- function(main_dir, ref_count, which_comp = "tot") {
   plot_path <- paste0(main_dir, "/SFARI/")
@@ -1628,18 +1669,18 @@ PlotSFARI <- function(main_dir, ref_count, which_comp = "tot") {
   if (which_comp=="tot") {
     pdf(paste0(plot_path, "SFARI_count_total.pdf"), width = 10, height = 15)
     print(
-      ggplot(ref_count, aes(sex, tot_count, fill=sex)) +
+      ggplot(ref_count, aes(groups, tot_count, fill=sex)) +
         geom_bar(stat="identity", color="black", position = "dodge") +
-        labs(x="Sex", y="SFARI gene count", fill="") +
-        facet_grid(ct ~ groups, scales = "free") +
+        labs(x="Groups", y="SFARI gene count", fill="") +
+        facet_grid(ct ~ sex, scales = "free") +
         theme(panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
               panel.background = element_blank(), 
-              strip.text.x = element_text(size=12, face="bold", colour = "black", angle = 90),
+              strip.text.x = element_text(size=12, face="bold", colour = "black"),
               strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
               axis.line = element_line(colour = "black"),
               axis.title.x = element_text(size=12, face="bold", colour = "black"),
-              axis.text.x = element_text(size=8, colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black", angle = 90),
               axis.ticks.x=element_blank(),
               axis.title.y = element_text(size=12, face="bold", colour = "black"),
               legend.position = "bottom", 
@@ -1650,20 +1691,20 @@ PlotSFARI <- function(main_dir, ref_count, which_comp = "tot") {
     dev.off()
   } else if (which_comp=="chr") {
     col_palette <- hue_pal()(3)
-    pdf(paste0(plot_path, "SFARI_count_chr.pdf"), width = 12, height = 15)
+    pdf(paste0(plot_path, "SFARI_count_chr.pdf"), width = 10, height = 15)
     print(
-      ggplot(ref_count[which(ref_count$chr_count>0), ], aes(sex, chr_count, fill=chr)) +
+      ggplot(ref_count[which(ref_count$chr_count>0), ], aes(groups, chr_count, fill=chr)) +
         geom_bar(stat="identity", color="black", position = "stack") +
-        labs(x="Sex", y="SFARI gene count", fill="Chromosomes") +
+        labs(x="Groups", y="SFARI gene count", fill="Chromosomes") +
         scale_fill_manual(values = c("X" = col_palette[1],
                                      "Y"= col_palette[3],
                                      "Autosome"= col_palette[2],
                                      "X,Y"="#C77CFF")) +
-        facet_grid(ct ~ groups, scales = "free") +
+        facet_grid(ct ~ sex, scales = "free") +
         theme(panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
               panel.background = element_blank(), 
-              strip.text.x = element_text(size=12, face="bold", colour = "black", angle = 90),
+              strip.text.x = element_text(size=12, face="bold", colour = "black"),
               strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
               axis.line = element_line(colour = "black"),
               axis.title.x = element_text(size=12, face="bold", colour = "black"),
@@ -1678,7 +1719,50 @@ PlotSFARI <- function(main_dir, ref_count, which_comp = "tot") {
   }
 }
 
-# 43. Import results from disease-related enrichments
+# 44. Plots the SFARI enrichment results
+  # Input: main directory where to save the plots, the SFARI enriched df, 
+    # the order in which plot the groups and the cell types
+  # Return: nothing, saves the plots instead
+
+PlotEnrichedPvalues <- function(main_dir, sfari_hypergeom, groups_ordered, cts_ordered) {
+  plot_path <- paste0(main_dir, "/SFARI/")
+  dir.create(plot_path, recursive = T, showWarnings = F)
+  brewer_palette <- brewer.pal(6,"Purples")
+  pdf(paste0(plot_path, "SFARI_hypergeom.pdf"), width = 7, height = 7)
+  print(
+    ggplot(sfari_hypergeom, aes(factor(groups, groups_ordered[which(groups_ordered %in% groups)]), factor(ct, rev(cts_ordered[which(cts_ordered %in% ct)])), fill=pval_sign)) +
+      geom_tile(color="black") +
+      facet_grid(chr ~ sex, scales = "free") +
+      scale_fill_manual(values = c("NS"=brewer_palette[2], 
+                                   "*"=brewer_palette[3],
+                                   "**"=brewer_palette[4],
+                                   "***"=brewer_palette[5],
+                                   "****"=brewer_palette[6]),
+                        na.value = "gray") +
+      labs(x="Datasets", y="Cell types", fill="P-value") +
+      theme(panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(),
+            panel.background = element_blank(), 
+            panel.spacing.x=unit(0.5, "lines"),
+            plot.title = element_text(size=12, face="bold", colour = "black"),
+            strip.text.x = element_text(size=12, face="bold", colour = "black"),
+            strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
+            axis.line = element_line(colour = "black"),
+            axis.title.x = element_text(size=12, face="bold", colour = "black"),
+            axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+            axis.ticks.x=element_blank(),
+            axis.title.y = element_text(size=12, face="bold", colour = "black"),
+            axis.text.y = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
+            axis.ticks.y = element_blank(),
+            legend.position = "bottom", 
+            legend.title = element_text(size=12, face="bold", colour = "black"))
+    
+  )
+  dev.off()
+  
+}
+
+# 45. Import results from disease-related enrichments
   # Input: main directory where to find the files, subfolder
   # Return: list of files
 
@@ -1702,3 +1786,4 @@ SaveCPResults <- function(main_dir, subfolder, file_name) {
   names(files_ls) <- ids_names
   write.xlsx(files_ls, paste0(files_path, "/", file_name, ".xlsx"))
 }
+

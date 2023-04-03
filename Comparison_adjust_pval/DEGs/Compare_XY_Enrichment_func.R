@@ -42,8 +42,8 @@ ImportCondition <- function(main_dir, UCSC_flag="no") {
 }
 
 # 2. Imports DISCO and UCSC datasets; slight different folder structure requires different inputs
-# Input: main directory, sub-folders list, if UCSC or not, if subfolders are present
-# Return: list of condition lists, each containing ARE dfs divided in F and M
+  # Input: main directory, sub-folders list, if UCSC or not, if subfolders are present
+  # Return: list of condition lists, each containing ARE dfs divided in F and M
 
 ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_projs=F) {
   ds_list <- list()
@@ -69,6 +69,10 @@ ImportDataset <- function(main_dir, folder_list, UCSC_flag="no", individual_proj
   ds_list[lengths(ds_list) != 0]
   return(ds_list)
 }
+
+# 3. Plots the p-value heatmap of XY enrichment
+  # Input: main directory, the list of XY enrichment results, the common annotation and the order of the groups
+  # Return: nothing, saves the plot instead
 
 PlotEnrichedPvalues <- function(main_dir, enrich_list, common_annot, groups_ordered) {
   enrich_df <- do.call(rbind, unlist(c(enrich_list), recursive = F, use.names = T))
