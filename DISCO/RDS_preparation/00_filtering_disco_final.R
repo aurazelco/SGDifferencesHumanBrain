@@ -996,3 +996,6 @@ disco_filt@meta.data$id_sex <- paste(disco_filt@meta.data$sample_id, disco_filt@
 
 VlnPlot(disco_filt, features = "XIST", group.by = "id_sex" ) + NoLegend()
 ggsave(paste0(disco_path, "XIST_RNA_expression.pdf"))
+
+VlnPlot(disco_filt, features = c("TMSB4X", "TMSB4Y"), group.by = "gender" ) 
+ggsave(paste0(disco_path, "TMSB4_RNA_expression.pdf"), width = 10, height = 8)

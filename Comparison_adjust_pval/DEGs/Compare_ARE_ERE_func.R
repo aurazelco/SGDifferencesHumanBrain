@@ -300,3 +300,72 @@ PlotFacetedERE <- function(main_dir, ERE_filt, groups_ordered) {
   dev.off()
 }
 
+# 11. Plot ARE and ERE results combined
+  # Input: main directory where to save the plots, ARE filtered df, ERE filtered df, the order of the age/condition groups
+  # Return: nothing, saves plot instead
+
+PlotAREERECombined <- function(main_dir, ARE_filt, ERE_filt, groups_ordered, legend_cols="sites") {
+  plot_path <- paste0(main_dir, "ARE_ERE_Across_Conditions/")
+  dir.create(plot_path, showWarnings = F, recursive = T)
+  ARE_filt$ARE_ERE <- rep("ARE", nrow(ARE_filt))
+  ERE_filt$ARE_ERE <- rep("ERE", nrow(ERE_filt))
+  comb_ARE_ERE <- rbind(ARE_filt, ERE_filt)
+  if (legend_cols=="sites") {
+    comb_ARE_ERE$sites <- factor(comb_ARE_ERE$sites, c("ARE", "ERE", "None"))
+    pdf(paste0(plot_path, "ARE_ERE_", legend_cols ,".pdf"), width = 10, height = 12)
+    print(
+      ggplot(comb_ARE_ERE, aes(factor(condition, groups_ordered[which(groups_ordered %in% condition)]), percent, fill=sites)) +
+        geom_bar(stat="identity", color="black", position = "stack") +
+        facet_grid(ct~ARE_ERE + sex, scales = "free") +
+        labs(x="Groups", y="% of RE sites", fill="Response element sites") +
+        scale_fill_manual(values = c('ARE'="#FD61D1", 'ERE'="#39B600",   "None"="#5A5A5A")) +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              axis.line = element_line(colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+              axis.title.x=element_text(size=12, face="bold", colour = "black"),
+              axis.text.y = element_text(size=8, colour = "black"),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "bottom", 
+              legend.title = element_text(size=12, face="bold", colour = "black"),
+              legend.text = element_text(size=12, face="bold", colour = "black"),
+              strip.text.x = element_text(size=12, face="bold", colour = "black"),
+              strip.text.y.right = element_text(size=12, face="bold", colour = "black", angle = 0))
+    )
+    dev.off()
+  } else if (legend_cols=="sex"){
+    comb_ARE_ERE$sex_sites <- paste(comb_ARE_ERE$sex, comb_ARE_ERE$sites, sep = " - ")
+    comb_ARE_ERE$sex_sites <- factor(comb_ARE_ERE$sex_sites, 
+                              c("F - ARE",  "M - ARE"  ,
+                                "F - ERE",  "M - ERE",
+                                "F - None", "M - None"))
+    pdf(paste0(plot_path, "ARE_ERE_", legend_cols ,".pdf"), width = 10, height = 12)
+    print(
+      ggplot(comb_ARE_ERE, aes(factor(condition, groups_ordered[which(groups_ordered %in% condition)]), percent, fill=sex_sites)) +
+        geom_bar(stat="identity", color="black", position = "stack") +
+        facet_grid(ct~sex + ARE_ERE, scales = "free") +
+        labs(x="Groups", y="% of RE sites", fill="Response element sites") +
+        scale_fill_manual(values = c(
+          "F - ARE" ="#F8766D",  "M - ARE"="#00BFC4"  ,
+          "F - ERE"= "#F8766D" ,  "M - ERE"="#00BFC4",
+          "F - None" = "#5A5A5A", "M - None" = "#5A5A5A")) +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              axis.line = element_line(colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+              axis.title.x=element_text(size=12, face="bold", colour = "black"),
+              axis.text.y = element_text(size=8, colour = "black"),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "bottom", 
+              legend.title = element_text(size=12, face="bold", colour = "black"),
+              legend.text = element_text(size=12, face="bold", colour = "black"),
+              strip.text.x = element_text(size=12, face="bold", colour = "black"),
+              strip.text.y.right = element_text(size=12, face="bold", colour = "black", angle = 0))
+    )
+    dev.off()
+  }
+  
+  
+}

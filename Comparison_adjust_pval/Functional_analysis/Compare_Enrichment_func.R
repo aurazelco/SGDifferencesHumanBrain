@@ -1269,27 +1269,28 @@ PlotFacetedDBSimplified <- function(main_dir, count_df, which_comp="sex", plot_o
   } else if (which_comp=="sex_ct") {
     count_df$ct <- factor(count_df$ct, plot_order[which(plot_order %in% count_df$ct)])
     count_df <- count_df[order(count_df$ct),]
-    pdf(paste0(plot_path, "disease_top_", min_num, "_terms_per_sex_ct_dbsx.pdf"), width = 10, height = 15)
-    print(
-      ggplot(count_df, aes(ct, factor(term, rev(unique(term))),  size = perc , color=which_dbsx)) +
-        geom_point() +
-        facet_grid(~ sex, scales = "free") +
-        labs(x="Cell types", y="Terms", size="% of groups enriched", color="Disease databases") +
-        theme(panel.grid.major = element_blank(), 
-              panel.grid.minor = element_blank(),
-              panel.background = element_blank(), 
-              strip.text = element_text(size=12, face="bold", colour = "black"),
-              axis.line = element_line(colour = "black"),
-              axis.title.x = element_text(size=12, face="bold", colour = "black"),
-              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
-              axis.ticks.x=element_blank(),
-              axis.title.y = element_text(size=12, face="bold", colour = "black"),
-              legend.position = "bottom", 
-              legend.box = "vertical",
-              legend.title = element_text(size=12, face="bold", colour = "black"))
-      
-    )
-    dev.off()
+    for (sex in unique(count_df$sex)) {
+      pdf(paste0(plot_path, "disease_top_", min_num, "_terms_", sex,"_ct_dbsx.pdf"), width = 10, height = 9)
+      print(
+        ggplot(count_df[which(count_df$sex==sex), ], aes(ct, factor(term, rev(unique(term))),  size = perc , color=which_dbsx)) +
+          geom_point() +
+          labs(x="Cell types", y="Terms", size="% of groups enriched", color="Disease databases", title=sex) +
+          theme(panel.grid.major = element_blank(), 
+                panel.grid.minor = element_blank(),
+                panel.background = element_blank(), 
+                strip.text = element_text(size=12, face="bold", colour = "black"),
+                axis.line = element_line(colour = "black"),
+                axis.title.x = element_text(size=12, face="bold", colour = "black"),
+                axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+                axis.ticks.x=element_blank(),
+                axis.title.y = element_text(size=12, face="bold", colour = "black"),
+                legend.position = "bottom", 
+                legend.box = "vertical",
+                legend.title = element_text(size=12, face="bold", colour = "black"))
+        
+      )
+      dev.off()
+    }
   }
 }
 
@@ -1316,7 +1317,7 @@ CreateDisDf <- function(main_dir, ref, sex_dfs, ref_df_name) {
   for (id in unique(ref_df$group_id)) {
     for (deg in unique(sex_dfs$id)) {
       genes_ids <- c(genes_ids, ref_df[which(ref_df$group_id==id), "dis_genes"])
-      deg_presence <- ifelse(ref_df[which(ref_df$group_id==id), "dis_genes"] %in% sex_dfs[which(sex_dfs$id==deg), "gene_id"], "yes", "no")
+      deg_presence <- ifelse(ref_df[which(ref_df$group_id==id), "dis_genes"] %in% sex_dfs[which(sex_dfs$id==deg), "gene_id"], "Yes", "No")
       dis_presence <- c(dis_presence, deg_presence)
       dis_names <-c(dis_names, rep(id, length(deg_presence)))
       deg_ids <- c(deg_ids, rep(deg, length(deg_presence)))
@@ -1337,18 +1338,20 @@ CreateDisDf <- function(main_dir, ref, sex_dfs, ref_df_name) {
   # Return: the faceted plot
 
 PlotDisDegGroup <- function(ref_deg, dis_id, groups_ordered) {
-  dis_plot <- ggplot(complete(ref_deg[which(ref_deg$disease_group==dis_id),]), aes(factor(groups, groups_ordered[which(groups_ordered %in% groups)]), dis_gene_id, fill=dis_presence)) +
-    geom_tile(color="white") +
-    facet_grid(sex ~ ct, scales = "free") +
-    labs(x="Groups", y="Disease-associated genes", fill="Genes found", title =dis_id) +
-    scale_fill_manual(values = c("yes"="#F8766D",
-                                 "no"="#00BFC4"),
+  dis_plot <- ggplot(complete(ref_deg[which(ref_deg$disease_group==dis_id),]), aes(dis_gene_id, factor(groups, groups_ordered[which(groups_ordered %in% groups)]), fill=dis_presence)) +
+    geom_tile() +
+    facet_grid(ct ~ sex , scales = "free") +
+    labs(y="Groups", x="Disease-associated genes", fill="Genes found", title =dis_id) +
+    scale_fill_manual(values = c("Yes"="#F8766D",
+                                 "No"="#00BFC4"),
                       na.value = "grey",
                       guide = guide_legend(reverse = TRUE)) +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(), 
           panel.spacing.x=unit(0, "lines"),
+          strip.text.x = element_text(size=12, face="bold", colour = "black"),
+          strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
           plot.title = element_text(size=12, face="bold", colour = "black"),
           axis.line = element_line(colour = "black"),
           axis.title.x = element_text(size=12, face="bold", colour = "black"),
@@ -1357,7 +1360,7 @@ PlotDisDegGroup <- function(ref_deg, dis_id, groups_ordered) {
           axis.title.y = element_text(size=12, face="bold", colour = "black"),
           axis.text.y = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
           axis.ticks.y = element_blank(),
-          legend.position = "right", 
+          legend.position = "bottom", 
           legend.title = element_text(size=12, face="bold", colour = "black"))
 }
 
@@ -1370,7 +1373,7 @@ PlotDisDeg <- function(main_dir, ref_deg, ref_df_name, groups_ordered) {
   dir.create(out_path, showWarnings = F, recursive = T)
   for (dis in unique(ref_deg$disease_group)) {
     print(dis)
-    pdf(paste0(out_path, dis, ".pdf"), width = 16)
+    pdf(paste0(out_path, dis, ".pdf"), width = 9, height = 14)
     print(PlotDisDegGroup(ref_deg, dis, groups_ordered))
     dev.off()
   }

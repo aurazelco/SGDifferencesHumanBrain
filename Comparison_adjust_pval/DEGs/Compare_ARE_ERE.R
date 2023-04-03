@@ -102,3 +102,10 @@ UCSC_ERE <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes", ARE_ERE="ERE")
 ERE <- CreateEREDf(c(disco_ERE, UCSC_ERE), unified_annotation)
 # Facets all ERE plots
 PlotFacetedERE(main_comparison, ERE, groups_order)
+
+
+# Combine ARE and ERE in one plot with new colors
+PlotAREERECombined(main_comparison, ARE_simpl, ERE, groups_order, legend_cols = "sites")
+PlotAREERECombined(main_comparison, ARE_simpl, ERE, groups_order, legend_cols = "sex")
+
+

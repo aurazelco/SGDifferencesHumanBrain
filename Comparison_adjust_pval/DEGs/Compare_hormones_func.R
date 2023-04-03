@@ -354,11 +354,11 @@ HmpHormoneEnrichment <- function(main_dir, pval_df, groups_ordered, features="Al
   pdf(plot_title, height  = params[1], width = params[2])
   print(
     ggplot(pval_df, aes(factor(condition, groups_ordered[which(groups_ordered %in% unique(condition))]), ct, fill=pvalues)) +
-      geom_tile() +
+      geom_tile(color="black") +
       {if (features[1]=="All_hormones") facet_grid(hormone_id ~ sex, scales = "free")} +
       {if (features[1]!="All_hormones" & multi_features==F) facet_grid( ~ sex, scales = "free")} +
       {if (features[1]!="All_hormones" & multi_features==T) facet_grid(hormone_id ~ sex, scales = "free")} +
-      scale_fill_gradient(low="red", high="blue", na.value = "grey") +
+      scale_fill_gradient(low="gray", high="purple") +
       labs(x="Groups", y="Cell types", fill="P-values", title = str_replace_all(plot_type, "_", " ")) +
       theme(panel.grid.major = element_blank(), 
             panel.grid.minor = element_blank(),
