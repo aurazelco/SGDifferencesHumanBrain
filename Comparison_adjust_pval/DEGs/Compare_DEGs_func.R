@@ -426,7 +426,7 @@ PlotNumSharedGenesCt <- function(ct_df) {
     geom_bar(color="black") +
     facet_wrap(~ sex, scales = "free") +
     scale_x_continuous(breaks=seq(min(ct_df$condition_count), max(ct_df$condition_count),by=1)) +
-    labs(y="Gene absolute count", fill="Number of conditions sharing genes") +
+    labs(y="Gene absolute count", fill="Number of datasets sharing genes") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(), 
@@ -481,7 +481,7 @@ PlotNumSharedGenesChr <- function(shared_genes_chr, col_palette) {
                                  "Y"= col_palette[3],
                                  "Autosome"= col_palette[2])) +
     scale_x_continuous(breaks=seq(min(shared_genes_chr$condition_count), max(shared_genes_chr$condition_count), by=1)) +
-    labs(x = "Number of conditions sharing genes", y="Log10 counts of shared genes", fill="Chromosomes") +
+    labs(x = "Number of datasets sharing genes", y="Log10 counts of shared genes", fill="Chromosomes") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(), 

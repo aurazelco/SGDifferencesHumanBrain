@@ -58,23 +58,26 @@ cell_info <- list()
 for (id in names(ds_paths)) {
   print(id)
   if (id == "DISCO") {
-    #id_seurat <- readRDS(paste0(ds_paths[[id]], ds_names[[id]], ".rds"))
-    #xist_ls <- append(xist_ls, list(data.frame("XIST"=GetAssayData(id_seurat[["RNA"]], slot="data")["XIST",])))
+    id_seurat <- readRDS(paste0(ds_paths[[id]], ds_names[[id]], ".rds"))
+    xist_ls <- append(xist_ls, list(data.frame("XIST"=GetAssayData(id_seurat[["RNA"]], slot="data")["XIST",])))
     cell_info <- append(cell_info, list(read.csv(paste0(ds_paths[[id]][1], "DEGs_common/cell_info.csv")))) 
-    #rm(id_seurat)
+    rm(id_seurat)
   } else {
-    #id_seurat <- readRDS(paste0(ds_paths[[id]], ds_names[[id]], ".rds"))
-    #xist_ls <- append(xist_ls, list(data.frame("XIST"=GetAssayData(id_seurat[["RNA"]], slot="data")["XIST",])))
-    cell_info <- append(cell_info, list(read.csv(paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/", ds_names[[id]], "/cell_info_", ds_names[[id]], ".csv"))))
-    #rm(id_seurat)
+    id_seurat <- readRDS(paste0(ds_paths[[id]], ds_names[[id]], ".rds"))
+    xist_ls <- append(xist_ls, list(data.frame("XIST"=GetAssayData(id_seurat[["RNA"]], slot="data")["XIST",])))
+    cell_info <- append(cell_info, list(read.csv(paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/", ds_names[[id]], "/cell_info_", ds_names[[id]], ".csv"))))
+    rm(id_seurat)
   }
 }
 names(xist_ls) <- names(ds_paths)
 names(cell_info) <- names(ds_paths)
 
 # 2. Manually add Velmeshev_10_20 years
-xist_ls <- append(xist_ls, list("Velmeshev_10_20_years"=read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev/Velmeshev_2022_10_20_years_XIST.csv", col.names = "XIST")))
-cell_info <- append(cell_info, list("Velmeshev_10_20_years"=read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/Velmeshev_2022_10_20_years/cell_info_Velmeshev_2022_10_20_years.csv")))
+xist_ls <- append(xist_ls, list("Velmeshev_10_20_years"=read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev/Velmeshev_2022_10_20_years_XIST.csv")))
+rownames(xist_ls$Velmeshev_10_20_years) <- xist_ls$Velmeshev_10_20_years$X
+xist_ls$Velmeshev_10_20_years$X <- NULL
+colnames(xist_ls$Velmeshev_10_20_years) <- "XIST"
+cell_info <- append(cell_info, list("Velmeshev_10_20_years"=read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/Velmeshev_2022_10_20_years/cell_info_Velmeshev_2022_10_20_years.csv")))
 
 # 3. Merge XIST in df and formats the information
 xist_df <- do.call(rbind, xist_ls)
@@ -131,12 +134,13 @@ for (proj in proj_ids) {
     }
   }
 }
+xist_df$new_group <- str_replace_all(xist_df$new_group, "Normal", "Healthy")
 
 groups_order <- c("Velmeshev_3rd_trimester","Velmeshev_0_1_years",          
                   "Velmeshev_1_2_years", "Velmeshev_2_4_years",           
                   "Velmeshev_10_20_years", "Velmeshev_Adults",              
-                  "GSE157827_Normal","GSE174367_Normal",              
-                  "PRJNA544731_Normal", "GSE157827_Alzheimer's disease",
+                  "GSE157827_Healthy","GSE174367_Healthy",              
+                  "PRJNA544731_Healthy", "GSE157827_Alzheimer's disease",
                   "GSE174367_Alzheimer's disease", "PRJNA544731_Multiple Sclerosis")
 xist_df$new_group <- factor(xist_df$new_group, groups_order)
 xist_df <- xist_df[order(xist_df$new_group), ]
@@ -148,11 +152,13 @@ pdf("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Extra_figures/XIST_faceted.pd
 print(
   ggplot(xist_df, aes(samples, XIST, fill=sex)) +
     geom_violin() +
-    facet_grid(new_group ~ sex, scales = "free") +
+    facet_grid(new_group ~ sex, scales = "free", space = "free") +
+    labs(x="Samples", y="XIST RNA expression", fill="Sex") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(), 
-          strip.text = element_text(size=12, face="bold", colour = "black"),
+          strip.text.y = element_text(size=8, face="bold", colour = "black", angle = 0),
+          strip.text.x = element_text(size=10, face="bold", colour = "black"),
           plot.title = element_text(size=12, face="bold", colour = "black"),
           axis.line = element_line(colour = "black"),
           axis.title.x = element_blank(),

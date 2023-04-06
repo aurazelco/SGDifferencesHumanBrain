@@ -293,7 +293,7 @@ CreateList <- function(list_degs, ref_df, ref_name, n_col=2, to_remove="empty") 
     # and parts of string to be removed
   # Return: nothing, plots and CSVs are saved instead
 
-Venn2ndTrim <- function(main_dir, ref_df, list_degs, ref_name, groups_to_compare, plot_title, n_col=2, to_remove="empty") {
+Venn2ndTrim <- function(main_dir, ref_df, list_degs, ref_name, groups_to_compare, plot_title, n_col=2, to_remove="empty", cat_names) {
   if (length(groups_to_compare)>5) {
     print("The Venn diagram can only be used with max of 5 groups")
   } else {
@@ -301,9 +301,11 @@ Venn2ndTrim <- function(main_dir, ref_df, list_degs, ref_name, groups_to_compare
     dir.create(plot_path, showWarnings = F, recursive = T)
     ds_sex_genes <- CreateList(list_degs, ref_df, ref_name, n_col, to_remove)
     comp_ls <- ds_sex_genes[groups_to_compare]
-    pdf(paste0(plot_path, plot_title, "_Venn.pdf"), width = 15)
+    pdf(paste0(plot_path, plot_title, "_Venn.pdf"), width = 10)
     print(
-      ggVennDiagram(comp_ls, label = "both", label_alpha = 100, label_percent_digit = 2) + theme(legend.position = "bottom")
+      ggVennDiagram(comp_ls, label = "both", label_alpha = 100, label_percent_digit = 2, category.names = cat_names) + 
+        scale_x_continuous(expand = expansion(mult = .2)) +
+        theme(legend.position = "bottom")
     )
     dev.off()
     genes <- c(Reduce(intersect, comp_ls))

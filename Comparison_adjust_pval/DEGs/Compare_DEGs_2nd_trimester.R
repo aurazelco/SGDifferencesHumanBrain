@@ -38,9 +38,10 @@ colnames(obrien) <- str_replace_all(colnames(obrien), " ", "_")
 
 # Using Eze as a reference
 comps <- c( "O'Brien", "Eze_Nowakowski_integrated_F", "Eze_Nowakowski_integrated_M", "Velmeshev_2022_F", "Velmeshev_2022_M" )
+name_comps <- c("O'Brien", "Eze-Nowakowski F", "Eze-Nowakowski M", "2nd trimester F", "2nd trimester M")
 
-Venn2ndTrim(main_comparison, obrien, list_degs = UCSC, ref_name =  "O'Brien", groups_to_compare = comps[c(1, 4, 5)], plot_title = "Velmeshev_vs_O'Brien", to_remove = "_2nd_trimester")
-Venn2ndTrim(main_comparison, obrien, list_degs = UCSC, ref_name =  "O'Brien", groups_to_compare = comps[c(2, 4)], plot_title = "Velmeshev_vs_Eze-Nowakowski_F", to_remove = "_2nd_trimester")
-Venn2ndTrim(main_comparison, obrien, list_degs = UCSC, ref_name =  "O'Brien", groups_to_compare = comps[c(3, 5)], plot_title = "Velmeshev_vs_Eze-Nowakowski_M", to_remove = "_2nd_trimester")
-Venn2ndTrim(main_comparison, obrien, list_degs = UCSC, ref_name =  "O'Brien", groups_to_compare = comps, plot_title = "All", to_remove = "_2nd_trimester")
+Venn2ndTrim(main_comparison, obrien, list_degs = UCSC, ref_name =  "O'Brien", groups_to_compare = comps[c(1, 4, 5)], plot_title = "Velmeshev_vs_O'Brien", to_remove = "_2nd_trimester", cat_names = name_comps[c(1, 4, 5)])
+Venn2ndTrim(main_comparison, obrien, list_degs = UCSC, ref_name =  "O'Brien", groups_to_compare = comps[c(2, 4)], plot_title = "Velmeshev_vs_Eze-Nowakowski_F", to_remove = "_2nd_trimester", cat_names = name_comps[c(2, 4)])
+Venn2ndTrim(main_comparison, obrien, list_degs = UCSC, ref_name =  "O'Brien", groups_to_compare = comps[c(3, 5)], plot_title = "Velmeshev_vs_Eze-Nowakowski_M", to_remove = "_2nd_trimester", cat_names = name_comps[c(3,5)])
+Venn2ndTrim(main_comparison, obrien, list_degs = UCSC, ref_name =  "O'Brien", groups_to_compare = comps, plot_title = "All", to_remove = "_2nd_trimester", cat_names = name_comps)
 
