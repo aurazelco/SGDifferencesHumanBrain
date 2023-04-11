@@ -1,19 +1,17 @@
-# Repo of all main scripts generated during the MSc thesis
+# Exploring the sex and gender differences in the human brain at single cell level
 
 ## Table of contents
 * [BACKGROUND](#background)
 * [PROGRAMMING LANGUAGES](#programming-languages)
 * [DATASETS](#datasets)
   * [DISCO](#disco)
-    * [Datasets source](#datasets-source)
+    * [Dataset source](#dataset-source)
     * [RDS preparation](#rds-preparation)
   * [UCSC](#ucsc)
-    * [Datasets source](#datasets-source)
+    * [Dataset source](#dataset-source)
     * [RDS preparation](#rds-preparation)
 * [DIFFERENTIAL EXPRESSION ANALYSIS](#differential-expression-analysis)
 * [INTEGRATION ANALYSIS](#integration-analysis) 
-  * [DEGs](#degs)
-  * [Functional Enrichment](#functional-enrichment)
 * [SUPPLEMENTARY FIGURES](#supplementary-figures)
 
 ----------------------------------------------------------------------------------------------------------
@@ -28,7 +26,7 @@
 
 **Results:** We identified SG-biased genes in both females and males in 11 major brain cell types across 7 developmental stages and two brain disorders. SG-biased genes were located mostly on the autosomes, with an enrichment for Y-linked genes in males in some cell types. SG-biased genes in many cell types were enriched for cell type markers. Accordingly, SG-biased genes showed little overlap across cell types and developmental stages. Interestingly, there was extensive functional overlap across SG-biased genes in developmental stages. Female-biased genes were enriched for brain-related functions and processes, and male-biased genes were enriched for metabolic pathways. Common female-biased genes across cell types and developmental stages contained many mitochondrial genes. Investigation of hormonal influence identified thymosin targets enriched in male-biased genes, and SG-biased genes for both males and females were highly enriched for androgen (not oestrogen) response elements across cell types.
 
-**Conclusion:** We systematically characterised SG differences in brain development and brain-related disorders at a single cell level, leading to the identification of hormonal influences likely establishing these differences as well as enriched pathways and functional categories likely contributing to the SG differences in brain-related disorders. We have further made the entire analysis available as a web resource for the scientific community by developing a web application which can be found [here](https://www.immunesinglecell.org/atlasList).
+**Conclusion:** We systematically characterised SG differences in brain development and brain-related disorders at a single cell level, leading to the identification of hormonal influences likely establishing these differences as well as enriched pathways and functional categories likely contributing to the SG differences in brain-related disorders. We have further made the entire analysis available as a web resource for the scientific community by developing a web application which can be found here ([app](), [source](https://github.com/aurazelco/HumanBrainSexSingleCell)).
 
 *Why SG-biased differential expressed genes?*
 
