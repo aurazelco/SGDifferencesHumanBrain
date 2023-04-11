@@ -1,4 +1,15 @@
-setwd("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/")
+# Author: Aura Zelco
+# Brief description:
+    # This script is used to filter the initial DISCO SeuratObject v1.0, as downloaded from the DISCO database
+# Brief procedure:
+    # 1. Explore the metadata initally present in the DISCO object,a dn filters the initial SeuratObject until only projects with cortical samples and both sexes are present
+    # 2. Filter cts for DEGs analysis steps
+    # 3. Info for SCENIC Pipeline
+      # 3.1 Highest Variable Genes
+
+# OBS: this script requires visual inspection and manually-entered information, therefore should be opened in a R environment/IDE (e.g. RStudio). 
+
+# Imports necessary libraries
 library(Seurat)
 library(SeuratObject)
 library(ggplot2)
@@ -9,10 +20,21 @@ library(dplyr)
 library(matrixStats)
 library(stringr)
 library(purrr)
+
+
+
+# Defines a custom function, used to subset using exclusion rather than inclusion criteria
 `%!in%` <- Negate(`%in%`)
 
+# Defines the main directories
+disco_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/"
+disco_scenic <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/SCENIC/"
+
+
+##################################### 1. Filter original DISCO v1.0 dataset
+
 # load the dataset
-disco_brain <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0.rds")
+disco_brain <- readRDS(paste0(disco_path, "brainV1.0.rds"))
 
 # plot initial metadata
 DimPlot(disco_brain, reduction = "umap")
@@ -22,152 +44,34 @@ DimPlot(disco_brain, reduction = "umap", group.by = "anatomical_site") # remove 
 DimPlot(disco_brain, reduction = "umap", group.by = "disease")
 DimPlot(disco_brain, reduction = "umap", group.by = "tissue") # all brain
 DimPlot(disco_brain, reduction = "umap", group.by = "platform") # 10x3'v2 and 10x3'v3
-DimPlot(disco_brain, reduction = "umap", group.by = "gender") # F, M, NA
+DimPlot(disco_brain, reduction = "umap", group.by = "gender") # F, M, NA -> the database refers to the sex as gender -> if not in the original metadata, form hereafter we used the word sex
 DimPlot(disco_brain, reduction = "umap", group.by = "race") # Caucasian, NA
-
-# cause_of_death, age_group, age, bmi throw error because of NAs
-
-length(unique(disco_brain$sample))
 
 allmisscols <- sapply(disco_brain@meta.data, function(x) all(is.na(x) | x == '' ))
 allmisscols # -> these columns have NAs, so cannot be plotted
 
-#disco_brain_noNA <- subset(disco_brain, subset = age != "NA") 
-# this removes NAs, but the age groups are not including neonates -> 
-# GSE134355 and GSE165388 from manually parsed dataset
-
-#disco_fetal <- subset(disco_brain, subset = project_id == c("GSE134355","GSE165388")) 
-# these projects are not included in the RDS file for some reason...
-
-# extracted the sex NAs to see if we can assign it based on XIST expression and X genes from O'Brien
-
+# explore XISt expression -> XIST is a gene expressed only in females
 FeaturePlot(disco_brain, features = "XIST", split.by = "gender")
 
-sex_NA <- subset(disco_brain, subset = gender !=  c("F","M") ) # trying to subset based on NA did not work
-
-
-DimPlot(sex_NA, reduction = "umap", group.by = "gender") # NA
-
-
-library(readxl)
-Xgenes <- read_excel("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/O'Brien_bioRXiv_suppl.xlsx",
-                     sheet="TblS4",
-                     col_names = TRUE,
-                     skip=2)
-
-length(unique(sex_NA$sample)) # 103
-
-FeaturePlot(sex_NA, features = "XIST")
-VlnPlot(sex_NA, features = "XIST", group.by = "project_id")
-VlnPlot(sex_NA, features = "XIST", group.by = "sample", ncol=10)
-
-
-xist <- AverageExpression(sex_NA, features = "XIST", group.by = "project_id")
-xist_samples <- AverageExpression(sex_NA, features = "XIST", group.by = "sample")
-
-xist_df <- as.data.frame(xist[2])
-rows <- colnames(xist_df)
-xist_df <- transpose(xist_df)
-rownames(xist_df) <- rows
-colnames(xist_df) <- c("XIST")
-setDT(xist_df, keep.rownames = "proj")
-
-xist_sample_df <- as.data.frame(xist_samples[2])
-rows <- colnames(xist_sample_df)
-xist_sample_df <- transpose(xist_sample_df)
-rownames(xist_sample_df) <- rows
-colnames(xist_sample_df) <- c("XIST")
-setDT(xist_sample_df, keep.rownames = "samples")
-
-ggplot(xist_df, aes(proj,XIST,fill=proj)) +
-  geom_bar(stat="identity") +   
-  geom_hline(yintercept=1, linetype="dashed", color = "black") + 
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        axis.text.x = element_blank(),
-        axis.title.x = element_blank(), 
-        axis.ticks.x=element_blank(),
-        axis.title.y = element_text(size=12, face="bold", colour = "black"))
-
-ggplot(xist_sample_df, aes(samples,XIST,fill=samples)) +
-  geom_bar(stat="identity", show.legend = FALSE) +   
-  geom_hline(yintercept=1, linetype="dashed", color = "black") + 
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        axis.text.x = element_blank(),
-        axis.title.x = element_blank(), 
-        axis.ticks.x=element_blank(),
-        axis.title.y = element_text(size=12, face="bold", colour = "black"))
-
-# Violin and FeaturePlot agree with expression levels, but I do not get the same numbers if I extract the average expression
-
-# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5816366/
-# not found: "AZFa","TB4Y",  "AZFb","AZFc", "XKRY", "VCY1",,  "VCY2"
-# not expressed: "TGIF2LY", "TSPY1", "CYorf15", "RPS4Y2","PRY", "PRY2", "RBMY1A1", "DAZ1", "DAZ2", "DAZ3", "DAZ4", "CDY1,
-# CDY2",
-Ygenes <- c("SRY", "ZFY", "RPS4Y1", "AMELY", "TBL1Y", "PCDH11Y", "TSPY2",  
-            "USP9Y", "DDX3Y", "UTY",  "EIF1AY", "KDM5D", 
-            "HSFY1", "HSFY2")
-
-for (gene in Ygenes) {
-  FeaturePlot(sex_NA, features = gene)
-}
-
-Ygenes_filt <- c("ZFY", "RPS4Y1", "PCDH11Y",  
-                 "USP9Y", "DDX3Y", "UTY",  
-                 "EIF1AY", "KDM5D")
-
-FeaturePlot(sex_NA, features = Ygenes)
-FeaturePlot(sex_NA, features = Ygenes_filt)
-FeaturePlot(disco_brain, features = Ygenes_filt)
-
-# chose DDX3Y as "male" marker
-
-# -> subset again, using the FeaturePlot limit - totally need to check if 2.5 is OK
-female_NA <- subset(sex_NA, subset = XIST >= 2.5)
-male_NA <- subset(sex_NA, subset = DDX3Y >= 2.5)
-
-females <- unique(female_NA$sample)
-males <- unique(male_NA$sample)
-
-length(intersect(females, males)) # 17 -> samples found in both
-length(setdiff(females, males)) # 27 -> only in females
-length(setdiff(males, females)) # 59 -> only in males
-
-mix <- intersect(females, males)
-
-mix_NA <- subset(sex_NA, subset = sample == c(mix))
-
-
-FeaturePlot(female_NA, features = "DDX3Y")
-FeaturePlot(male_NA, features = "XIST")
-
-# not sure how to proceed... maybe I should take in consideration only DDX3Y and 
-# label everything else F?
-
-# maybe for the moment I will focus on the known ones
-
+# subsets the object so only samples with known sex data are kept
 disco_FM <- subset(disco_brain, subset = gender ==  c("F","M"))
 
+# Plots UMAPs to explore the sex and the age groups
 DimPlot(disco_FM, reduction = "umap", group.by = "gender")
 DimPlot(disco_FM, reduction = "umap", group.by = "age")
 
-
+# saves to a df the information about the cells per sample
 samples_cell_num <- as.data.frame(table(disco_FM$sample))
 colnames(samples_cell_num) <- c("samples", "count")
 samples_cell_num$percent <- samples_cell_num$count * 100 / sum(samples_cell_num$count)
 
+# creates NA columns which are then later replaced with the corresponding information
 samples_cell_num$sex <- rep(NA, length(samples_cell_num$samples))
 samples_cell_num$age <- rep(NA, length(samples_cell_num$samples))
 samples_cell_num$proj <- rep(NA, length(samples_cell_num$samples))
 samples_cell_num$platform <- rep(NA, length(samples_cell_num$samples))
 
-
-
+# replacement of NAs with metadata
 for (sample in samples_cell_num$samples) {
   samples_cell_num[which(samples_cell_num$samples==sample), "proj"] <- unique(disco_FM@meta.data[which(disco_FM@meta.data$sample == sample), "project_id"])
   samples_cell_num[which(samples_cell_num$samples==sample), "sex"] <- unique(disco_FM@meta.data[which(disco_FM@meta.data$sample == sample), "gender"])
@@ -175,74 +79,16 @@ for (sample in samples_cell_num$samples) {
   samples_cell_num[which(samples_cell_num$samples==sample), "platform"] <- unique(disco_FM@meta.data[which(disco_FM@meta.data$sample == sample), "platform"])
 }
 
+# changes column types to factor
 col_factors <- c("samples", 
                  "sex",                          
                  "age",
                  "proj"
 )
-
 samples_cell_num[col_factors] <- lapply(samples_cell_num[col_factors], as.factor)  
 
+# information about sequencing platform used and saves plot to the original directory
 ggplot(samples_cell_num,aes(samples, count, fill=proj))+
-    geom_bar(stat="identity") +
-    facet_wrap(~sex*platform, scales="free_x", dir="v") + 
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        axis.text.x = element_blank(),
-        axis.title.x = element_blank(), 
-        axis.ticks.x=element_blank(),
-        axis.title.y = element_text(size=12, face="bold", colour = "black"),
-        legend.position = "bottom")
-
-sum(samples_cell_num$sex=="F") # 28
-sum(samples_cell_num$sex=="M") # 75
-
-ggsave("/Users/aurazelco/Desktop/Lund_MSc/Thesis/analysis/DISCOv1.0/DISCO_FM/samples_counts.png")
-
-FeaturePlot(disco_FM, features = "XIST", split.by = "gender", reduction = "umap")
-
-ggsave("/Users/aurazelco/Desktop/Lund_MSc/Thesis/analysis/DISCOv1.0/DISCO_FM/xist_exp.png")
-
-celltype_sample <- paste(disco_FM@meta.data$sample, disco_FM@meta.data$ct, sep="_")
-
-disco_FM@meta.data$ct_sample <- celltype_sample
-
-celltype_num <- as.data.frame(table(disco_FM$ct_sample))
-colnames(celltype_num) <- c("name", "freq")
-library(tidyr)
-celltype_num <- separate(celltype_num, name, into = c("sample", "ct"), sep = "_")
-
-
-celltype_num$sex <- rep(NA, length(celltype_num$sample))
-celltype_num$age <- rep(NA, length(celltype_num$sample))
-celltype_num$proj <- rep(NA, length(celltype_num$sample))
-celltype_num$platform <- rep(NA, length(celltype_num$sample))
-celltype_num$anatomic_tissue <- rep(NA, length(celltype_num$sample))
-
-for (sample in celltype_num$sample) {
-  celltype_num[which(celltype_num$sample==sample), "proj"] <- unique(disco@meta.data[which(disco@meta.data$sample == sample), "project_id"])
-  celltype_num[which(celltype_num$sample==sample), "sex"] <- unique(disco@meta.data[which(disco@meta.data$sample == sample), "gender"])
-  celltype_num[which(celltype_num$sample==sample), "age"] <- unique(disco@meta.data[which(disco@meta.data$sample == sample), "age"])
-  celltype_num[which(celltype_num$sample==sample), "platform"] <- unique(disco@meta.data[which(disco@meta.data$sample == sample), "platform"])
-  celltype_num[which(celltype_num$sample==sample), "anatomic_tissue"] <- unique(disco@meta.data[which(disco@meta.data$sample == sample), "anatomical_site"])
-}
-
-col_factors <- c("sample", 
-                 "ct",
-                 "sex",                          
-                 "age",
-                 "proj",
-                 "platform",
-                 "anatomic_tissue"
-)
-
-celltype_num[col_factors] <- lapply(celltype_num[col_factors], as.factor)  
-
-write.csv(celltype_num, "celltype_num.csv")
-
-ggplot(celltype_num,aes(sample, freq, fill=proj))+
   geom_bar(stat="identity") +
   facet_wrap(~sex*platform, scales="free_x", dir="v") + 
   theme(panel.grid.major = element_blank(), 
@@ -254,9 +100,49 @@ ggplot(celltype_num,aes(sample, freq, fill=proj))+
         axis.ticks.x=element_blank(),
         axis.title.y = element_text(size=12, face="bold", colour = "black"),
         legend.position = "bottom")
+ggsave(paste0(disco_path, "DISCO_FM/samples_counts.png"))
 
-# same as before!
+# number of F and M in all projects
+sum(samples_cell_num$sex=="F") # 28
+sum(samples_cell_num$sex=="M") # 75
 
+# generate FeaturePlot to confirm difference in expression of XIST 
+FeaturePlot(disco_FM, features = "XIST", split.by = "gender", reduction = "umap")
+ggsave(paste0(disco_path, "DISCO_FM/xist_exp.png"))
+
+# creates a new metadata column
+disco_FM@meta.data$ct_sample <- paste(disco_FM@meta.data$sample, disco_FM@meta.data$ct, sep="_")
+
+
+# creates a new df, with information about how many cells per celltype 
+celltype_num <- as.data.frame(table(disco_FM$ct_sample))
+colnames(celltype_num) <- c("name", "freq")
+celltype_num <- separate(celltype_num, name, into = c("sample", "ct"), sep = "_")
+celltype_num$sex <- rep(NA, length(celltype_num$sample))
+celltype_num$age <- rep(NA, length(celltype_num$sample))
+celltype_num$proj <- rep(NA, length(celltype_num$sample))
+celltype_num$platform <- rep(NA, length(celltype_num$sample))
+celltype_num$anatomic_tissue <- rep(NA, length(celltype_num$sample))
+for (sample in celltype_num$sample) {
+  celltype_num[which(celltype_num$sample==sample), "proj"] <- unique(disco@meta.data[which(disco@meta.data$sample == sample), "project_id"])
+  celltype_num[which(celltype_num$sample==sample), "sex"] <- unique(disco@meta.data[which(disco@meta.data$sample == sample), "gender"])
+  celltype_num[which(celltype_num$sample==sample), "age"] <- unique(disco@meta.data[which(disco@meta.data$sample == sample), "age"])
+  celltype_num[which(celltype_num$sample==sample), "platform"] <- unique(disco@meta.data[which(disco@meta.data$sample == sample), "platform"])
+  celltype_num[which(celltype_num$sample==sample), "anatomic_tissue"] <- unique(disco@meta.data[which(disco@meta.data$sample == sample), "anatomical_site"])
+}
+col_factors <- c("sample", 
+                 "ct",
+                 "sex",                          
+                 "age",
+                 "proj",
+                 "platform",
+                 "anatomic_tissue"
+)
+celltype_num[col_factors] <- lapply(celltype_num[col_factors], as.factor)  
+# saves the df
+write.csv(celltype_num, paste0(disco_path, "celltype_num.csv"))
+
+# generates plot and saves it 
 ggplot(celltype_num, aes(ct, freq, fill=ct)) + 
   geom_bar(stat="identity", position="stack") +
   facet_wrap(~sex, scales="free_x") + 
@@ -269,16 +155,17 @@ ggplot(celltype_num, aes(ct, freq, fill=ct)) +
         axis.ticks.x=element_blank(),
         axis.title.y = element_text(size=12, face="bold", colour = "black"),
         legend.position = "bottom")
+ggsave(paste0(disco_path, "DISCO_FM/ct_counts.png"))
 
-ggsave("/Users/aurazelco/Desktop/Lund_MSc/Thesis/analysis/DISCOv1.0/DISCO_FM/ct_counts.png")
+# saves the filtered object
+saveRDS(disco_FM, paste0(disco_path, "DISCOv1.0_FM/disco_FM.rds"))
 
-saveRDS(disco_FM, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DISCOv1.0_FM/disco_FM.rds")
 
-########### August 11th
+# imports filtered object
+disco <- readRDS(paste0(disco_path, "brainV1.0_all_FM.rds"))
 
-disco <- readRDS("brainV1.0_all_FM.rds")
-
-celltype_num <- read.csv("celltype_num.csv")
+# imports the last df with the metadata information
+celltype_num <- read.csv(paste0(disco_path, "celltype_num.csv"))
 celltype_num[,1] <- NULL
 col_factors <- c("sample", 
                  "ct",
@@ -290,31 +177,31 @@ col_factors <- c("sample",
 )
 celltype_num[col_factors] <- lapply(celltype_num[col_factors], as.factor)  
 
-
+# initializes an empty vector to contain the complete projects
 keep_proj <- vector()
 
+# for loop which checks which projects have both sexes, and saves the project id to the keep_project vector
 for (proj in levels(celltype_num$proj)) {
   if (length(unique(celltype_num[which(celltype_num$proj==proj), "sex"])) == 2) {
     keep_proj <- c(keep_proj, proj)
   }
 }
 
+# subsets the Seurat Object again, keeping only the projects with both sexes and with sampling not from the midbrain -> only cortical samples are kept
 disco_filt <- subset(disco, subset =  project_id %in% keep_proj & anatomical_site != "midbrain")
 
+# removes the previous Seurat object to free memory
 rm(disco)
 
+# repeats the same as above, creates df to check number of cells per sample and per celltype
 celltype_num <- as.data.frame(table(disco_filt$ct_sample))
 colnames(celltype_num) <- c("name", "freq")
-library(tidyr)
 celltype_num <- separate(celltype_num, name, into = c("sample", "ct"), sep = "_")
-
-
 celltype_num$sex <- rep(NA, length(celltype_num$sample))
 celltype_num$age <- rep(NA, length(celltype_num$sample))
 celltype_num$proj <- rep(NA, length(celltype_num$sample))
 celltype_num$platform <- rep(NA, length(celltype_num$sample))
 celltype_num$anatomic_tissue <- rep(NA, length(celltype_num$sample))
-
 for (sample in celltype_num$sample) {
   celltype_num[which(celltype_num$sample==sample), "proj"] <- unique(disco_filt@meta.data[which(disco_filt@meta.data$sample == sample), "project_id"])
   celltype_num[which(celltype_num$sample==sample), "sex"] <- unique(disco_filt@meta.data[which(disco_filt@meta.data$sample == sample), "gender"])
@@ -322,7 +209,6 @@ for (sample in celltype_num$sample) {
   celltype_num[which(celltype_num$sample==sample), "platform"] <- unique(disco_filt@meta.data[which(disco_filt@meta.data$sample == sample), "platform"])
   celltype_num[which(celltype_num$sample==sample), "anatomic_tissue"] <- unique(disco_filt@meta.data[which(disco_filt@meta.data$sample == sample), "anatomical_site"])
 }
-
 col_factors <- c("sample", 
                  "ct",
                  "sex",                          
@@ -331,10 +217,8 @@ col_factors <- c("sample",
                  "platform",
                  "anatomic_tissue"
 )
-
 celltype_num[col_factors] <- lapply(celltype_num[col_factors], as.factor)  
-
-write.csv(celltype_num, "celltype_num_filt.csv")
+write.csv(celltype_num, paste0(disco_path, "celltype_num_filt.csv"))
 
 ggplot(celltype_num,aes(sample, freq, fill=proj))+
   geom_bar(stat="identity") +
@@ -363,295 +247,32 @@ ggplot(celltype_num,aes(sample, freq, fill=anatomic_tissue))+
         legend.position = "bottom")
 
 
-
+# creates new metadata, so the samples can be more easily divided
 project_sex <- paste(disco_filt@meta.data$project_id, disco_filt@meta.data$gender, sep="_")
 disco_filt@meta.data$proj_sex <- project_sex
 
 proj_sex_ct <- paste(disco_filt@meta.data$proj_sex, disco_filt@meta.data$ct, sep="_")
 disco_filt@meta.data$proj_sex_ct <- proj_sex_ct
 
-saveRDS(disco_filt, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
+# saves the newly filtered object to anew RDS -> this is the final object we worked with from now on
+saveRDS(disco_filt, paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
-disco_filt <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
-
-Idents(disco_filt) <- "proj_sex_ct"
-
-DimPlot(disco_filt, reduction = "umap")
-
-GSE157827_sex_microglia <- FindMarkers(disco_filt, 
-                                      ident.1 = "GSE157827_F_microglia", 
-                                      ident.2 = "GSE157827_M_microglia",
-                                      logfc.threshold = 0.25,
-                                      min.pct = 0.1)
-
-GSE153807_sex_microglia <- FindMarkers(disco_filt, 
-                                       ident.1 = "GSE153807_F_microglia", 
-                                       ident.2 = "GSE153807_M_microglia",
-                                       logfc.threshold = 0.25,
-                                       min.pct = 0.1)
-
-PRJNA544731_sex_microglia <- FindMarkers(disco_filt, 
-                                       ident.1 = "PRJNA544731_F_microglia", 
-                                       ident.2 = "PRJNA544731_M_microglia",
-                                       logfc.threshold = 0.25,
-                                       min.pct = 0.1)
-
-GSE174367_sex_microglia <- FindMarkers(disco_filt, 
-                                       ident.1 = "GSE174367_F_microglia", 
-                                       ident.2 = "GSE174367_M_microglia",
-                                       logfc.threshold = 0.25,
-                                       min.pct = 0.1)
-
-
-write.csv(GSE157827_sex_microglia, "GSE157827_sex_microglia.csv")
-write.csv(GSE153807_sex_microglia, "GSE153807_sex_microglia.csv")
-write.csv(PRJNA544731_sex_microglia, "PRJNA544731_sex_microglia.csv")
-write.csv(GSE174367_sex_microglia, "GSE174367_sex_microglia.csv")
-
-
+# fixes some discrepancies in the metadata
 disco_filt@meta.data$sex_ct <- paste(disco_filt@meta.data$gender, disco_filt@meta.data$ct, sep="_")
-
-Idents(disco_filt) <- "sex_ct"
-
-sex_microglia <- FindMarkers(disco_filt, 
-                            ident.1 = "F_microglia", 
-                            ident.2 = "M_microglia",
-                            logfc.threshold = 0.25,
-                            min.pct = 0.1)
-
-
-write.csv(sex_microglia, "overall_sex_microglia.csv")
-
-
-sex_microglia <- read.csv("overall_sex_microglia.csv", row.names = 1)
-
-top10_overall <- rownames(sex_microglia)[1:10]
-
-VlnPlot(disco_microglia, features = top10_overall, group.by = "gender")
-RidgePlot(disco_microglia, features = top10_overall, group.by = "gender")
-
-# Number of cells per analysis
-
-overall_microglia_num <- as.data.frame(table(disco_filt$sex_ct))
-
-proj_microglia_num <- as.data.frame(table(disco_filt$proj_sex_ct))
-
-numbers_df <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/number_analyses.csv")
-numbers_df[,1] <- NULL
-
-label <- c("DISCO_microglia")
-f <- overall_microglia_num[which(overall_microglia_num$Var1=="F_microglia"), "Freq"]
-m <- overall_microglia_num[which(overall_microglia_num$Var1=="M_microglia"), "Freq"]
-
-proj <- unique(disco_filt$project_id)
-
-for (id in proj) {
-  id_label <- paste(id, "microglia", sep="_")
-  label <- c(label, id_label)
-  groupF <- paste(id, "F_microglia", sep="_")
-  f <- c(f, proj_microglia_num[which(proj_microglia_num$Var1==groupF), "Freq"])
-  groupM <- paste(id, "M_microglia", sep="_")
-  m <- c(m, proj_microglia_num[which(proj_microglia_num$Var1==groupM), "Freq"])
-}
-
-numbers_df <- rbind(numbers_df, data.frame(label, f, m))
-colnames(numbers_df) <- c("Analysis", "F", "M")
-numbers_df$Analysis <- as.factor(numbers_df$Analysis)
-numbers_df$dataset <- rep("DISCO", length.out=length(numbers_df$Analysis))
-numbers_df[c(1:2), "dataset"] <- "Allen"
-numbers_df$dataset <- as.factor(numbers_df$dataset)
-
-write.csv(numbers_df, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/number_analyses_all.csv")
-
-
-library(data.table) # to re-arrange dataframes
-
-df1 <- melt(as.data.table(numbers_df, "Analysis"))
-df1[,1] <- NULL
-colnames(df1) <- c("analysis", "dataset", "sex", "count")
-df1$dataset <- as.factor(df1$dataset)
-df1$sex <- as.factor(df1$sex)
-
-ggplot(df1, aes(analysis, count, fill=sex)) +
-  geom_bar(stat="identity", position = "dodge") + 
-  labs(x="Groups", y="Nuclei count", fill="Sex") +
-  facet_wrap(~dataset, scales = "free") +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5),
-        axis.title.x = element_blank(), 
-        axis.ticks.x=element_blank(),
-        axis.title.y = element_text(size=12, face="bold", colour = "black"),
-        legend.position = "bottom")
-  
-ggsave("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/number_analyses.jpeg", 
-       dpi=300)
-
-
-disease <- as.data.frame(table(disco_filt$disease))
-
-
+disco_filt@meta.data[which(is.na(disco_filt@meta.data$disease)), "disease"] <- "Normal"
 disco_filt@meta.data$proj_disease <- paste(disco_filt@meta.data$project_id, disco_filt@meta.data$disease, sep="_")
 disco_filt@meta.data$proj_sex_disease <- paste(disco_filt@meta.data$project_id, disco_filt@meta.data$gender, disco_filt@meta.data$disease, sep="_")
-
-DimPlot(disco_filt, reduction = "umap", group.by = "proj_sex_disease")
-
-
-disease <- as.data.frame(table(disco_filt$proj_sex_disease))
-disease <- separate(disease, Var1, into = c("project", "sex", "disease"), sep = "_")
-
-col_factors <- c("project", 
-                 "sex",
-                 "disease"
-)
-disease[col_factors] <- lapply(disease[col_factors], as.factor)  
-names(disease)[names(disease) == 'Freq'] <- "count"
-
-write.csv(disease, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/number_analyses_disease.csv")
-
-
-df2 <- melt(as.data.table(disease, "project"))
-df2[,1] <- NULL
-df2[,4] <- NULL
-colnames(df2) <- c("project", "sex", "disease", "count")
-
-ggplot(df2, aes(disease, count, fill=sex)) +
-  geom_bar(stat="identity", position = "dodge") + 
-  labs(x="Disease status", y="Nuclei count", fill="Sex") +
-  facet_wrap(~project, scales = "free") +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_blank(), 
-        axis.ticks.x=element_blank(),
-        axis.title.y = element_text(size=12, face="bold", colour = "black"),
-        legend.position = "bottom")
-
-ggsave("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/number_analyses_disease.jpeg", 
-       dpi=300)
-
-FeaturePlot(disco_filt, reduction = "umap", features= "TYROBP")
-DimPlot(disco_filt, reduction = "umap", group.by = "ct")
-
-FeaturePlot(disco_microglia, reduction = "umap", features= "TYROBP")
-DimPlot(disco_mi, reduction = "umap", group.by = "ct")
-
-saveRDS(disco_filt, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
-
-disco_filt@meta.data[which(is.na(disco_filt@meta.data$disease)), "disease"] <- "Unknown"
-
-unique(disco_filt@meta.data[which(disco_filt@meta.data$disease=="Unknown"), "sample_type"])
-
-disco_filt@meta.data[which(disco_filt@meta.data$disease=="Unknown"), "disease"] <- "Normal"
-
-disco_filt@meta.data$proj_disease <- paste(disco_filt@meta.data$project_id, disco_filt@meta.data$disease, sep="_")
-disco_filt@meta.data$proj_sex_disease <- paste(disco_filt@meta.data$project_id, disco_filt@meta.data$gender, disco_filt@meta.data$disease, sep="_")
-
-disease <- as.data.frame(table(disco_filt$proj_sex_disease))
-disease <- separate(disease, Var1, into = c("project", "sex", "disease"), sep = "_")
-
-col_factors <- c("project", 
-                 "sex",
-                 "disease"
-)
-disease[col_factors] <- lapply(disease[col_factors], as.factor)  
-names(disease)[names(disease) == 'Freq'] <- "count"
-
-write.csv(disease, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/number_analyses_disease.csv")
-
-df2 <- melt(as.data.table(disease, "project"))
-df2[,1] <- NULL
-df2[,4] <- NULL
-colnames(df2) <- c("project", "sex", "disease", "count")
-
-ggplot(df2, aes(disease, count, fill=sex)) +
-  geom_bar(stat="identity", position = "dodge") + 
-  labs(x="Disease status", y="Nuclei count", fill="Sex") +
-  facet_wrap(~project, scales = "free") +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"),
-        axis.title.x = element_blank(), 
-        axis.ticks.x=element_blank(),
-        axis.title.y = element_text(size=12, face="bold", colour = "black"),
-        legend.position = "bottom")
-
-ggsave("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/number_analyses_disease.jpeg", 
-       dpi=300)
-
-disco_filt@meta.data$proj_sex_disease_ct <- paste(disco_filt@meta.data$proj_sex_disease, disco_filt@meta.data$ct, sep="_")
-
-
-# DEG analysis -> only normal samples
-
-Idents(disco_filt) <- "proj_sex_disease_ct"
-
-disco_microglia <- subset(disco_filt, subset = ct == "microglia")
-
-disco_microglia <- subset(disco_microglia, subset = sample_type == "normal")
-
-normal_microglia <- as.data.frame(table(disco_microglia$proj_sex_disease_ct))
-
-# only two projects have both M and F normal microglia
-
-GSE157827_normal_F_microglia <- FindMarkers(disco_filt, 
-                                       ident.1 = "GSE157827_F_Normal_microglia", 
-                                       ident.2 = "GSE157827_M_Normal_microglia",
-                                       logfc.threshold = 0.25,
-                                       min.pct = 0.1,
-                                       only.pos = TRUE)
-
-GSE174367_normal_F_microglia <- FindMarkers(disco_filt, 
-                                       ident.1 = "GSE174367_F_Normal_microglia", 
-                                       ident.2 = "GSE174367_M_Normal_microglia",
-                                       logfc.threshold = 0.25,
-                                       min.pct = 0.1,
-                                       only.pos = TRUE)
-
-
-write.csv(GSE157827_normal_F_microglia, "20220815/GSE157827_normal_F_microglia.csv")
-write.csv(GSE174367_normal_F_microglia, "20220815/GSE174367_normal_F_microglia.csv")
-
-GSE157827_normal_M_microglia <- FindMarkers(disco_filt, 
-                                            ident.1 = "GSE157827_M_Normal_microglia", 
-                                            ident.2 = "GSE157827_F_Normal_microglia",
-                                            logfc.threshold = 0.25,
-                                            min.pct = 0.1,
-                                            only.pos = TRUE)
-
-GSE174367_normal_M_microglia <- FindMarkers(disco_filt, 
-                                            ident.1 = "GSE174367_M_Normal_microglia", 
-                                            ident.2 = "GSE174367_F_Normal_microglia",
-                                            logfc.threshold = 0.25,
-                                            min.pct = 0.1,
-                                            only.pos = TRUE)
-
-
-write.csv(GSE157827_normal_M_microglia, "20220815/GSE157827_normal_M_microglia.csv")
-write.csv(GSE174367_normal_M_microglia, "20220815/GSE174367_normal_M_microglia.csv")
-
-
-disco_filt <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
-
-num_proj_sex_disease_ct <- as.data.frame(table(disco_filt$proj_sex_disease_ct))
-num_proj_sex_disease_ct <- separate(num_proj_sex_disease_ct, Var1, into = c("proj", "sex" , "disease", "ct"), sep = "_")
-
-print(subset(num_proj_sex_disease_ct, subset = ct == "microglia" & proj %in% c("GSE157827", "GSE174367") & disease == "Normal"))
-
-saveRDS(disco_filt, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
-
 disco_filt@meta.data[which(disco_filt@meta.data$disease=="Alzheimer’s disease"), "disease"] <- "Alzheimer's disease"  
 disco_filt@meta.data[which(disco_filt@meta.data$disease=="multiple sclerosis"), "disease"] <- "Multiple Sclerosis"  
 disco_filt@meta.data[which(disco_filt@meta.data$disease=="neurosurgical disease"), "disease"] <- "Neurosurgical Disease"  
-
 disco_filt@meta.data$proj_sex_disease_ct <- paste(disco_filt@meta.data$project_id, disco_filt@meta.data$gender, disco_filt@meta.data$disease, disco_filt@meta.data$ct, sep="_")
 
-disco_filt <- subset(disco_filt, project_id != "GSE153807")
 
+##################################### 2. Filter cts for DEGs analysis steps
+
+disco_filt <- readRDS(paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
+
+# extract the number of cells per combination of project, sex, disease condition and celltype
 num_proj_sex_disease_ct <- as.data.frame(table(disco_filt$proj_sex_disease_ct))
 num_proj_sex_disease_ct <- separate(num_proj_sex_disease_ct, Var1, into = c("proj", "sex" , "disease", "ct"), sep = "_")
 
@@ -663,43 +284,15 @@ col_factors <- c("proj",
 num_proj_sex_disease_ct[col_factors] <- lapply(num_proj_sex_disease_ct[col_factors], as.factor)  
 names(num_proj_sex_disease_ct)[names(num_proj_sex_disease_ct) == 'Freq'] <- "count"
 
-for (id in levels(num_proj_sex_disease_ct$proj)) {
-  pdf(paste0("20220817/outputs/", id, "_counts.pdf"), 10, 15)
-  print(ggplot(num_proj_sex_disease_ct[which(num_proj_sex_disease_ct$proj==id),], aes(disease, count, fill=sex)) +
-          geom_bar(stat="identity", position = "dodge") + 
-          labs(x="", y="Nuclei count", fill="Sex") +
-          facet_wrap(~ct, scales = "free") +
-          geom_hline(yintercept = 10, linetype="dashed") +
-          theme(panel.grid.major = element_blank(), 
-                panel.grid.minor = element_blank(),
-                panel.background = element_blank(), 
-                axis.line = element_line(colour = "black"),
-                axis.title.x = element_text(size=12, face="bold", colour = "black"),
-                axis.text.x = element_text(size=8, colour = "black",angle = 45, vjust = 0.5, hjust=0.5),
-                axis.ticks.x=element_blank(),
-                axis.title.y = element_text(size=12, face="bold", colour = "black"),
-                legend.position = "bottom"))
-  dev.off()
-}
-
-FiltDF <- function(df, disease) {
+# filters the above df to check which celltypes contain less than a custom threshold number of cells
+# then removes also the counterpart sex if only one of the 2 is less than the threshold
+FiltDF <- function(df, disease, min_num_cells) {
   `%!in%` <- Negate(`%in%`)
   df <- droplevels(df)
-  incomplete_ct <- vector()
-  for (type in levels(df$ct)) {
-    if ((nrow(subset(df, subset = ct == type))%%2!=0) | (any(subset(df, subset = ct == type)[,5]<10))) {
-      #print(subset(df, subset = ct == type))
-      incomplete_ct <- c(incomplete_ct, type)
-    } else if ((nrow(subset(df, subset = ct == type))==2) & (disease!="MS")) {
-      incomplete_ct <- c(incomplete_ct, type)
-    }
-  }
-  incomplete_df <- df[df$ct %in% incomplete_ct,]
-  incomplete_df <- droplevels(incomplete_df)
   incomplete_proj <- vector()
-  for (type in levels(incomplete_df$ct)) {
-    for (id in levels(incomplete_df$proj)) {
-      if ((nrow(subset(df, subset = (ct==type & proj==id)))%%2!=0) | (any(subset(df, subset = (ct==type & proj==id))[,5]<10))) {
+  for (type in levels(df$ct)) {
+    for (id in levels(df$proj)) {
+      if ((nrow(subset(df, subset = (ct==type & proj==id)))%%2!=0) | (any(subset(df, subset = (ct==type & proj==id))[,5] < min_num_cells))) {
         incomplete_proj <- c(incomplete_proj, (paste(id, type, sep="_")))
       }
     }
@@ -709,109 +302,65 @@ FiltDF <- function(df, disease) {
   return(df_filt)
 }
 
+# splits the dfs in three subsets, one per disease condition
 num_normal <- subset(num_proj_sex_disease_ct, disease == "Normal")
-num_normal_filt <- FiltDF(num_normal, "Normal")
-
 num_AD <- subset(num_proj_sex_disease_ct, disease == "Alzheimer's disease")
-num_AD_filt <- FiltDF(num_AD, "AD")
-
 num_MS <- subset(num_proj_sex_disease_ct, disease == "Multiple Sclerosis")
-num_MS_filt <- FiltDF(num_MS, "MS")
 
-#num_list <- list(num_normal_filt, num_AD_filt, num_MS)
-#names(num_list) <- c("num_normal_filt", "num_AD_filt", "num_MS_filt")
-#lapply(1:length(num_list), function(i) write.csv(num_list[i], 
-#                                                 file = paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0//20220817_DEGs/outputs/",
-#                                                               names(num_list[i]), ".csv"),
-#                                                 row.names = TRUE))
+min_num_cells <- c(10,50,100)
 
-
-num_filt <- rbind(num_normal_filt, num_AD_filt, num_MS_filt)
-num_filt$idents <- paste(num_filt$proj, num_filt$sex, num_filt$disease, num_filt$ct, sep="_")
-
-write.csv(num_filt, file = paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/", 
-                                  "/20220817_DEGs/outputs/final_filt.csv"),
-          row.names = TRUE)
-
-for (id in levels(num_filt$proj)) {
-  pdf(paste0("20220817/outputs/", id, "_filt_counts.pdf"), 10, 15)
-  print(ggplot(num_filt[which(num_filt$proj==id),], aes(disease, count, fill=sex)) +
-          geom_bar(stat="identity", position = "dodge") + 
-          labs(x="", y="Nuclei count", fill="Sex") +
-          facet_wrap(~ct, scales = "free") +
-          geom_hline(yintercept = 10, linetype="dashed") +
-          theme(panel.grid.major = element_blank(), 
-                panel.grid.minor = element_blank(),
-                panel.background = element_blank(), 
-                axis.line = element_line(colour = "black"),
-                axis.title.x = element_text(size=12, face="bold", colour = "black"),
-                axis.text.x = element_text(size=8, colour = "black",angle = 45, vjust = 0.5, hjust=0.5),
-                axis.ticks.x=element_blank(),
-                axis.title.y = element_text(size=12, face="bold", colour = "black"),
-                legend.position = "bottom"))
-  dev.off()
+# saves the cSV outputs for the three thresholds
+for (min_cells in min_num_cells) {
+  num_normal_filt <- FiltDF(num_normal, "Normal", min_cells)
+  num_AD_filt <- FiltDF(num_AD, "AD", min_cells)
+  num_MS_filt <- FiltDF(num_MS, "MS", min_cells)
+  num_filt <- rbind(num_normal_filt, num_AD_filt, num_MS_filt)
+  num_filt$idents <- paste(num_filt$proj, num_filt$sex, num_filt$disease, num_filt$ct, sep="_")
+  num_filt$name_subfolders <- str_replace_all(num_filt$ct, "/", "_")
+  #print(nrow(num_filt))
+  write.csv(num_filt, file = paste0(disco_path, 
+                                        "DEGs_common/outputs/final_filt_", min_cells, ".csv"),
+            row.names = F)
 }
 
+# and the corresponding plots
+for (min_cells in min_num_cells) {
+  for (id in levels(num_proj_sex_disease_ct$proj)) {
+    pdf(paste0(disco_path, "DEGs_common/outputs/", id, "_filt_counts_", min_cells, ".pdf"), 10, 15)
+    print(ggplot(num_proj_sex_disease_ct[which(num_proj_sex_disease_ct$proj==id),], aes(disease, count, fill=sex)) +
+            geom_bar(stat="identity", position = "dodge") + 
+            labs(x="", y="Nuclei count", fill="Sex") +
+            facet_wrap(~ct, scales = "free") +
+            geom_hline(yintercept = min_cells, linetype="dashed") +
+            theme(panel.grid.major = element_blank(), 
+                  panel.grid.minor = element_blank(),
+                  panel.background = element_blank(), 
+                  axis.line = element_line(colour = "black"),
+                  axis.title.x = element_text(size=12, face="bold", colour = "black"),
+                  axis.text.x = element_text(size=8, colour = "black",angle = 45, vjust = 0.5, hjust=0.5),
+                  axis.ticks.x=element_blank(),
+                  axis.title.y = element_text(size=12, face="bold", colour = "black"),
+                  legend.position = "bottom"))
+    dev.off()
+  }
+}
 
-saveRDS(disco_filt, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
+# updates the RDS
+saveRDS(disco_filt, paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
+##################################### 3. Info for SCENIC Pipeline
 
-# extract all DEGs among different cts, for conservation plots
-disco_filt <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
+# Plots the cell counts so that we could check which threshold to use to create the SCENIC input matrices
 
-#disco_filt@meta.data$proj_disease_ct <- paste(disco_filt@meta.data$project_id, disco_filt@meta.data$disease, disco_filt@meta.data$ct, sep="_")
-Idents(disco_filt) <- "ct"
-
-num_proj_disease_ct <- as.data.frame(table(disco_filt$proj_disease_ct))
-num_proj_disease_ct <- separate(num_proj_disease_ct, Var1, into = c("proj", "disease", "ct"), sep = "_")
-
-col_factors <- c("proj", 
-                 "disease",
-                 "ct"
-)
-num_proj_disease_ct[col_factors] <- lapply(num_proj_disease_ct[col_factors], as.factor)  
-names(num_proj_disease_ct)[names(num_proj_disease_ct) == 'Freq'] <- "count"
-
-normal_disco <- subset(disco_filt, subset = disease == "Normal")
-ad_disco <- subset(disco_filt, subset = disease == "Alzheimer's disease")
-
-DimPlot(normal_disco, reduction="umap", group.by = "disease")
-DimPlot(ad_disco, reduction="umap", group.by = "disease")
-
-Idents(normal_disco) <- "ct"
-
-normal_all_degs <- FindAllMarkers(normal_disco, 
-            logfc.threshold = 0.25,
-            min.pct = 0.1)
-
-write.csv(normal_all_degs, file = paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/", 
-                                  "/20220817_DEGs/outputs/normal_all_DEGs.csv"),
-                                  row.names = TRUE)
-
-Idents(ad_disco) <- "ct"
-
-ad_all_degs <- FindAllMarkers(ad_disco, 
-                              logfc.threshold = 0.25,
-                              min.pct = 0.1)
-
-write.csv(ad_all_degs, file = paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/", 
-                                         "/20220817_DEGs/outputs/ad_all_DEGs.csv"),
-          row.names = TRUE)
-
-#ad_remove <- list.dirs("Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/outputs/Alzheimer's disease/01A_only_1_project", recursive=FALSE, full.names = FALSE)
-
-
-####### INFO FOR SCENIC PIPELINE
-
-disco_filt <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
+disco_filt <- readRDS(paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
 num_proj_sex <- as.data.frame(table(disco_filt$proj_sex_disease))
 num_proj_sex <- separate(num_proj_sex, Var1, into = c("proj", "sex", "disease"), sep = "_")
 names(num_proj_sex)[names(num_proj_sex) == 'Freq'] <- "count"
-write.csv(num_proj_sex, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/num_proj_sex_disease.csv")
+write.csv(num_proj_sex, paste0(disco_path, "DEGs_common/num_proj_sex_disease.csv"))
 
 for (dis_type in unique(num_proj_sex$disease)) {
-  pdf(paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/num_proj_sex_", dis_type,".pdf"))
+  pdf(paste0(disco_path, "DEGs_common/num_proj_sex_", dis_type,".pdf"))
   print(
     ggplot(num_proj_sex[which(num_proj_sex$disease==dis_type), ], aes(proj, count, fill=sex)) +
       geom_bar(stat="identity", position="dodge") +
@@ -833,123 +382,50 @@ for (dis_type in unique(num_proj_sex$disease)) {
 num_proj_sex_ct <- as.data.frame(table(disco_filt$proj_sex_disease_ct))
 num_proj_sex_ct <- separate(num_proj_sex_ct, Var1, into = c("proj", "sex", "disease", "ct"), sep = "_")
 names(num_proj_sex_ct)[names(num_proj_sex_ct) == 'Freq'] <- "count"
-write.csv(num_proj_sex_ct, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/num_proj_sex_ct.csv")
+write.csv(num_proj_sex_ct, paste0(disco_path, "DEGs_common/num_proj_sex_ct.csv"))
 
 for (dis_type in unique(num_proj_sex_ct$disease)) {
-  pdf(paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/num_proj_sex_", dis_type,"_ct.pdf"),
+  pdf(paste0(disco_path, "DEGs_common/num_proj_sex_", dis_type,"_ct.pdf"),
       width = 15, height = 18.75)
   print(
-      ggplot(num_proj_sex_ct[which(num_proj_sex_ct$disease==dis_type), ], aes(proj, count, fill=sex)) +
-        geom_bar(stat="identity", position="dodge") +
-        labs(x="Project ID", y='Cell Counts', fill="Sex", main = dis_type) +
-        facet_wrap(~ct, scales = "free") +
-        geom_hline(yintercept = 10, linetype=2) +
-        theme(panel.grid.major = element_blank(), 
-              panel.grid.minor = element_blank(),
-              panel.background = element_blank(), 
-              axis.line = element_line(colour = "black"),
-              axis.title.x = element_text(size=12, face="bold", colour = "black"),
-              axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.5, hjust=0.5),
-              axis.ticks.x=element_blank(),
-              axis.title.y = element_text(size=12, face="bold", colour = "black"),
-              legend.title = element_text(size=12, face="bold", colour = "black"),
-              legend.position = "bottom")
+    ggplot(num_proj_sex_ct[which(num_proj_sex_ct$disease==dis_type), ], aes(proj, count, fill=sex)) +
+      geom_bar(stat="identity", position="dodge") +
+      labs(x="Project ID", y='Cell Counts', fill="Sex", main = dis_type) +
+      facet_wrap(~ct, scales = "free") +
+      geom_hline(yintercept = 100, linetype=2) +
+      theme(panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(),
+            panel.background = element_blank(), 
+            axis.line = element_line(colour = "black"),
+            axis.title.x = element_text(size=12, face="bold", colour = "black"),
+            axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.5, hjust=0.5),
+            axis.ticks.x=element_blank(),
+            axis.title.y = element_text(size=12, face="bold", colour = "black"),
+            legend.title = element_text(size=12, face="bold", colour = "black"),
+            legend.position = "bottom")
   )
   dev.off()
 }
 
-######## HIGHEST VARIABLE GENES - TEST 2022.10.17
+saveRDS(disco_filt, paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
-disco_filt <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
+######## 3.1 Highest Variable Genes
 
-#length(test1$RNA)
-#length(test1$RNA[which(test1$RNA>0),])
+# Extract the expression matrix to then later use in the SCENIC pipeline
 
-Idents(disco_filt) <- "proj_sex_disease_ct"
+disco_filt <- readRDS(paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
-
-test2 <- AverageExpression(disco_filt, assays="RNA") # calculates average expression for each gene in each ident
-test3 <- as.data.frame(test2$RNA) # creates a df
-
-library(matrixStats)
-test3$SD <- rowSds(as.matrix(test3)) # calculates SD for each row -> variability in the different groups
-test3 <- test3[order(-test3$SD),] # order df in descending order
-test3$Genes <- rownames(test3) # extract gene names as factor
-test3$Genes <- as.factor(test3$Genes)
-
-# displays SD as descending values
-ggplot(test3[1:50,], aes(reorder(Genes, -SD), SD)) +
-  geom_point()
-
-
-# this theoretically retrieves the avg expression of genes within a cluster -> variability among samples
-micro1 <- subset(disco_filt, subset = proj_sex_disease_ct == "GSE174367_F_Normal_microglia")
-
-Idents(micro1) <- "sample_id"
-test1 <- AverageExpression(micro1, assays="RNA")
-test1 <- as.data.frame(test1$RNA) # creates a df
-
-test1$SD <- rowSds(as.matrix(test1)) # calculates SD for each row -> variability in the different groups
-test1 <- test1[order(-test1$SD),] # order df in descending order
-test1$Genes <- rownames(test1) # extract gene names as factor
-test1$Genes <- as.factor(test1$Genes)
-
-# displays SD as descending values
-ggplot(test1[1:50,], aes(reorder(Genes, -SD), SD)) +
-  geom_point()
-
-test2 <- as.data.frame(GetAssayData(micro1[["RNA"]], slot="data"))
-test2$SD <- rowSds(as.matrix(test2))
-test2 <- test2[order(-test2$SD),] # order df in descending order
-test2$Genes <- rownames(test2) # extract gene names as factor
-test2$Genes <- as.factor(test2$Genes)
-
-# displays SD as descending values
-ggplot(test2[1:50,], aes(reorder(Genes, -SD), SD)) +
-  geom_point()
-
-
-# main diff is that AverageExpression is in log-space, GetAssayData is not -> use GetAssayData
-
-sub_test2 <- test2[1:2000,]
-drops <- c("Genes", "SD")
-sub_test2 <- sub_test2[ , !(names(sub_test2) %in% drops)]
-sub_test2 <- cbind("Genes" = rownames(sub_test2), sub_test2)
-rownames(sub_test2) <- NULL
-
-
-sub_test2 <- rbind(colnames(sub_test2), sub_test2)
-
-write.table(sub_test2, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/SCENIC/test_micro.tsv", 
-            sep="\t", col.names = FALSE)
-write.table(sub_test2, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/SCENIC/microglia_test/test_micro.tsv", 
-            sep="\t", col.names = FALSE)
-
-sub_test3 <- as.data.frame(t(sub_test2))
-rownames(sub_test3) <- NULL
-sub_test3[1,1] <- NA
-write.table(sub_test3, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/SCENIC/microglia_test/test_micro.csv", 
-            sep=",", col.names = FALSE, row.names = FALSE)
-
-library(SeuratDisk)
-lfile <- SaveLoom(micro1, 
-        filename = "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/SCENIC/microglia_test/micro_test.loom")
-
-######## HIGHEST VARIABLE GENES - 2022.10.18
-
-disco_filt <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
-
-#disco_filt@meta.data$proj_sex_disease_ct_sample <- paste(disco_filt@meta.data$proj_sex_disease_ct, disco_filt@meta.data$sample_id, sep="_")
-#saveRDS(disco_filt, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
+disco_filt@meta.data$proj_sex_disease_ct_sample <- paste(disco_filt@meta.data$proj_sex_disease_ct, disco_filt@meta.data$sample_id, sep="_")
 
 Idents(disco_filt) <- "proj_sex_disease_ct_sample"
 
-expr_mat_all <- GetAssayData(disco_filt[["RNA"]], slot="data")
+expr_mat_all <- GetAssayData(disco_filt[["RNA"]], slot="data") # -> gene as rows, cells as columns, values are the RNA expression counts
 
 Idents(disco_filt) <- "proj_sex_disease_ct"
 
 cell_info <- data.frame()
 
+# creates a df containing metadata associated with the cell barcodes -> used later to create the randomly sampled matrices
 for (i in unique(disco_filt@meta.data$proj_sex_disease_ct)) {
   print(i)
   cell_id <- WhichCells(disco_filt, idents = i)
@@ -960,14 +436,20 @@ for (i in unique(disco_filt@meta.data$proj_sex_disease_ct)) {
 cell_info <- separate(cell_info, cell_id, into = c("barcode", "sample"), sep = "--", remove = FALSE)
 
 write.csv(cell_info,
-          "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/cell_info.csv")
+          paste0(disco_path, "DEGs_common/cell_info.csv"))
+
+saveRDS(disco_filt, paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
 rm(disco_filt)
 
+# transform the expression matrix into a df -> computationally intense step
 expr_mat_all <- as.data.frame(as.matrix(expr_mat_all))
+# calculates the standard deviation for each gene 
 expr_mat_all$SD <- rowSds(as.matrix(expr_mat_all))
+# keeps genes with SD higher than 0 
 expr_mat_all <- expr_mat_all[which(expr_mat_all$SD > 0), ]
 
+# another filtering 0 -> aim is to find the 2000 most variable genes 0> the top genes with highest SD
 if (nrow(expr_mat_all) * 0.25 > 2000) {
   expr_mat_all <- expr_mat_all[which(expr_mat_all$SD > quantile(expr_mat_all$SD)[4]), ]
 } else {
@@ -976,7 +458,9 @@ if (nrow(expr_mat_all) * 0.25 > 2000) {
 
 # order df in descending order
 expr_mat_all <- expr_mat_all[order(-expr_mat_all$SD),] 
+# keeps only top 2000
 expr_mat_all <- expr_mat_all[1:2000, ]
+# adds Genes as an extra column
 expr_mat_all <- cbind("Genes" = rownames(expr_mat_all), expr_mat_all)
 rownames(expr_mat_all) <- NULL
 
@@ -989,29 +473,13 @@ if (identical(length(which(expr_sums>0)), length(expr_sums))) {
 }
 
 expr_mat_all <- expr_mat_all %>% 
-          relocate(SD, .after = Genes)
-
-saveRDS(expr_mat_all, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/top_2000_SD_expr_matrix.rds")
-
-##### Extract randomly 2k cells and analyze them in SCENIC to see if it can handle a big dataset
-random_expr <- sample(expr_mat_all[-2], 2000)
-random_expr <- cbind("Genes" = expr_mat_all$Genes, random_expr)
-random_expr <- rbind(colnames(random_expr), random_expr)
-
-random_expr_tiny <- random_expr[, 1:1000]
-
-write.table(random_expr, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/SCENIC/random_expr_test/random_expr.csv", 
-            sep=",", col.names = FALSE, row.names = FALSE)
-write.table(random_expr_tiny, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/SCENIC/random_expr_test/random_expr_tiny.csv", 
-            sep=",", col.names = FALSE, row.names = FALSE)
+  relocate(SD, .after = Genes)
 
 
 ##### Map the samples back to the groups they belong to
-#cell_info$cell_id <- paste(cell_info$barcode, cell_info$sample, sep = "--")
-#cell_info <- cell_info %>% 
-#  relocate(cell_id, .before = barcode)
-
-expr_mat_all <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/top_2000_SD_expr_matrix.rds")
+cell_info$cell_id <- paste(cell_info$barcode, cell_info$sample, sep = "--")
+cell_info <- cell_info %>% 
+  relocate(cell_id, .before = barcode)
 
 group_list <- list()
 group_list_n <- vector()
@@ -1109,25 +577,25 @@ plot_group_numbers <- function(df_list, thresh) {
   col_factors <- c("proj", "sex", "disease", "ct")
   ids[col_factors] <- lapply(ids[col_factors], as.factor)  
   ids$length_groups <- sapply(1:length(names(df_list)), function(i) ncol(df_list[[i]]))
-  pdf(paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/num_filt_", thresh, "_cells.pdf"),
+  pdf(paste0(disco_path, "SCENIC/num_filt_", thresh, "_cells.pdf"),
       height = 12)
   print(
-  ggplot(ids, aes(ct, length_groups, fill=sex)) +
-    geom_bar(stat="identity", position = "dodge") + 
-    facet_wrap(~proj*disease, nrow = 3, scales = "free") +
-    geom_hline(yintercept = thresh, linetype="dashed", color = "black") +
-    labs(title = paste0("Filter: ", thresh, " cells"), x="cell types", y="# of cells", fill="sex") +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          panel.background = element_blank(), 
-          axis.line = element_line(colour = "black"),
-          axis.title.x = element_text(size=12, face="bold", colour = "black"),
-          axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.5, hjust=0.5),
-          axis.ticks.x=element_blank(),
-          axis.title.y = element_text(size=12, face="bold", colour = "black"),
-          legend.title = element_text(size=12, face="bold", colour = "black"),
-          legend.position = "bottom",
-          plot.title = element_text(size=12, face="bold", colour = "black"))
+    ggplot(ids, aes(ct, length_groups, fill=sex)) +
+      geom_bar(stat="identity", position = "dodge") + 
+      facet_wrap(~proj*disease, nrow = 3, scales = "free") +
+      geom_hline(yintercept = thresh, linetype="dashed", color = "black") +
+      labs(title = paste0("Filter: ", thresh, " cells"), x="cell types", y="# of cells", fill="sex") +
+      theme(panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(),
+            panel.background = element_blank(), 
+            axis.line = element_line(colour = "black"),
+            axis.title.x = element_text(size=12, face="bold", colour = "black"),
+            axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.5, hjust=0.5),
+            axis.ticks.x=element_blank(),
+            axis.title.y = element_text(size=12, face="bold", colour = "black"),
+            legend.title = element_text(size=12, face="bold", colour = "black"),
+            legend.position = "bottom",
+            plot.title = element_text(size=12, face="bold", colour = "black"))
   )
   dev.off()
 }
@@ -1136,11 +604,10 @@ plot_group_numbers(group_list, 10)
 plot_group_numbers(group_list100, 100)
 plot_group_numbers(group_list500, 500)
 
-
 ###### Create Randomly sampled dfs
 
-expr_mat_all <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/top_2000_SD_expr_matrix.rds")
-cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/cell_info.csv")
+expr_mat_all <- readRDS(paste0(disco_path, "SCENIC/top_2000_SD_expr_matrix.rds"))
+cell_info <- read.csv(paste0(disco_path, "SCENIC/cell_info.csv"))
 
 remove_dfs <- function(df_list, threshold) {
   incomplete_dfs <- vector()
@@ -1183,9 +650,7 @@ names(df_list) <- df_list_n
 df_list100 <- df_list
 df_list100 <- remove_dfs(df_list100, 100)
 
-maindir <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/"
-
-sub_disease <- list.dirs(maindir, recursive=FALSE, full.names = FALSE)
+sub_disease <- list.dirs(disco_scenic, recursive=FALSE, full.names = FALSE)
 
 dfs_split <- list("Alzheimer's disease" = vector(), 
                   "Multiple Sclerosis" = vector(),
@@ -1242,53 +707,35 @@ rand_sample <- function(group_list, num_sampling, num_cells, main, dis_type) {
     }
   }
   names(sampled_dfs) <- lapply(1:length(sampled_names), function(i) str_replace_all(sampled_names[i],
-                                                                                          "/", "_"))
+                                                                                    "/", "_"))
   names(sampled_dfs) <- lapply(1:length(names(sampled_dfs)), function(i) str_replace_all(names(sampled_dfs)[i],
-                                                                                    " ", "_"))
+                                                                                         " ", "_"))
   dir.create(paste0(main, dis_type, "/sampled_", num_cells, "_cells"), showWarnings = FALSE)
   lapply(1:length(names(sampled_dfs)), function(i) write.csv(sampled_dfs[[i]], 
-                                                              file = paste0(main, dis_type, "/sampled_", num_cells, "_cells/", names(sampled_dfs)[i], ".csv"),
-                                                              row.names = FALSE))
+                                                             file = paste0(main, dis_type, "/sampled_", num_cells, "_cells/", names(sampled_dfs)[i], ".csv"),
+                                                             row.names = FALSE))
   return(sampled_dfs)
 }
 
 
-norm_sampled <- rand_sample(norm, 3, 100, maindir, sub_disease[3])
-ad_sampled <- rand_sample(ad, 3, 100, maindir, sub_disease[1])
-ms_sampled <- rand_sample(ms, 3, 100, maindir, sub_disease[2])
+norm_sampled <- rand_sample(norm, 3, 100, disco_scenic, sub_disease[3])
+ad_sampled <- rand_sample(ad, 3, 100, disco_scenic, sub_disease[1])
+ms_sampled <- rand_sample(ms, 3, 100, disco_scenic, sub_disease[2])
 
-rand_sample_merged <- function(group_list, num_sampling, num_cells, main, dis_type) {
-  for (k in 1:num_sampling) {
-    sampled_dfs <-list()
-    sampled_names <- vector()
-    for (id in names(group_list)) {
-      if (id == names(group_list)[1]) {
-        sampled <- data.frame()
-        sampled <- sample(group_list[[id]][-1], num_cells)
-        sampled <- cbind("Genes" = group_list[[id]]$Genes, sampled)
-      } else {
-        sampled <- cbind(sampled, sample(group_list[[id]][-1], num_cells))
-      }
-    }
-    dir.create(paste0(main, dis_type, "/sampled_", num_cells, "_cells_all_cts"), showWarnings = FALSE)
-    write.csv(sampled, paste0(main, dis_type, "/sampled_", num_cells, "_cells_all_cts/", ))
-  }
-  
-  return(sampled_dfs)
-}
 
-############ For 02C_Conservation
+############ For 02C_Conservation - DEgs_common
 
-disco_filt <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/brainV1.0_all_FM_filt.rds")
+disco_filt <- readRDS(paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
 Idents(disco_filt) <- "proj_sex_disease_ct"
 
 expr_mat_all_cts <- GetAssayData(disco_filt[["RNA"]], slot="data")
+saveRDS(disco_filt, paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
 rm(disco_filt)
 expr_mat_all_cts <- as.data.frame(as.matrix(expr_mat_all_cts))
 
-cell_info <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/cell_info.csv")
+cell_info <- read.csv(paste0(disco_path, "SCENIC/cell_info.csv"))
 cell_info$X <- NULL
 
 df_list <- list()
@@ -1300,13 +747,12 @@ for (df_id in unique(cell_info$og_group)) {
   df_list_n <-  c(df_list_n, df_id)
 }
 names(df_list) <- df_list_n
-#lapply(1:length(df_list_n), function(i) str_replace_all(df_list_n[i], "/", "_"))
 
-dfs_split <- list("Alzheimer'sdisease" = vector(), 
+dfs_split <- list("Alzheimer's disease" = vector(), 
                   "Multiple Sclerosis" = vector(),
                   "Normal"   = vector())
 
-sub_disease <- list.dirs("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/outputs/", recursive=FALSE, full.names = FALSE)
+sub_disease <- list.dirs(paste0(disco_path, "DEGs_common/outputs/"), recursive=FALSE, full.names = FALSE)
 
 for (dis_type in sub_disease) {
   dfs_split[[dis_type]] <- names(df_list)[which(grepl(dis_type, names(df_list)))]
@@ -1319,7 +765,6 @@ ms <- df_list[dfs_split[["Multiple Sclerosis"]]]
 
 
 FiltDisDf <- function(df_list_dis) {
-  #df_list_dis <- df_list_dis[!sapply(1:length(names(df_list_dis)), function(x) is.null(ncol(df_list_dis[[x]])))]
   filt_names <- vector()
   df_dis <- list()
   for (k in names(df_list_dis)) {
@@ -1338,7 +783,6 @@ FiltDisDf <- function(df_list_dis) {
   tot_genes <- data.frame(cts, genes)
   return(tot_genes)
 }
-
 
 norm_df <- FiltDisDf(norm)
 ad_df <- FiltDisDf(ad)
@@ -1367,29 +811,29 @@ for (dis_type in levels(tot_df$disease)) {
         diseases <- c(diseases, rep(dis_type, length(common_genes)))
         sexes <- c(sexes, rep(sex_id, length(common_genes)))
         cts <- c(cts, rep(ct_id, length(common_genes)))
-        }
       }
-    } else {
+    }
+  } else {
     for (sex_id in levels(tot_df$sex)) {
       for (ct_id in levels(tot_df$ct)) {
         proj_list <- unique(tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id), "proj"])
         if (length(proj_list)==3) {
-            common_genes <- intersect(tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id & tot_df$proj==proj_list[1]), "genes"],
-                            intersect(
-                              tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id & tot_df$proj==proj_list[2]), "genes"],
-                              tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id & tot_df$proj==proj_list[3]), "genes"]
-                            ))
-            genes <- c(genes, common_genes)
-            diseases <- c(diseases, rep(dis_type, length(common_genes)))
-            sexes <- c(sexes, rep(sex_id, length(common_genes)))
-            cts <- c(cts, rep(ct_id, length(common_genes)))
+          common_genes <- intersect(tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id & tot_df$proj==proj_list[1]), "genes"],
+                                    intersect(
+                                      tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id & tot_df$proj==proj_list[2]), "genes"],
+                                      tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id & tot_df$proj==proj_list[3]), "genes"]
+                                    ))
+          genes <- c(genes, common_genes)
+          diseases <- c(diseases, rep(dis_type, length(common_genes)))
+          sexes <- c(sexes, rep(sex_id, length(common_genes)))
+          cts <- c(cts, rep(ct_id, length(common_genes)))
         } else if (length(proj_list)==2) {
-            common_genes <- intersect(tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id & tot_df$proj==proj_list[1]), "genes"],
-                                      tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id & tot_df$proj==proj_list[2]), "genes"])
-            genes <- c(genes, common_genes)
-            diseases <- c(diseases, rep(dis_type, length(common_genes)))
-            sexes <- c(sexes, rep(sex_id, length(common_genes)))
-            cts <- c(cts, rep(ct_id, length(common_genes)))
+          common_genes <- intersect(tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id & tot_df$proj==proj_list[1]), "genes"],
+                                    tot_df[which(tot_df$sex==sex_id & tot_df$disease==dis_type & tot_df$ct==ct_id & tot_df$proj==proj_list[2]), "genes"])
+          genes <- c(genes, common_genes)
+          diseases <- c(diseases, rep(dis_type, length(common_genes)))
+          sexes <- c(sexes, rep(sex_id, length(common_genes)))
+          cts <- c(cts, rep(ct_id, length(common_genes)))
         }
       }
     }
@@ -1401,126 +845,157 @@ colnames(tot_genes) <- c("disease", "sex", "ct", "genes")
 col_factors <- c("disease", "sex", "ct")
 tot_genes[col_factors] <- lapply(tot_genes[col_factors], as.factor) 
 
-write.csv(tot_genes, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/tot_genes_ct.csv")
+write.csv(tot_genes, paste0(disco_path, "DEGs_common/tot_genes_ct.csv"))
 
-ct_order <- c(
-  "L2_3 EN",               
-  "L4 EN",   
-  "PLCH1 L4_5 EN", 
-  "TSHZ2 L4_5 EN", 
-  "L5 EN",       
-  "L5_6 EN",       
-  "L5b EN",     
-  "L6 EN",     
-  "pyramidal neuron", 
-  "CXCL14 IN",  
-  "PVALB IN",                    
-  "SST IN",
-  "SV2C IN",               
-  "VIP IN",  
-  "EC", 
-  "fibrous astrocyte",
-  "protoplasmic astrocyte",
-  "OPC", 
-  "oligodendrocyte",           
-  "microglia"
-)
+############ For 02C_Conservation - DEGs_proj
 
+disco_filt <- readRDS(paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
+Idents(disco_filt) <- "proj_sex_disease_ct"
 
-MeanGeneCount <- function(df_list_dis) {
-  df_dis <- as.data.frame(names(df_list_dis))
-  colnames(df_dis) <- c("ids")
-  df_dis <- separate(df_dis, ids, into=c("proj", "sex", "disease", "ct"), sep ="_", remove = FALSE)
-  df_dis$mean_gene_count <- sapply(1:length(names(df_list_dis)), function(i) mean(colSums(as.matrix(df_list_dis[[i]]) != 0)))
-  col_factors <- c("ids", "proj", "sex", "disease", "ct")
-  df_dis[col_factors] <- lapply(df_dis[col_factors], as.factor)  
-  return(df_dis)
-}
+expr_mat_all_cts <- GetAssayData(disco_filt[["RNA"]], slot="data")
+saveRDS(disco_filt, paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 
+rm(disco_filt)
+expr_mat_all_cts <- as.data.frame(as.matrix(expr_mat_all_cts))
 
-norm_df <- MeanGeneCount(norm)
-ad_df <- MeanGeneCount(ad)
-ms_df <- MeanGeneCount(ms)
+cell_info <- read.csv(paste0(disco_path, "SCENIC/extra_files/cell_info.csv"))
+cell_info$X <- NULL
 
-mean_ct_count <- vector()
-for (sex in levels(norm_df$sex)) {
-  for (ct in levels(norm_df$ct)) {
-    mean_ct_count <- c(mean_ct_count, 
-                       mean(norm_df[which(norm_df$ct==ct & norm_df$sex==sex), "mean_gene_count"]))
-    
-  }
-}
-
-
-
-######### MERGE SCENIC INDIVIDUAL CSV FILES INTO 1
-
-ImportDE <- function(path, ext, row_col) {
-  if (missing(ext)) {
-    deg_files <- list.files(path = path, pattern = "\\.csv$",full.names = TRUE)
-    if (missing(row_col)) {
-      deg <- lapply(deg_files, read.csv, row.names=1)
-    }
-    else {
-      deg <- lapply(deg_files, read.csv, row.names=row_col)
-    }
-  }
-  else {
-    deg_files <- list.files(path = path, pattern = paste0("\\.",ext,"$"),full.names = TRUE)
-    if (missing(row_col)) {
-      deg <- lapply(deg_files, read.csv, row.names=1)
-    }
-    else {
-      deg <- lapply(deg_files, read.csv, row.names=row_col)
-    }
-  }
-  names_deg <- list.files(path = path, pattern = "\\.csv$",full.names = FALSE)
-  names(deg) <- substr(names_deg, 1, nchar(names_deg)-4)
-  return(deg)
-}
-
-main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20221018_SCENIC/"
-dis_type <- "Normal"
-normal <- ImportDE(paste0(main, dis_type, "/sampled_100_cells/"))
-genes <- rownames(normal[[1]])
-file_names <- as.data.frame(names(normal))
-colnames(file_names) <- c("og")
-file_names$og <- sapply(1:length(file_names$og), function(x) str_replace(file_names[x,"og"], paste0("_M_", dis_type, "_"),  paste0("/M/", dis_type, "/")))
-file_names$og <- sapply(1:length(file_names$og), function(x) str_replace(file_names[x,"og"], paste0("_F_", dis_type, "_"),  paste0("/F/", dis_type, "/")))
-file_names$og <- sapply(1:length(file_names$og), function(x) str_replace_all(file_names[x,"og"], c("_1$"="/1", "_2$"="/2", "_3$"="/3")))
-file_names <- separate(file_names, og, into=c("proj", "sex", "disease", "ct", "version"), sep="/", remove=FALSE)
-col_factors <- c("proj", "sex", "disease", "ct", "version")
-file_names[col_factors] <- lapply(file_names[col_factors], as.factor)
-dir.create(paste0(main, dis_type, "/sampled_100_cells_all_cts/"), showWarnings = FALSE)
 df_list <- list()
-df_names <- vector()
-for (proj in levels(file_names$proj)) {
-  for (sex in levels(file_names$sex)) {
-    for (v in levels(file_names$version)) {
-      sub_names <- file_names[grep(paste0(proj, "/", sex), file_names$og),]
-      sub_names <- sub_names[grep(paste0("/",v,"$"),sub_names$og), "og"]
-      sub_names <- str_replace_all(sub_names, "/", "_")
-      if (length(sub_names)>0) {
-        df_names <- c(df_names, paste(proj, sex, v, sep="_"))
-        df_list <- append(df_list, list(sub_names))
-      }
+df_list_n <- vector()
+for (df_id in unique(cell_info$og_group)) {
+  og_cells <- c("Genes", cell_info[which(cell_info$og_group==df_id), "cell_id"])
+  df_og_df <- expr_mat_all_cts[ , (names(expr_mat_all_cts) %in% og_cells)]
+  df_list <- append(df_list, list(df_og_df))
+  df_list_n <-  c(df_list_n, df_id)
+}
+names(df_list) <- df_list_n
+
+sub_projs <- list.dirs(paste0(disco_path, "DEGs_proj/"), recursive=FALSE, full.names = FALSE)[-1]
+
+dfs_split <- list()
+for (proj_type in sub_projs) {
+  dfs_split <- append(dfs_split, list(names(df_list)[which(grepl(proj_type, names(df_list)))]))
+}
+names(dfs_split) <- sub_projs
+
+
+dfs_proj_dis <- list()
+for (proj_id in sub_projs) {
+  sub_disease <- list.dirs(paste0(disco_path, "DEGs_proj/", proj_id), recursive=FALSE, full.names = FALSE)
+  proj_list <- list()
+  proj_tot <- df_list[dfs_split[[proj_id]]]
+  for (dis_type in sub_disease) {
+    proj_list <- append(proj_list, list(proj_tot[names(proj_tot)[which(grepl(dis_type, names(proj_tot)))]]))
+  }
+  names(proj_list) <- sub_disease
+  dfs_proj_dis <- append(dfs_proj_dis, list(proj_list))
+}
+names(dfs_proj_dis) <- sub_projs
+
+FiltDisDf <- function(df_list_dis) {
+  filt_names <- vector()
+  df_dis <- list()
+  for (k in names(df_list_dis)) {
+    if (!is.null(ncol(df_list_dis[[k]]))) {
+      df_dis <- append(df_dis, list(rownames(df_list_dis[[k]][which(rowSums(as.matrix(df_list_dis[[k]]))!=0),])))
+      filt_names <- c(filt_names, k)
     }
   }
+  names(df_dis) <- filt_names
+  cts <- vector()
+  genes <- vector()
+  for (id in names(df_dis)) {
+    cts <- c(cts, rep(id, length(df_dis[[id]])))
+    genes <- c(genes, df_dis[[id]])
+  }
+  tot_genes <- data.frame(cts, genes)
+  return(tot_genes)
 }
-names(df_list) <- df_names
-sub_list <- normal[df_list[[1]]]
-merged_df <- Reduce(function(x, y) merge(x, y, all=TRUE), sub_list)
+
+tot_df <- list()
+for (proj_id in names(dfs_proj_dis)) {
+  for (dis_type in names(dfs_proj_dis[[proj_id]])) {
+    tot_df <- append(tot_df, list(FiltDisDf(dfs_proj_dis[[proj_id]][[dis_type]])))
+  }
+}
+tot_df <- do.call(rbind, tot_df)
+
+tot_df <- separate(tot_df, cts, into=c("proj", "sex", "disease", "ct"), sep ="_", remove = FALSE)
+colnames(tot_df)
+names(tot_df)[names(tot_df) == "cts"] <- "og"
+
+
+write.csv(tot_df, paste0(disco_path, "DEGs_proj/tot_genes_ct.csv"))
 
 
 
-for (ids in names(df_list)) {
-  sub_list <- normal[df_list[[ids]]]
-  merged_df = Reduce(function(...) merge(..., all=T), sub_list)
+##### Saving separated expr_mtx for each disease -> done on KJEMPEFURU
+
+
+disco_path_server <- "/Home/ii/auraz/data/DISCO/Seurat/"
+scenic_server <- "/Home/ii/auraz/data/DISCO/SCENIC/"
+sub_disease <- c("Alzheimer's disease", "Multiple Sclerosis",  "Normal" )
+
+SaveExprMtx <- function(input_rds, main_dir, dis_type) {
+  print(paste0("Subsetting the input rds by the disease factor ", dis_type))
+  input_rds_filt <- subset(input_rds, disease==dis_type)
+  print("Extracting the expression matrix")
+  expr_mat_all <- GetAssayData(input_rds_filt[["RNA"]], slot="data")
+  print("Transforming into a dataframe")
+  expr_mat_all <- as.data.frame(as.matrix(expr_mat_all))
+  print("Calculating the SD for all genes")
+  expr_mat_all$SD <- rowSds(as.matrix(expr_mat_all))
+  print("Removing genes with SD == 0")
+  expr_mat_all <- expr_mat_all[which(expr_mat_all$SD > 0), ]
+  if (nrow(expr_mat_all) * 0.25 > 2000) {
+    print("Keeping the fourth quantile of genes based on sD")
+    expr_mat_all <- expr_mat_all[which(expr_mat_all$SD > quantile(expr_mat_all$SD)[4]), ]
+  } else {
+    print(" less than 2k genes above third quantile")
+  }
+  print("Re-ordering df in descending order of SD")
+  expr_mat_all <- expr_mat_all[order(-expr_mat_all$SD),] 
+  print("Keeping the top 2000 genes")
+  expr_mat_all <- expr_mat_all[1:2000, ]
+  expr_mat_all <- cbind("Genes" = rownames(expr_mat_all), expr_mat_all)
+  rownames(expr_mat_all) <- NULL
+  print("Checking if all columns express at least one gene")
+  expr_sums <- colSums(expr_mat_all[2:ncol(expr_mat_all)])
+  if (identical(length(which(expr_sums>0)), length(expr_sums))) {
+    print("all columns express at least one gene")
+  } else {
+    expr_mat_all <- expr_mat_all[ , !(names(expr_mat_all) %in% which(expr_sums>0))]
+    print("calculate how many cells have been filtered out")
+  }
+  print("Re-ordering the columns so SD is right after the Genes column")
+  expr_mat_all <- expr_mat_all %>% 
+    relocate(SD, .after = Genes)
+  print("Save the expr mtx in the proper folder")
+  out_path <- paste0(main_dir, dis_type, "/")
+  dir.create(out_path, recursive = T, showWarnings = F)
+  saveRDS(expr_mat_all, paste0(out_path, "top_2000_SD_expr_matrix.rds"))
 }
 
 
-# GSE157827 GSE174367 PRJNA544731
+disco_filt <- readRDS(paste0(disco_path_server, "brainV1.0_all_FM_filt.rds"))
 
-# session info
-sessionInfo()
+# NORMAL
+SaveExprMtx(disco_filt, scenic_server, sub_disease[3])
+# AD
+SaveExprMtx(disco_filt, scenic_server, sub_disease[1])
+# MS
+SaveExprMtx(disco_filt, scenic_server, sub_disease[2])
+
+############ XIST expression
+
+disco_filt <- readRDS(paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
+
+disco_filt@meta.data$id_sex <- paste(disco_filt@meta.data$sample_id, disco_filt@meta.data$gender, sep = "_")
+
+VlnPlot(disco_filt, features = "XIST", group.by = "id_sex" ) + NoLegend()
+ggsave(paste0(disco_path, "XIST_RNA_expression.pdf"))
+
+VlnPlot(disco_filt, features = c("TMSB4X", "TMSB4Y"), group.by = "gender" ) 
+ggsave(paste0(disco_path, "TMSB4_RNA_expression.pdf"), width = 10, height = 8)

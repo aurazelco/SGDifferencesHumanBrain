@@ -81,6 +81,7 @@ The workflows contained the following steps:
 - filter the cell types with less than 10 SG-biased DEGs with significant adjusted p-value (Bonferroni correction)
 - map the SG-biased DEGs against the genome to obtain information about the chromosome location
 - investigate the presence of Xpar1 and Xpar2 genes (not included in the paper)
+- calculate how many SG-biased DEGs are cell type specific using CellMarker database (not included in the paper)
 - calculate the X and Y chromosome enrichment in the SG-biased DEGs through hyper-geometric distribution
 - calculate the percentage of androgen and estrogen response element binding sites in the SG-biased DEGs
 - calculate the percentage of SG-biased DEGs which are conserved in other primate species
