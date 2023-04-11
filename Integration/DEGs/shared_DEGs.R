@@ -10,14 +10,14 @@
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison_adjust_pval/DEGs/Compare_shared_DEGs_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Integration/DEGs/shared_DEGs_func.R")
 
 # sets the directories where to find the DEG csv files
 main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/"
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/"
+main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
 
 # Vectors to save the different sub-groups of DISCO and UCSC
 # the first folder "extra_files" is excluded

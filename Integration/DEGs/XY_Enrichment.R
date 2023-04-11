@@ -1,24 +1,24 @@
 # Author: Aura Zelco
 # Brief description:
-  # This script is used for comparing the AREs and EREs from the DEG analysis across multiple datasets (different ages/disease conditions)
+  # This script is used for comparing the enrichment in the X and Y chromosomes from the DEGs analysis
 # Brief procedure:
-  # 1. Reads all ARE csv files from all the different datasets (in this case 2 - DISCO and UCSC)
+  # 1. Reads all enrichment csv files from all the different datasets (in this case 2 - DISCO and UCSC)
   # 2. Manually combines the annotations to be able to compare at a general level the different celltypes
-  # 3. Plots the percentages of ARE sites in each ct across conditions, separated by sex
+  # 3. 
 
 # OBS: since there is a need for manual input, it is recommended to run this script in a R environment/IDE (e.g. RStudio)
 
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison_adjust_pval/DEGs/Compare_ARE_ERE_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Integration/DEGs/XY_Enrichment_func.R")
 
 # sets the directories where to find the DEG csv files
 main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/"
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/"
+main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
 
 # Vectors to save the different sub-groups of DISCO and UCSC
 # the first folder "exta_files" is excluded
@@ -75,37 +75,10 @@ groups_order <- c(
                      "Multiple Sclerosis_PRJNA544731" 
 )
 
-# Imports ARE from all sub-folders
-disco_ARE <- ImportDataset(main_DISCO, sub_projs, individual_projs = T, ARE_ERE="ARE")
-names(disco_ARE) <- str_replace_all(names(disco_ARE), "Normal", "Healthy")
-UCSC_ARE <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes", ARE_ERE="ARE")
+# Imports XY enrichment from all sub-folders
+disco <- ImportDataset(main_DISCO, sub_projs, individual_projs = T)
+names(disco) <- str_replace_all(names(disco), "Normal", "Healthy")
+UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes")
 
-# Combines them in one dataframe (summing the common annotation) and plots the results
-ARE <- CreateAREDf(c(disco_ARE, UCSC_ARE), unified_annotation)
-PlotARE(main_comparison, ARE, groups_order)
-# Facets all ARE plots
-PlotFacetedARE(main_comparison, ARE, groups_order)
-
-# Plot simplified sites facet
-ARE_simpl <- CreateAREDf(c(disco_ARE, UCSC_ARE), unified_annotation, "yes")
-PlotFacetedARE(main_comparison, ARE_simpl, groups_order, simpl = "yes")
-
-
-
-# Imports ERE from all sub-folders
-disco_ERE <- ImportDataset(main_DISCO, sub_projs, individual_projs = T, ARE_ERE="ERE")
-names(disco_ERE) <- str_replace_all(names(disco_ERE), "Normal", "Healthy")
-
-UCSC_ERE <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes", ARE_ERE="ERE")
-
-# Combines them in one dataframe (summing the common annotation) and plots the results
-ERE <- CreateEREDf(c(disco_ERE, UCSC_ERE), unified_annotation)
-# Facets all ERE plots
-PlotFacetedERE(main_comparison, ERE, groups_order)
-
-
-# Combine ARE and ERE in one plot with new colors
-PlotAREERECombined(main_comparison, ARE_simpl, ERE, groups_order, legend_cols = "sites")
-PlotAREERECombined(main_comparison, ARE_simpl, ERE, groups_order, legend_cols = "sex")
-
-
+# Generates heatmap plot of pvalues and saves it to output folder
+PlotEnrichedPvalues(main_comparison, c(UCSC, disco), unified_annotation, groups_order)

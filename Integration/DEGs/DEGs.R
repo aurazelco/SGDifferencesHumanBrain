@@ -13,14 +13,14 @@
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison_adjust_pval/DEGs/Compare_DEGs_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Integration/DEGs/DEGs_func.R")
 
 # sets the directories where to find the DEG csv files
 main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/"
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/"
+main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
 
 # Vectors to save the different sub-groups of DISCO and UCSC
 sub_disco <- list.dirs(main_DISCO, full.names = F, recursive = F)[-1]
@@ -148,7 +148,7 @@ PlotCommonGenes(main_comparison, all_annot, "Healthy_DISCO", "both")
 
 # Comparison with Pattama FC
 
-load("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/Pattama_RRA.RData")
+load("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/Pattama_RRA.RData")
 rra <- list("F"=RRA_F, "M"=RRA_M)
 
 healthy <- NormDf(c(UCSC[[1]]["Velmeshev_2022_Adult"], disco[[1]][c("Healthy_GSE157827", "Healthy_GSE174367", "Healthy_PRJNA544731")]), unified_annotation)
@@ -210,7 +210,7 @@ dev.off()
 
 
 # Glucocorticoids Binding sites
-gbs <- readxl::read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/Polman_2012_GBS.xlsx", skip=9)
+gbs <- readxl::read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/Polman_2012_GBS.xlsx", skip=9)
 gbs_genes <- toupper(gbs$`nearest gene`)
 
 for (i in names(sexes)) {
@@ -315,7 +315,7 @@ print(
 dev.off()
 
 
-dis_mit_genes <- readxl::read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/Steinmetz_suppl_2022.xlsx", sheet=1, skip=1)
+dis_mit_genes <- readxl::read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/Steinmetz_suppl_2022.xlsx", sheet=1, skip=1)
 
 dis_genes <- unique(dis_mit_genes$`gene name`)
 
@@ -361,7 +361,7 @@ dev.off()
 
 # X-escaping genes
 
-x_escapees <- read.table("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/escape_Xchr.txt", sep="\t", skip = 2)
+x_escapees <- read.table("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/escape_Xchr.txt", sep="\t", skip = 2)
 
 plot_path <- paste0(main_comparison, "Hmp_Presence_Ind_DEGs/")
 dir.create(plot_path, recursive = T, showWarnings = F)

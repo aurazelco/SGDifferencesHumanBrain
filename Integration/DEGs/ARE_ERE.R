@@ -1,28 +1,31 @@
+# Author: Aura Zelco
+# Brief description:
+  # This script is used for comparing the AREs and EREs from the DEG analysis across multiple datasets (different ages/disease conditions)
+# Brief procedure:
+  # 1. Reads all ARE csv files from all the different datasets (in this case 2 - DISCO and UCSC)
+  # 2. Manually combines the annotations to be able to compare at a general level the different celltypes
+  # 3. Plots the percentages of ARE sites in each ct across conditions, separated by sex
+
+# OBS: since there is a need for manual input, it is recommended to run this script in a R environment/IDE (e.g. RStudio)
+
+#---------------------------------------------------------------------------------------------------
+
 # sources the script containing all functions run here
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison_adjust_pval/DEGs/Compare_hormones_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Integration/DEGs/ARE_ERE_func.R")
 
 # sets the directories where to find the DEG csv files
 main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/"
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/"
+main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
 
 # Vectors to save the different sub-groups of DISCO and UCSC
 # the first folder "exta_files" is excluded
 sub_projs <- list.dirs(main_DISCO, full.names = F, recursive = F)[-1]
 sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)[-1]
 
-# Import all the CSVs from the different ages/conditions - slightly different file tree structure requires a different approach for UCSC
-disco <- ImportDatasets(main_DISCO, sub_projs, UCSC_flag = "no", individual_projs = T)
-names(disco[[1]]) <- str_replace_all(names(disco[[1]]), "Normal", "Healthy")
-UCSC <- ImportDatasets(main_UCSC, sub_UCSC, UCSC_flag = "yes", individual_projs = F)
-
-# disco[[2]] and UCSC[[2]] can be used to manually create unified_annotation, as done below
-disco[[2]]
-UCSC[[2]]
-
-# manually decided how to combine the sub-celltypes
+# Common cell type annotation
 unified_annotation <- c("CXCL14 IN" = "Interneurons",
                         "EC" = "Endothelial cells",
                         "fibrous astrocyte"  = "Astrocytes",
@@ -55,7 +58,7 @@ unified_annotation <- c("CXCL14 IN" = "Interneurons",
                         "Ventral progenitors" = "Ventral progenitors")
 names(unified_annotation) <- tolower(names(unified_annotation))
 
-# defines the order in which to organize the presence heatmaps, so the groups are in developmental order, with the last groups as diseases
+# Defines the order in which to organize the presence heatmaps, so the groups are in developmental order, with the last groups as diseases
 groups_order <- c(
                      "Velmeshev_2022_2nd_trimester",           
                      "Velmeshev_2022_3rd_trimester", 
@@ -72,38 +75,37 @@ groups_order <- c(
                      "Multiple Sclerosis_PRJNA544731" 
 )
 
-# Imports the hormone file
-hormones <- fromJSON(file="/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/hgv1_hormone_genes.json")
-# hormones_source_tgs <- fromJSON(file="/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/hgv1_hormone_src_tgt_genes.json")
-# hgv1_hormone_src_tgt_genes.json is the same, but the genes are split in source and targets
+# Imports ARE from all sub-folders
+disco_ARE <- ImportDataset(main_DISCO, sub_projs, individual_projs = T, ARE_ERE="ARE")
+names(disco_ARE) <- str_replace_all(names(disco_ARE), "Normal", "Healthy")
+UCSC_ARE <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes", ARE_ERE="ARE")
 
-# Generates a df with all DEGs
-sexes <- CreateSexDf(c(UCSC[[1]], disco[[1]]), unified_annotation)
+# Combines them in one dataframe (summing the common annotation) and plots the results
+ARE <- CreateAREDf(c(disco_ARE, UCSC_ARE), unified_annotation)
+PlotARE(main_comparison, ARE, groups_order)
+# Facets all ARE plots
+PlotFacetedARE(main_comparison, ARE, groups_order)
 
-hormones_filt <- hormones[names(which(lapply(hormones, length)>=10))]
-df_filt <- CreateHormonesDf(sexes, hormones_filt, groups_order)
-
-PlotHormonesRes(main_comparison, df_filt, groups_order, "abs")
-PlotHormonesRes(main_comparison, df_filt, groups_order, "perc_degs")
-PlotHormonesRes(main_comparison, df_filt, groups_order, "perc_hormones")
-
-PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "abs")
-PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "perc_degs")
-PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "perc_hormones")
-
-hormones_pval <- HormoneEnrichment(df_filt)
-write.csv(hormones_pval, paste0(main_comparison, "Hormones/hormone_target_enrichment.csv"))
-HmpHormoneEnrichment(main_comparison, hormones_pval, groups_order)
-HmpHormoneEnrichment(main_comparison, hormones_pval, groups_order, "Thymosin", "Thymosin")
+# Plot simplified sites facet
+ARE_simpl <- CreateAREDf(c(disco_ARE, UCSC_ARE), unified_annotation, "yes")
+PlotFacetedARE(main_comparison, ARE_simpl, groups_order, simpl = "yes")
 
 
-intersect(
-  tolower(unique(sexes[which(sexes$sex=="F" & sexes$common_annot=="Microglia" & sexes$condition=="Alzheimer's disease_GSE157827"), "gene_id"])),
-  hormones_filt$testosterone
-)
-# "dusp1" "calr" 
-intersect(
-  tolower(unique(sexes[which(sexes$sex=="F" & sexes$common_annot=="Microglia" & sexes$condition=="Alzheimer's disease_GSE174367"), "gene_id"])),
-  hormones_filt$testosterone
-)
-#  "spp1"
+
+# Imports ERE from all sub-folders
+disco_ERE <- ImportDataset(main_DISCO, sub_projs, individual_projs = T, ARE_ERE="ERE")
+names(disco_ERE) <- str_replace_all(names(disco_ERE), "Normal", "Healthy")
+
+UCSC_ERE <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes", ARE_ERE="ERE")
+
+# Combines them in one dataframe (summing the common annotation) and plots the results
+ERE <- CreateEREDf(c(disco_ERE, UCSC_ERE), unified_annotation)
+# Facets all ERE plots
+PlotFacetedERE(main_comparison, ERE, groups_order)
+
+
+# Combine ARE and ERE in one plot with new colors
+PlotAREERECombined(main_comparison, ARE_simpl, ERE, groups_order, legend_cols = "sites")
+PlotAREERECombined(main_comparison, ARE_simpl, ERE, groups_order, legend_cols = "sex")
+
+

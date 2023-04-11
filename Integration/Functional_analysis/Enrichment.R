@@ -25,14 +25,14 @@
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("~/Desktop/Lund_MSc/Thesis/scripts/Comparison_adjust_pval/Functional_analysis/Compare_Enrichment_func.R")
+source("~/Desktop/Lund_MSc/Thesis/scripts/Integration/Functional_analysis/Enrichment_func.R")
 
 # sets the directories where to find the DEG csv files
 main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/"
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/"
+main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
 
 # Need to register for account before running this:
 disgenet_api_key <- get_disgenet_api_key(
@@ -199,7 +199,7 @@ PlotFacetedDrugs(main_comparison, drugs_counts_ct, which_comp = "sex_ct", cts_or
 
   
 # Cell Enrichment - only adults compared to McKenzie 2018
-ct_ref <- as.data.frame(read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/McKenzie_2018_suppl.xlsx",
+ct_ref <- as.data.frame(read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/McKenzie_2018_suppl.xlsx",
                     sheet = 'top_human_enrich',
                     skip = 2))
 
@@ -214,7 +214,7 @@ ref_ct_names <- c(
 PlotRefCt(main_comparison, sexes, ct_ref, groups_order[7:13], "McKenzie_2018", ref_ct_names)
 
 # Disease enrichment - comparison with Chlamydas 2022
-chlamydas <- as.data.frame(read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/Chlamydas_2022.xlsx", skip = 1))
+chlamydas <- as.data.frame(read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/Chlamydas_2022.xlsx", skip = 1))
 colnames(chlamydas) <- str_replace_all(colnames(chlamydas), " ", "_")
 chlamydas <- chlamydas[, c(1,2,4)]
 chlamydas <- drop_na(chlamydas)

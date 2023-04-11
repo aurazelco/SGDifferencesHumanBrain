@@ -25,10 +25,10 @@
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("~/Desktop/Lund_MSc/Thesis/scripts/Comparison_adjust_pval/Functional_analysis/Compare_Enrichment_M_2nd_trim_func.R")
+source("~/Desktop/Lund_MSc/Thesis/scripts/Integration/Functional_analysis/Enrichment_M_2nd_trim_func.R")
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/"
+main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
 
 # Need to register for account before running this:
 disgenet_api_key <- get_disgenet_api_key(

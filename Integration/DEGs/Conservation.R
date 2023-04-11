@@ -1,31 +1,33 @@
 # Author: Aura Zelco
 # Brief description:
-  # This script is used for comparing the enrichment in the X and Y chromosomes from the DEGs analysis
+  # This script is used for comparing the results from the Conservation analysis from the DEGs workflow
 # Brief procedure:
-  # 1. Reads all enrichment csv files from all the different datasets (in this case 2 - DISCO and UCSC)
-  # 2. Manually combines the annotations to be able to compare at a general level the different celltypes
-  # 3. 
+  # 1. Reads all DEG csv files from all the different datasets (in this case 2 - DISCO and UCSC)
+  # 2. Merges the result dfs in one, averaging duplicates
+  # 3. Plots the resulting df
 
 # OBS: since there is a need for manual input, it is recommended to run this script in a R environment/IDE (e.g. RStudio)
 
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison_adjust_pval/DEGs/Compare_XY_Enrichment_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Integration/DEGs/Conservation_func.R")
 
 # sets the directories where to find the DEG csv files
 main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/"
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/"
+main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
 
 # Vectors to save the different sub-groups of DISCO and UCSC
 # the first folder "exta_files" is excluded
-sub_projs <- list.dirs(main_DISCO, full.names = F, recursive = F)[-1]
+sub_proj <- list.dirs(main_DISCO, full.names = F, recursive = F)[-1]
 sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)[-1]
 
-# Common cell type annotation
+conservation_db <- "Primates"
+
+# general annotation, copy-pasted form Compare_DEGs
 unified_annotation <- c("CXCL14 IN" = "Interneurons",
                         "EC" = "Endothelial cells",
                         "fibrous astrocyte"  = "Astrocytes",
@@ -58,7 +60,7 @@ unified_annotation <- c("CXCL14 IN" = "Interneurons",
                         "Ventral progenitors" = "Ventral progenitors")
 names(unified_annotation) <- tolower(names(unified_annotation))
 
-# Defines the order in which to organize the presence heatmaps, so the groups are in developmental order, with the last groups as diseases
+# defines the order in which to organize the presence heatmaps, so the groups are in developmental order, with the last groups as diseases
 groups_order <- c(
                      "Velmeshev_2022_2nd_trimester",           
                      "Velmeshev_2022_3rd_trimester", 
@@ -75,10 +77,11 @@ groups_order <- c(
                      "Multiple Sclerosis_PRJNA544731" 
 )
 
-# Imports XY enrichment from all sub-folders
-disco <- ImportDataset(main_DISCO, sub_projs, individual_projs = T)
+# Imports the conservation results from the different datasets
+disco <- ImportDataset(main_DISCO, sub_proj, individual_projs = T, cons_db = conservation_db, threshold = 4)
 names(disco) <- str_replace_all(names(disco), "Normal", "Healthy")
-UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes")
+UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes", individual_projs = F, cons_db = conservation_db, threshold = 4)
 
-# Generates heatmap plot of pvalues and saves it to output folder
-PlotEnrichedPvalues(main_comparison, c(UCSC, disco), unified_annotation, groups_order)
+# Merges the result dfs in one, averaging duplicates and plots the resulting df
+cons_df <- CreateConservationDf(c(UCSC, disco), unified_annotation, groups_order)
+PlotConservationComparison(main_comparison, cons_df, conservation_db, 4)

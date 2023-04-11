@@ -1,33 +1,28 @@
-# Author: Aura Zelco
-# Brief description:
-  # This script is used for comparing the results from the Conservation analysis from the DEGs workflow
-# Brief procedure:
-  # 1. Reads all DEG csv files from all the different datasets (in this case 2 - DISCO and UCSC)
-  # 2. Merges the result dfs in one, averaging duplicates
-  # 3. Plots the resulting df
-
-# OBS: since there is a need for manual input, it is recommended to run this script in a R environment/IDE (e.g. RStudio)
-
-#---------------------------------------------------------------------------------------------------
-
 # sources the script containing all functions run here
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison_adjust_pval/DEGs/Compare_Conservation_func.R")
+source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Integration/DEGs/hormones_func.R")
 
 # sets the directories where to find the DEG csv files
 main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/"
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/"
+main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
 
 # Vectors to save the different sub-groups of DISCO and UCSC
 # the first folder "exta_files" is excluded
-sub_proj <- list.dirs(main_DISCO, full.names = F, recursive = F)[-1]
+sub_projs <- list.dirs(main_DISCO, full.names = F, recursive = F)[-1]
 sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)[-1]
 
-conservation_db <- "Primates"
+# Import all the CSVs from the different ages/conditions - slightly different file tree structure requires a different approach for UCSC
+disco <- ImportDatasets(main_DISCO, sub_projs, UCSC_flag = "no", individual_projs = T)
+names(disco[[1]]) <- str_replace_all(names(disco[[1]]), "Normal", "Healthy")
+UCSC <- ImportDatasets(main_UCSC, sub_UCSC, UCSC_flag = "yes", individual_projs = F)
 
-# general annotation, copy-pasted form Compare_DEGs
+# disco[[2]] and UCSC[[2]] can be used to manually create unified_annotation, as done below
+disco[[2]]
+UCSC[[2]]
+
+# manually decided how to combine the sub-celltypes
 unified_annotation <- c("CXCL14 IN" = "Interneurons",
                         "EC" = "Endothelial cells",
                         "fibrous astrocyte"  = "Astrocytes",
@@ -77,11 +72,38 @@ groups_order <- c(
                      "Multiple Sclerosis_PRJNA544731" 
 )
 
-# Imports the conservation results from the different datasets
-disco <- ImportDataset(main_DISCO, sub_proj, individual_projs = T, cons_db = conservation_db, threshold = 4)
-names(disco) <- str_replace_all(names(disco), "Normal", "Healthy")
-UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes", individual_projs = F, cons_db = conservation_db, threshold = 4)
+# Imports the hormone file
+hormones <- fromJSON(file="/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/hgv1_hormone_genes.json")
+# hormones_source_tgs <- fromJSON(file="/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison/hgv1_hormone_src_tgt_genes.json")
+# hgv1_hormone_src_tgt_genes.json is the same, but the genes are split in source and targets
 
-# Merges the result dfs in one, averaging duplicates and plots the resulting df
-cons_df <- CreateConservationDf(c(UCSC, disco), unified_annotation, groups_order)
-PlotConservationComparison(main_comparison, cons_df, conservation_db, 4)
+# Generates a df with all DEGs
+sexes <- CreateSexDf(c(UCSC[[1]], disco[[1]]), unified_annotation)
+
+hormones_filt <- hormones[names(which(lapply(hormones, length)>=10))]
+df_filt <- CreateHormonesDf(sexes, hormones_filt, groups_order)
+
+PlotHormonesRes(main_comparison, df_filt, groups_order, "abs")
+PlotHormonesRes(main_comparison, df_filt, groups_order, "perc_degs")
+PlotHormonesRes(main_comparison, df_filt, groups_order, "perc_hormones")
+
+PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "abs")
+PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "perc_degs")
+PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "perc_hormones")
+
+hormones_pval <- HormoneEnrichment(df_filt)
+write.csv(hormones_pval, paste0(main_comparison, "Hormones/hormone_target_enrichment.csv"))
+HmpHormoneEnrichment(main_comparison, hormones_pval, groups_order)
+HmpHormoneEnrichment(main_comparison, hormones_pval, groups_order, "Thymosin", "Thymosin")
+
+
+intersect(
+  tolower(unique(sexes[which(sexes$sex=="F" & sexes$common_annot=="Microglia" & sexes$condition=="Alzheimer's disease_GSE157827"), "gene_id"])),
+  hormones_filt$testosterone
+)
+# "dusp1" "calr" 
+intersect(
+  tolower(unique(sexes[which(sexes$sex=="F" & sexes$common_annot=="Microglia" & sexes$condition=="Alzheimer's disease_GSE174367"), "gene_id"])),
+  hormones_filt$testosterone
+)
+#  "spp1"
