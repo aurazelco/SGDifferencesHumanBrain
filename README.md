@@ -6,20 +6,13 @@
 * [DATASETS](#datasets)
   * [DISCO](#disco)
     * [Datasets source](#datasets-source)
-    * [DEGs analysis on DISCO dataset](#degs-analysis-on-disco-dataset)
+    * [RDS preparation](#rds-preparation)
   * [UCSC](#ucsc)
     * [Datasets source](#datasets-source)
-    * [DEGs analysis on UCSC datasets](#degs-analysis-on-ucsc-datasets)
+    * [RDS preparation](#rds-preparation)
+* [DIFFERENTIAL EXPRESSION ANALYSIS](#differential-expression-analysis)
 * [INTEGRATION ANALYSIS](#integration-analysis) 
   * [DEGs](#degs)
-    * [Second trimester integration](#second-trimester-integration)
-    * []()
-    * []()
-    * []()
-    * []()
-    * []()
-    * []()
-    * []()
   * [Functional Enrichment](#functional-enrichment)
 * [SUPPLEMENTARY FIGURES](#supplementary-figures)
 
@@ -37,10 +30,13 @@
 
 **Conclusion:** We systematically characterised SG differences in brain development and brain-related disorders at a single cell level, leading to the identification of hormonal influences likely establishing these differences as well as enriched pathways and functional categories likely contributing to the SG differences in brain-related disorders. We have further made the entire analysis available as a web resource for the scientific community by developing a web application which can be found [here](https://www.immunesinglecell.org/atlasList).
 
+*Why SG-biased differential expressed genes?*
+
+The reason why we chose the "SG-biased" and not "sex-biased" differential expressed genes (DEGs) terminology is because, while we compared samples based on the biological sex (F/M), we cannot known the exact cause of the differences. Such differences in expression could be due to either or both sex and gender, and therefore we used the "SG" terminology. 
 
 ----------------------------------------------------------------------------------------------------------
 
-## LANGUAGES
+## PROGRAMMING LANGUAGES
 
 The analysis was performed mainly in R, with some bash scripts and command line commands. As a general rule, the R scripts could technically be run from the command line, however we do not recommend it. This is mainly due to the fact that some analysis need some user input, e.g. the number of dimensions to create UMAPs in Seurat. Therefore, we recommend to check and run sections of R inside an IDE of choice (e.g. RStudio) for optimal results. 
    
@@ -54,13 +50,14 @@ Below descriptions for the datasets included in this analysis can be found.
 
 #### Dataset source
 
-The [DISCO](DISCO/) folder contains the scripts used on the DISCO dataset brain v1.0, found [here](https://www.immunesinglecell.org/atlasList). 
+The [DISCO](DISCO/) folder contains the scripts used on the DISCO dataset brain v1.0, found [here](https://www.immunesinglecell.org/atlasList). This dataset contains multiple publicly available single-cell and single-nucleus RNA-seq data, all from human samples. The advantage of using DISCO instead of the original projects is a unified cell annotation and metadata, which in turn can notably speed up the analysis. 
 
-#### DEGs analysis on DISCO dataset
+#### RDS preparation
 
-This [folder](DISCO/DEGs) contains the analysis done on the DEGs between F and M. A brief description of the scripts can be found in the respective [README file](DISCO/README.md). 
+This [folder](DISCO/RDS_preparation) contains the scripts to filter the DISCO dataset brain v1.0 according to a selection of criteria listed in details in the respective [README file](DISCO/README.md). Since the dataset can be downloaded as RDS file, there was no need to build a SeuratObject from raw data. 
 
-----------------------------------------------------------------------------------------------------------
+Briefly, three projects were included in the analysis: [GSE157827](https://www.pnas.org/doi/10.1073/pnas.2008762117), [GSE174367](https://www.nature.com/articles/s41588-021-00894-z) and [PRJNA544731](https://www.nature.com/articles/s41586-019-1404-z). All the three projects had enough female and male samples, were mostly simial rin age and also contained patient samples, from Alzheimer's disease (GSE157827, GSE174367) and multiple sclerosis (PRJNA544731). 
+
 
 ### UCSC
 
@@ -70,26 +67,37 @@ The [UCSC](UCSC/) folder contains the scripts used on the datasets retrieved fro
 
 This dataset contained not only fetal samples from the second and third trimester, but also data from the first years of life all the way into adulthood (individuals older than 20 years old). 
 
-#### DEGs analysis on UCSC datasets
+#### RDS preparation
 
-This [folder](UCSC/DEGs) contains the analysis done on the DEGs between F and M. A brief description of the scripts can be found in the respective [README file](UCSC/README.md). 
+This [folder](UCSC/RDS_preparation) contains the scripts to build the RDS from the expression matrix and metadata. More details can be found in the respective [README file](UCSC/README.md).
+
+Because the original expression matrix was very memory-consuming, the matrix was split in multiple datasets according to the age range (as found in the metadata), and then each age was analyzed spearately. 
+
+----------------------------------------------------------------------------------------------------------
+
+## DIFFERENTIAL EXPRESSION ANALYSIS
+
+The scripts to characterize the SG-biased DEGs can be found in the respective folders in [DISCO](DISCO/DEGs_individual_projects_adjust_pval) and [UCSC](UCSC/DEGs_adjust_pval). The analysis pipelines contain the same steps, but the scripts differ slightly because of different files structures. 
+
+The workflows contained the following steps:
+- filter the cell types with less than 10 SG-biased DEGs with significant adjusted p-value (Bonferroni correction)
+- map the SG-biased DEGs against the genome to obtain information about the chromosome location
+- investigate the presence of Xpar1 and Xpar2 genes (not included in the paper)
+- calculate the X and Y chromosome enrichment in the SG-biased DEGs through hyper-geometric distribution
+- calculate the percentage of androgen and estrogen response element binding sites in the SG-biased DEGs
+- calculate the percentage of SG-biased DEGs which are conserved in other primate species
+
+Each of these steps was run for each project/age in separate scripts. More details can be found in the [DISCO](DISCO/README.md) and [UCSC](UCSC/README.md) README files. 
+
 
 ----------------------------------------------------------------------------------------------------------
 
 ## INTEGRATION ANALYSIS
 
-In this [folder](Integration/DEGs), there are the scripts used to compare the DEG results from both DISCO and UCSC, generated beforehand with the scripts found here ([DISCO](DISCO/DEGs) and [UCSC](UCSC/DEGs)). A brief description of the scripts can be found in the respective [README file](Integration/README.md). 
+In this [folder](Integration/DEGs), there are the scripts used to compare the DEG results from both DISCO and UCSC, generated beforehand with the scripts found here ([DISCO](DISCO/DEGs_individual_projects_adjust_pval) and [UCSC](UCSC/DEGs_adjust_pval)). A brief description of the scripts can be found in the respective [README file](Integration/README.md). 
 
 
-### Second trimester integration
-
-#### Single-cell RNA sequencing datasets
-
-From the [UCSC Cell Browser](https://cells-test.gi.ucsc.edu), we used the following dataset for the second trimester integration:
-1. Nowakowski et al. 2017 - Spatiotemporal Gene Expression Trajectories Reveal Developmental Hierarchies of the Human Cortex ([paper](https://www.science.org/doi/epdf/10.1126/science.aap8809), [UCSC dataset](https://cells-test.gi.ucsc.edu/?ds=cortex-dev))
-2. Eze et al. 2021 - Heterogeneity of Human Neuroepithelial Cells and Early Radial Glia ([paper](https://www.nature.com/articles/s41593-020-00794-1), [UCSC dataset](https://cells-test.gi.ucsc.edu/?ds=early-brain))
-
-These two datasets all contained fetal samples, with both female and male samples. However, since the studies were likely not designed with a sex comparison in mind, we could find little number of age-matching samples between females and males within the same dataset. Therefore, we decided to integrate the two datasets and group the samples according to the gestational trimester, instead of by gestational week. This strategy also allowed for better comparison with the results from the Velmeshev analysis. 
+Additionally, in this [folder](Integration/Functional_analysis), the scripts used to run a functional analysis on the SG-biased DEGs can be found. More details [here](Integration/README.md). 
 
 
 ----------------------------------------------------------------------------------------------------------
