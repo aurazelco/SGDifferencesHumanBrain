@@ -7,7 +7,6 @@
 		* [split_big_ExprMtx](#split_big_exprmtx)
 	* [Dataset sources for second trimester integration](#dataset-sources-for-second-trimester-integration)
 * [Brief description of the DEGs scripts](#brief-description-of-the-degs-scripts)
-* [Brief description of the SCENIC scripts](#brief-description-of-the-scenic-scripts)
 
 
 ## Brief description of the scripts used to prepare the RDS from UCSC
