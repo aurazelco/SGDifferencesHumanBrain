@@ -3,23 +3,20 @@
 ## Table of contents
 * [Brief description of the DEG integration scripts](#brief-description-of-the-deg-integration-scripts)
 * [Brief description of the Functional_analysis integration scripts](#brief-description-of-the-functional_analysis-integration-scripts)
+* [Brief description of the Second_trimester integration scripts](#brief-description-of-the-second_trimester-integration-scripts)
+
 
 
 ## Brief description of the DEGs scripts
 
-* [Compare_DEGs.R](DEGs/DEGs.R), [Compare_DEGs_func.R](DEGs/DEGs_func.R) - script to compare the DEG results from both DISCO and UCSC; generates presence heatmaps across all analyzed ages and disease conditions (whether the gene is found in the group or not), and the counts of how many genes are shared in how may age/condition groups. 
-* [Compare_ARE.R](DEGs/Compare_ARE.R), [Compare_DEGs_func.R](DEGs/Compare_ARE_func.R) - script to compare the ARE sites percentages across the conditions, separing the sexes, for each ct
-
-
-### Second trimester integration
-
-#### Single-cell RNA sequencing datasets
-
-From the [UCSC Cell Browser](https://cells-test.gi.ucsc.edu), we used the following dataset for the second trimester integration:
-1. Nowakowski et al. 2017 - Spatiotemporal Gene Expression Trajectories Reveal Developmental Hierarchies of the Human Cortex ([paper](https://www.science.org/doi/epdf/10.1126/science.aap8809), [UCSC dataset](https://cells-test.gi.ucsc.edu/?ds=cortex-dev))
-2. Eze et al. 2021 - Heterogeneity of Human Neuroepithelial Cells and Early Radial Glia ([paper](https://www.nature.com/articles/s41593-020-00794-1), [UCSC dataset](https://cells-test.gi.ucsc.edu/?ds=early-brain))
-
-These two datasets all contained fetal samples, with both female and male samples. However, since the studies were likely not designed with a sex comparison in mind, we could find little number of age-matching samples between females and males within the same dataset. Therefore, we decided to integrate the two datasets and group the samples according to the gestational trimester, instead of by gestational week. This strategy also allowed for better comparison with the results from the Velmeshev analysis. 
+* [DEGs.R](DEGs/DEGs.R), [DEGs_func.R](DEGs/DEGs_func.R) - script to compare the DEG results from both DISCO and UCSC; generates presence heatmaps across all analyzed datasets (whether the gene is found in the group or not), and the counts of how many genes are shared in how many datasets. 
+* [ARE_ERE.R](DEGs/ARE_ERE.R), [ARE_ERE_func.R](DEGs/ARE_ERE_func.R) - script to compare the ARE  and ERE sites percentages across the datasets, sex and cell types - integrates the results from the DEG analysis according to a unfiying annotation
+* [Conservation.R](DEGs/Conservation.R), [Conservation_func.R](DEGs/Conservation_func.R) - script to compare the fractions of conserved SG-biased DEGs - integrates the results from the DEG analysis according to a unfiying annotation
+* [DEGs_2nd_trimester.R](DEGs/DEGs_2nd_trimester.R), [DEGs_2nd_trimester_func.R](DEGs/DEGs_2nd_trimester_func.R) - script to compare the second trimster SG-biased DEGs from this analysis with SG-biased DEGs from bulk-RNA seq ([O'Brien et al. 2018](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-018-1567-1)) and single-cell RNA seq (Eze et al. 2021, Nowakowski et al. 2017 - see below)
+* [genes_location.R](DEGs/genes_location.R), [genes_location_func.R](DEGs/genes_location_func.R) - script to calculate the hyper-geometric enrichment of cellular compartments among the SG-biased DEGs using [Thul et al. 2017](https://www.science.org/doi/10.1126/science.aal3321)
+* [hormones.R](DEGs/hormones.R), [hormones_func.R](DEGs/hormones_func.R) - script to calculate the hyper-geometric enrichment of hormonal targets among the SG-biased DEGs using Hormone-Gene version 1 from Jadhav et al. 2022 ([paper](https://academic.oup.com/bioinformatics/article/38/20/4771/6674503), [GitHub repo](https://github.com/BIRDSgroup/BioEmbedS))
+* [shared_DEGs.R](DEGs/shared_DEGs.R), [shared_DEGs_func.R](DEGs/shared_DEGs_func.R) - script to generate presence heatmaps (whether the gene is present or not in the SG-biased DEGs) of the SG-biased DEGs shared by at least 75% of the cell type in each dataset, divided by chromosomal annotation (autosome, X and Y)
+* [XY_Enrichment.R](DEGs/XY_Enrichment.R), [XY_Enrichment_func.R](DEGs/XY_Enrichment_func.R) - script to calculate the hyper-geometric enrichment of X and Y chromosome genes among the SG-biased DEGs - integrates the results from the DEG analysis according to a unfiying annotation
 
 
 ## Brief description of the Functional_analysis scripts
@@ -37,3 +34,7 @@ The functiona enrichment included:
 5. DSigDB for drug enrichment
 6. TRANSFAC and JASPAR PWMs for transcription factor binding sites
 
+
+## Brief description of the Second_trimester scripts
+
+* [DEGs_Eze_Nowa.R](Second_trimester/DEGs_Eze_Nowa.R) - script to generate the SG-biased DEGs used in the [DEGs_2nd_trimester.R](DEGs/DEGs_2nd_trimester.R) script
