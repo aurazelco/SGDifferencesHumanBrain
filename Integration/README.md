@@ -3,7 +3,6 @@
 ## Table of contents
 * [Brief description of the DEG integration scripts](#brief-description-of-the-deg-integration-scripts)
 * [Brief description of the Functional_analysis integration scripts](#brief-description-of-the-functional_analysis-integration-scripts)
-* [Brief description of the Second_trimester integration scripts](#brief-description-of-the-second_trimester-integration-scripts)
 
 
 
@@ -34,7 +33,3 @@ The functiona enrichment included:
 5. DSigDB for drug enrichment
 6. TRANSFAC and JASPAR PWMs for transcription factor binding sites
 
-
-## Brief description of the Second_trimester scripts
-
-* [DEGs_Eze_Nowa.R](Second_trimester/DEGs_Eze_Nowa.R) - script to generate the SG-biased DEGs used in the [DEGs_2nd_trimester.R](DEGs/DEGs_2nd_trimester.R) script

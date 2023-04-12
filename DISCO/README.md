@@ -12,7 +12,7 @@
 
 The original RDS from DISCO was filtered according to the following steps:
 - excluded samples/projects that did not have sex metadata
-- excluded projects that did not contain data from both sexes
+- excluded projects that did not contain data from both sexes (at least 2-3/samples per sex)
 - for each disease condition (normal/healthy, Alzheimer's disease, and multiple sclerosis) kept only the cell types that had samples from both sexes
 - then excluded the cell types which had samples from only one project
 - lastly, cell types with less than 100 cells per project and sex were not analyzed

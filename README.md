@@ -69,7 +69,7 @@ This dataset contained not only fetal samples from the second and third trimeste
 
 This [folder](UCSC/RDS_preparation) contains the scripts to build the RDS from the expression matrix and metadata. More details can be found in the respective [README file](UCSC/README.md).
 
-Because the original expression matrix was very memory-consuming, the matrix was split in multiple datasets according to the age range (as found in the metadata), and then each age was analyzed spearately. 
+Because the original expression matrix was very memory-consuming, the matrix was split in multiple datasets according to the age range (as found in the metadata), and then each age was analyzed spearately. The dataset for 4-10 years of age was not analyzed since it did not have enough numnber of female samples (only 1). 
 
 ----------------------------------------------------------------------------------------------------------
 
