@@ -32,7 +32,7 @@ main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
+main_int_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
 
 # Need to register for account before running this:
 disgenet_api_key <- get_disgenet_api_key(
@@ -125,143 +125,100 @@ cts_order <- c(
 sexes <- CreateSexDf(c(disco[[1]], UCSC[[1]]), unified_annotation)
 
 # Saves results, one plot and one CSV for each F v M comparison for each ct-groups combo - GO, KEGG, DO DisGeNET
-#EnrichFvM(main_comparison, sexes, "GO", "BP")
-#EnrichFvM(main_comparison, sexes, "KEGG")
-#EnrichFvM(main_comparison, sexes, "DO")
-#EnrichFvM(main_comparison, sexes, "DGN")
+#EnrichFvM(main_int_path, sexes, "GO", "BP")
+#EnrichFvM(main_int_path, sexes, "KEGG")
+#EnrichFvM(main_int_path, sexes, "DO")
+#EnrichFvM(main_int_path, sexes, "DGN")
 
 
 # Saves results, one plot and one CSV for F and M separately of each ct across groups - GO, KEGG, DO DisGeNET
-EnrichCts(main_comparison, sexes, "GO", "BP", gene_thresh = 100, groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
-#EnrichCts(main_comparison, sexes, "KEGG", gene_thresh = "no", groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
-EnrichCts(main_comparison, sexes, "DO", gene_thresh = 100, groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
-EnrichCts(main_comparison, sexes, "DGN", gene_thresh = 100, groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
+EnrichCts(main_int_path, sexes, "GO", "BP", gene_thresh = 100, groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
+#EnrichCts(main_int_path, sexes, "KEGG", gene_thresh = "no", groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
+EnrichCts(main_int_path, sexes, "DO", gene_thresh = 100, groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
+EnrichCts(main_int_path, sexes, "DGN", gene_thresh = 100, groups_ordered = groups_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
 
 # Saves results, one plot and one CSV for F and M separately for each group across cts - GO, KEGG
-EnrichGroups(main_comparison, sexes, "GO", "BP", gene_thresh = 100, cts_ordered = cts_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
+EnrichGroups(main_int_path, sexes, "GO", "BP", gene_thresh = 100, cts_ordered = cts_order, rotate_x_axis = T, adj_pval_thresh =  0.01)
 
 # DSigDB - drug db
-EnrichOtherDB(main_comparison, sexes, "EnrichR",  "DSigDB", groups_order)
-#EnrichOtherDBFvM(main_comparison, sexes, "EnrichR",  "DSigDB", groups_order)
+EnrichOtherDB(main_int_path, sexes, "EnrichR",  "DSigDB", groups_order)
+#EnrichOtherDBFvM(main_int_path, sexes, "EnrichR",  "DSigDB", groups_order)
 
 # GWAS_Catalog_2019
-EnrichOtherDB(main_comparison, sexes, "EnrichR",  "GWAS_Catalog_2019", groups_order)
-#EnrichOtherDBFvM(main_comparison, sexes, "EnrichR",  "GWAS_Catalog_2019", groups_order)
+EnrichOtherDB(main_int_path, sexes, "EnrichR",  "GWAS_Catalog_2019", groups_order)
+#EnrichOtherDBFvM(main_int_path, sexes, "EnrichR",  "GWAS_Catalog_2019", groups_order)
 
 # DisGeNET (CURATED)
-EnrichOtherDB(main_comparison, sexes, "DisGeNET2r",  "DisGeNET (CURATED)", groups_order)
-#EnrichOtherDBFvM(main_comparison, sexes, "DisGeNET2r",  "DisGeNET (CURATED)", groups_order)
+EnrichOtherDB(main_int_path, sexes, "DisGeNET2r",  "DisGeNET (CURATED)", groups_order)
+#EnrichOtherDBFvM(main_int_path, sexes, "DisGeNET2r",  "DisGeNET (CURATED)", groups_order)
 
 # TANSFAC and JASPAR - TF motifs enrichment
-EnrichOtherDB(main_comparison, sexes, "EnrichR",  "TRANSFAC_and_JASPAR_PWMs", groups_order)
-#EnrichOtherDBFvM(main_comparison, sexes, "EnrichR",  "TRANSFAC_and_JASPAR_PWMs", groups_order)
-EnrichOtherDBGroup(main_comparison, sexes, "EnrichR",  "TRANSFAC_and_JASPAR_PWMs", cts_order)
+EnrichOtherDB(main_int_path, sexes, "EnrichR",  "TRANSFAC_and_JASPAR_PWMs", groups_order)
+#EnrichOtherDBFvM(main_int_path, sexes, "EnrichR",  "TRANSFAC_and_JASPAR_PWMs", groups_order)
+EnrichOtherDBGroup(main_int_path, sexes, "EnrichR",  "TRANSFAC_and_JASPAR_PWMs", cts_order)
 
 
 # KEGG - other way instead compareCluster
-EnrichOtherDB(main_comparison, sexes, "EnrichR",  "KEGG_2021_Human", groups_order)
-#EnrichOtherDBFvM(main_comparison, sexes, "EnrichR",  "KEGG_2021_Human", groups_order)
-EnrichOtherDBGroup(main_comparison, sexes, "EnrichR",  "KEGG_2021_Human", cts_order)
+EnrichOtherDB(main_int_path, sexes, "EnrichR",  "KEGG_2021_Human", groups_order)
+#EnrichOtherDBFvM(main_int_path, sexes, "EnrichR",  "KEGG_2021_Human", groups_order)
+EnrichOtherDBGroup(main_int_path, sexes, "EnrichR",  "KEGG_2021_Human", cts_order)
 
 # Compare disease-related results
 which_comp <- "_comparison_cts"
-DO <- ImportDBresults(main_comparison, "DO", which_comp)
-DGN <- ImportDBresults(main_comparison, "DGN", which_comp)
-DGN_CURATED <- ImportDBresults(main_comparison, "DisGeNET2r_DisGeNET_CURATED", "")
-GWAS <- ImportDBresults(main_comparison, "EnrichR_GWAS_Catalog_2019", "")
+DO <- ImportDBresults(main_int_path, "DO", which_comp)
+DGN <- ImportDBresults(main_int_path, "DGN", which_comp)
+DGN_CURATED <- ImportDBresults(main_int_path, "DisGeNET2r_DisGeNET_CURATED", "")
+GWAS <- ImportDBresults(main_int_path, "EnrichR_GWAS_Catalog_2019", "")
 
 # Counts how mauch frequent each term is, adn saves the CSV in the directory
 all_dbs <- rbind(DO, DGN, DGN_CURATED, GWAS)
 all_dbs$dbsx <- str_replace_all(all_dbs$dbsx, c("DisGeNET2r_DisGeNET_CURATED" = "DisGeNET", "EnrichR_GWAS_Catalog_2019" = "GWAS"))
-dis_counts_sex <- CountDiseases(main_comparison, all_dbs, which_comp = "sex", min_num = 10) 
-dis_counts_ct <- CountDiseases(main_comparison, all_dbs, which_comp = "sex_ct", min_num = 5) 
-dis_counts_ct2 <- CountDiseases(main_comparison, all_dbs, which_comp = "sex_ct", min_num = 2) 
+dis_counts_sex <- CountDiseases(main_int_path, all_dbs, which_comp = "sex", min_num = 10) 
+dis_counts_ct <- CountDiseases(main_int_path, all_dbs, which_comp = "sex_ct", min_num = 5) 
+dis_counts_ct2 <- CountDiseases(main_int_path, all_dbs, which_comp = "sex_ct", min_num = 2) 
 
-dis_counts_dbsx <- CountDiseases(main_comparison, all_dbs,  which_comp = "sex_ct_dbsx", min_num = 5) 
+dis_counts_dbsx <- CountDiseases(main_int_path, all_dbs,  which_comp = "sex_ct_dbsx", min_num = 5) 
 
 
-PlotFacetedDBSimplified(main_comparison, dis_counts_sex, which_comp = "sex", min_num = 10)
-PlotFacetedDBSimplified(main_comparison, dis_counts_ct, which_comp = "sex_ct", cts_order, min_num = 5)
-PlotFacetedDBSimplified(main_comparison, dis_counts_ct2, which_comp = "sex_ct", cts_order, min_num = 2)
+PlotFacetedDBSimplified(main_int_path, dis_counts_sex, which_comp = "sex", min_num = 10)
+PlotFacetedDBSimplified(main_int_path, dis_counts_ct, which_comp = "sex_ct", cts_order, min_num = 5)
+PlotFacetedDBSimplified(main_int_path, dis_counts_ct2, which_comp = "sex_ct", cts_order, min_num = 2)
 
 # DGN excluded because too many terms
 all_dbs <- rbind(DO, DGN_CURATED, GWAS)
-PlotFacetedDB(main_comparison, all_dbs, groups_order)
+PlotFacetedDB(main_int_path, all_dbs, groups_order)
 
 # Drug comparison
-drugs <- ImportDBresults(main_comparison, "EnrichR_DSigDB", "")
-drugs_counts_sex <- CountDrugs(main_comparison, drugs, which_comp = "sex", min_num = 10) 
-drugs_counts_ct <- CountDrugs(main_comparison, drugs, which_comp = "sex_ct", min_num = 5) 
+drugs <- ImportDBresults(main_int_path, "EnrichR_DSigDB", "")
+drugs_counts_sex <- CountDrugs(main_int_path, drugs, which_comp = "sex", min_num = 10) 
+drugs_counts_ct <- CountDrugs(main_int_path, drugs, which_comp = "sex_ct", min_num = 5) 
 
-PlotFacetedDrugs(main_comparison, drugs_counts_sex, which_comp = "sex", min_num = 10)
-PlotFacetedDrugs(main_comparison, drugs_counts_ct, which_comp = "sex_ct", cts_order, min_num = 5)
+PlotFacetedDrugs(main_int_path, drugs_counts_sex, which_comp = "sex", min_num = 10)
+PlotFacetedDrugs(main_int_path, drugs_counts_ct, which_comp = "sex_ct", cts_order, min_num = 5)
 
 
   
-# Cell Enrichment - only adults compared to McKenzie 2018
-ct_ref <- as.data.frame(read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/McKenzie_2018_suppl.xlsx",
-                    sheet = 'top_human_enrich',
-                    skip = 2))
-
-ref_ct_names <- c(
-  "ast" = "Astrocytes", 
-  "end" = "Endothelial Cells",
-  "mic" = "Microglia",
-  "neu" = "Neurons",
-  "oli" = "Oligodendrocytes"
-)
-
-PlotRefCt(main_comparison, sexes, ct_ref, groups_order[7:13], "McKenzie_2018", ref_ct_names)
-
-# Disease enrichment - comparison with Chlamydas 2022
-chlamydas <- as.data.frame(read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/Chlamydas_2022.xlsx", skip = 1))
-colnames(chlamydas) <- str_replace_all(colnames(chlamydas), " ", "_")
-chlamydas <- chlamydas[, c(1,2,4)]
-chlamydas <- drop_na(chlamydas)
-
-chl_deg <- CreateDisDf(main_comparison, chlamydas, sexes, "Chlamydas_2022")
-
-PlotDisDeg(main_comparison, chl_deg, "Chlamydas_2022", groups_order)
 
 # TRANSFAC_and_JASPAR_PWMs enrichment
-tj_results_cts <- ImportTJPWMs(main_comparison)
-CalculateSharedTJPWMs(main_comparison, tj_results_cts, 0.5)
-#CalculateSharedTJPWMs(main_comparison, tj_results, 0.75)
+tj_results_cts <- ImportTJPWMs(main_int_path)
+CalculateSharedTJPWMs(main_int_path, tj_results_cts, 0.5)
+#CalculateSharedTJPWMs(main_int_path, tj_results, 0.75)
 
-tj_results_groups <- ImportTJPWMs(main_comparison, which_folder = "_groups")
-CalculateSharedTJPWMs(main_comparison, tj_results_groups, 0.5, which_folder = "_groups")
-#CalculateSharedTJPWMs(main_comparison, tj_results_groups, 0.75, which_folder = "_groups")
-
-
-# SFARI autism db
-sfari <- read.csv(paste0(main_comparison, "SFARI-Gene_genes.csv"))
-
-count_sfari <- CountSFARI(main_comparison, sexes, sfari, groups_order)
+tj_results_groups <- ImportTJPWMs(main_int_path, which_folder = "_groups")
+CalculateSharedTJPWMs(main_int_path, tj_results_groups, 0.5, which_folder = "_groups")
+#CalculateSharedTJPWMs(main_int_path, tj_results_groups, 0.75, which_folder = "_groups")
 
 
-sfari_chr_gene_counts <- c("Autosome" = nrow(sfari[!is.na(as.numeric(sfari$chromosome)),]),
-                           "X" = nrow(sfari[which(sfari$chromosome=="X"), ]),      
-                           "X,Y" = nrow(sfari[which(sfari$chromosome=="X,Y"), ]),  
-                           "Y" = nrow(sfari[which(sfari$chromosome=="Y"), ])
-  
-)
-
-PlotSFARI(main_comparison, count_sfari)
-PlotSFARI(main_comparison, count_sfari, which_comp = "chr")
-
-tot_genes <- 20000
-enriched_sfari <- HyperGeomSFARI(main_comparison, count_sfari, tot_genes, sfari_chr_gene_counts)
-PlotEnrichedPvalues(main_comparison, enriched_sfari, groups_order, cts_order)
 
 # Create supplementary files
-SaveCPResults(main_comparison, "GO_comparison_cts", "GO_cts")
-SaveCPResults(main_comparison, "GO_comparison_groups", "GO_groups")
-SaveCPResults(main_comparison, "EnrichR_KEGG_2021_Human", "KEGG_cts")
-SaveCPResults(main_comparison, "EnrichR_KEGG_2021_Human_groups", "KEGG_groups")
-SaveCPResults(main_comparison, "DGN_comparison_cts", "DGN_cts")
-SaveCPResults(main_comparison, "DO_comparison_cts", "DO_cts")
-SaveCPResults(main_comparison, "EnrichR_GWAS_Catalog_2019", "GWAS_cts")
-SaveCPResults(main_comparison, "DisGeNET2r_DisGeNET_CURATED", "DisGeNET2r_cts")
-SaveCPResults(main_comparison, "EnrichR_TRANSFAC_and_JASPAR_PWMs", "TF_cts")
-SaveCPResults(main_comparison, "EnrichR_TRANSFAC_and_JASPAR_PWMs_groups", "TF_groups")
-SaveCPResults(main_comparison, "EnrichR_DSigDB", "DSigDB_cts")
+SaveCPResults(main_int_path, "GO_comparison_cts", "GO_cts")
+SaveCPResults(main_int_path, "GO_comparison_groups", "GO_groups")
+SaveCPResults(main_int_path, "EnrichR_KEGG_2021_Human", "KEGG_cts")
+SaveCPResults(main_int_path, "EnrichR_KEGG_2021_Human_groups", "KEGG_groups")
+SaveCPResults(main_int_path, "DGN_comparison_cts", "DGN_cts")
+SaveCPResults(main_int_path, "DO_comparison_cts", "DO_cts")
+SaveCPResults(main_int_path, "EnrichR_GWAS_Catalog_2019", "GWAS_cts")
+SaveCPResults(main_int_path, "DisGeNET2r_DisGeNET_CURATED", "DisGeNET2r_cts")
+SaveCPResults(main_int_path, "EnrichR_TRANSFAC_and_JASPAR_PWMs", "TF_cts")
+SaveCPResults(main_int_path, "EnrichR_TRANSFAC_and_JASPAR_PWMs_groups", "TF_groups")
+SaveCPResults(main_int_path, "EnrichR_DSigDB", "DSigDB_cts")

@@ -38,4 +38,4 @@ The original RDS from DISCO was filtered according to the following steps:
 The scripts should be run in the following order:
 1. [filtering_disco.R](RDS_preparation/filtering_disco.R)
 2. [prep_DEG_files.R](DEGs_individual_projects_adjust_pval/prep_DEG_files.R)
-3. [all_scripts_DISCO_proj_GSE157827.R](DEGs_individual_projects_adjust_pval/all_scripts_DISCO_proj_GSE157827.R), [all_scripts_DISCO_proj_GSE174367.R](DEGs_individual_projects_adjust_pval/all_scripts_DISCO_proj_GSE174367.R), [all_scripts_DISCO_proj_PRJNA544731.R](DEGs_individual_projects_adjust_pval/all_scripts_DISCO_proj_PRJNA544731.R) (among these three, no order have to be followed)
+3. [all_scripts_DISCO_proj_GSE157827.R](DEGs_individual_projects_adjust_pval/all_scripts_DISCO_proj_GSE157827.R), [all_scripts_DISCO_proj_GSE174367.R](DEGs_individual_projects_adjust_pval/all_scripts_DISCO_proj_GSE174367.R), [all_scripts_DISCO_proj_PRJNA544731.R](DEGs_individual_projects_adjust_pval/all_scripts_DISCO_proj_PRJNA544731.R) (among these three, no order has to be followed)

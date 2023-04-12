@@ -1,10 +1,9 @@
 # Author: Aura Zelco
 # Brief description:
-  # This script is used to run the enrichment analysis on multiple databases/terms, all using the DEGs from the projects
+  # This script is used to run the enrichment analysis on the shared DEGs across cell type in the male second trimester dataset, all using the DEGs from the projects
 # Brief procedure:
-  # 1. Reads all DEG CSV files from all the different datasets (in this case 2 - DISCO and UCSC)
-  # 2. Extract the genes lists for all cts in all groups
-  # 3. For each enrichments, compares F v M in each ct-groups combo and in each sex-ct combo across groups
+  # 1. imports the shared DEGs acrposs cell type in the second trimester for males
+  # 2. For each enrichments, the shared DEGs 
     # clusterProfile:
       # a. GO - Gene Ontology 
       # b. KEGG - Kyoto Encyclopedia of Genes and Genomes
@@ -15,16 +14,16 @@
       # b. GWAS_Catalog_2019
     # disgenet2r:
       # a. Curated DisGeNET
-  # 4. Saves the plots and CSV results
+  # 3. Saves the plots and CSV results
 
 # Documentation abbreviations:
   # deg: differentially expressed genes
-  # F and M: females and males
+  # M: males
   # ct: celltype
   # df: dataframe
 
 
-# OBS: this script is sourced in Compare_Enrichment.R
+# OBS: this script is sourced in Enrichment_M_2nd_trim.R
 
 #---------------------------------------------------------------------------------------------------
 
