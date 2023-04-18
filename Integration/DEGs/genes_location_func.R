@@ -317,7 +317,7 @@ HyperGeomLocation <- function(main_dir, count_df, genes_tot, loc_ref) {
   return(loc_hypergeom)
 }
 
-# 10. Plots the SFARI enrichment results
+# 10. Plots the location enrichment results
   # Input: main directory where to save the plots, the location enriched df, 
     # the order in which plot the groups and the cell types, which plot type
   # Return: nothing, saves the plots instead
@@ -332,7 +332,7 @@ PlotEnrichedPvalues <- function(main_dir, loc_hypergeom_merged, groups_ordered, 
       ggplot(loc_hypergeom_merged, aes(locations, groups, fill=pval_sign, size=loc_count)) +
         geom_point(color="black", shape=21) +
         facet_grid(ct ~ sex, scales = "free", space = "free") +
-        scale_fill_manual(values = c("NS"="#5A5A5A", 
+        scale_fill_manual(values = c("NS"="white", 
                                      "*"=brewer_palette[3],
                                      "**"=brewer_palette[4],
                                      "***"=brewer_palette[5],
@@ -387,6 +387,4 @@ PlotEnrichedPvalues <- function(main_dir, loc_hypergeom_merged, groups_ordered, 
     )
     dev.off()
   }
-  
-  
 }
