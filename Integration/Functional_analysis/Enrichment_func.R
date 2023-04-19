@@ -687,7 +687,7 @@ EnrichOtherDB <- function(main_dir, sex_df, package, dbsx, groups_ordered){
             geom_point() + 
             guides(size  = guide_legend(order = 1), color = guide_colorbar(order = 2)) +
             scale_color_continuous(low="red", high="blue",guide=guide_colorbar(reverse=T)) +
-            labs(title = paste(ct, sex,sep = " - "), y = "", x = "Groups", size = "Gene count", color = "Adjusted p-value") +
+            labs(title = paste(ct, sex,sep = " - "), y = "", x = "Datasets", size = "Gene count", color = "Adjusted p-value") +
             scale_size_continuous(range=c(3, 8)) + 
             scale_y_discrete(labels=function(x) str_wrap(x,width=40)) +
             theme(
@@ -1052,11 +1052,11 @@ PlotFacetedDBSimplified <- function(main_dir, count_df, which_comp="sex", plot_o
     terms_order <- unique(count_df$term)
     count_df$term <- factor(count_df$term, terms_order)
     count_df <- count_df[order(count_df$term), ]
-    pdf(paste0(plot_path, "disease_top_", min_num, "_terms_per_sex.pdf"), width = 10, height = 10)
+    pdf(paste0(plot_path, "disease_top_", min_num, "_terms_per_sex.pdf"), width = 7, height = 7)
     print(
       ggplot(count_df, aes(term, perc, fill=sex)) +
         geom_bar(stat="identity", color="black", position = "dodge") +
-        labs(x="Terms", y="% of groups enriched", fill="Sex") +
+        labs(x="Terms", y="% of datasets enriched", fill="Sex") +
         theme(panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
               panel.background = element_blank(), 
@@ -1080,7 +1080,7 @@ PlotFacetedDBSimplified <- function(main_dir, count_df, which_comp="sex", plot_o
       print(
         ggplot(count_df[which(count_df$sex==sex), ], aes(ct, factor(term, rev(unique(term))),  size = perc , color=which_dbsx)) +
           geom_point() +
-          labs(x="Cell types", y="Terms", size="% of groups enriched", color="Disease databases", title=sex) +
+          labs(x="Cell types", y="Terms", size="% of datasets enriched", color="Disease databases", title=sex) +
           theme(panel.grid.major = element_blank(), 
                 panel.grid.minor = element_blank(),
                 panel.background = element_blank(), 
@@ -1259,11 +1259,11 @@ PlotFacetedDrugs <- function(main_dir, count_df, which_comp="sex", plot_order="n
     terms_order <- unique(count_df$term)
     count_df$term <- factor(count_df$term, terms_order)
     count_df <- count_df[order(count_df$term), ]
-    pdf(paste0(plot_path, "drugs_top_", min_num, "_terms_per_sex.pdf"), width = 10, height = 10)
+    pdf(paste0(plot_path, "drugs_top_", min_num, "_terms_per_sex.pdf"), width = 7, height = 7)
     print(
       ggplot(complete(count_df, sex, term, fill = list(freq = 0, max = 0, perc =0)), aes(term, perc, fill=sex)) +
         geom_bar(stat="identity", color="black", position = "dodge") +
-        labs(x="Terms", y="% of groups enriched", fill="Sex") +
+        labs(x="Terms", y="% of datasets enriched", fill="Sex") +
         theme(panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
               panel.background = element_blank(), 
@@ -1288,7 +1288,7 @@ PlotFacetedDrugs <- function(main_dir, count_df, which_comp="sex", plot_order="n
         geom_point() +
         facet_grid(~ sex, scales = "free", space = "free") +
         scale_y_discrete(labels = function(x) str_wrap(x, width = 70)) +
-        labs(y="Terms", x="Cell types", size="% of groups enriched", color="Sex") +
+        labs(y="Terms", x="Cell types", size="% of datasets enriched", color="Sex") +
         theme(panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
               panel.background = element_blank(), 

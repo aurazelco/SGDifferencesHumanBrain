@@ -26,10 +26,8 @@ library(ggplot2) # to plot
 library(stringr) # to format strings
 library(readxl) # to read excel files
 library(dplyr) # to re-arrange dfs
-
-
-# Sets the EnrichR database for Human genes
-setEnrichrSite("Enrichr") 
+library(scales) # to fix palette
+library(RColorBrewer) # to fix palette
 
 # Set up the max overlap for label repelling for CNET plots
 options(ggrepel.max.overlaps = Inf)
@@ -283,27 +281,45 @@ PlotBarPlotRefPerc <- function(ref_perc, ref_ct_id, plot_titles, groups_ordered)
   # Input: the presence df, the groups order
   # Return: the plot
 
-PlotBarPlotRefPercFaceted <- function(ref_perc, groups_ordered) {
+PlotBarPlotRefPercFaceted <- function(ref_perc, groups_ordered, facets_align = "v") {
   ref_plot <- ggplot(ref_perc, aes(factor(groups, groups_ordered[which(groups_ordered %in% groups)]), perc, fill = ref_ct)) +
-    geom_bar(stat="identity", color="black", position = "dodge") +
-    facet_grid(ct ~ sex, space = "free", scales = "free") +
-    labs(x="Groups", y="Markers %", fill="Reference cell types") +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          panel.background = element_blank(), 
-          panel.spacing.x=unit(0.5, "lines"),
-          strip.text.x = element_text(size = 12, face="bold", colour = "black"),
-          strip.text.y = element_text(size = 12, face="bold", colour = "black", angle = 0),
-          plot.title = element_text(size=12, face="bold", colour = "black"),
-          axis.line = element_line(colour = "black"),
-          axis.title.x = element_text(size=12, face="bold", colour = "black"),
-          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
-          axis.ticks.x=element_blank(),
-          axis.title.y = element_text(size=12, face="bold", colour = "black"),
-          axis.text.y = element_text(size=8, colour = "black"),
-          axis.ticks.y = element_blank(),
-          legend.position = "bottom", 
-          legend.title = element_text(size=12, face="bold", colour = "black"))
+    geom_bar(stat="identity", color="black", position = position_dodge2(width = 0.9, preserve = "single")) +
+    {if (facets_align=="v") facet_grid(ct ~ sex, space = "free", scales = "free")} +
+    {if (facets_align=="h") facet_grid(sex ~ ct, space = "free", scales = "free")} +
+    labs(x="Adult Datasets", y="Markers %", fill="Reference cell types") +
+    {if (facets_align=="v") theme(panel.grid.major = element_blank(), 
+                                  panel.grid.minor = element_blank(),
+                                  panel.background = element_blank(), 
+                                  panel.spacing.x=unit(0.5, "lines"),
+                                  strip.text.y = element_text(size = 12, face="bold", colour = "black", angle = 0),
+                                  strip.text.x = element_text(size = 12, face="bold", colour = "black"),
+                                  plot.title = element_text(size=12, face="bold", colour = "black"),
+                                  axis.line = element_line(colour = "black"),
+                                  axis.title.x = element_text(size=12, face="bold", colour = "black"),
+                                  axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+                                  axis.ticks.x=element_blank(),
+                                  axis.title.y = element_text(size=12, face="bold", colour = "black"),
+                                  axis.text.y = element_text(size=8, colour = "black"),
+                                  axis.ticks.y = element_blank(),
+                                  legend.position = "bottom", 
+                                  legend.title = element_text(size=12, face="bold", colour = "black"))} +
+    {if (facets_align=="h") theme(panel.grid.major = element_blank(), 
+                                  panel.grid.minor = element_blank(),
+                                  panel.background = element_blank(), 
+                                  panel.spacing.x=unit(0.5, "lines"),
+                                  strip.text.y = element_text(size = 12, face="bold", colour = "black", angle = 0),
+                                  strip.text.x = element_text(size = 12, face="bold", colour = "black", angle = 90),
+                                  plot.title = element_text(size=12, face="bold", colour = "black"),
+                                  axis.line = element_line(colour = "black"),
+                                  axis.title.x = element_text(size=12, face="bold", colour = "black"),
+                                  axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+                                  axis.ticks.x=element_blank(),
+                                  axis.title.y = element_text(size=12, face="bold", colour = "black"),
+                                  axis.text.y = element_text(size=8, colour = "black"),
+                                  axis.ticks.y = element_blank(),
+                                  legend.position = "bottom", 
+                                  legend.title = element_text(size=12, face="bold", colour = "black"))}
+    
   return(ref_plot)
 }
 
@@ -313,7 +329,7 @@ PlotBarPlotRefPercFaceted <- function(ref_perc, groups_ordered) {
     # the order in which plot the groups (and which groups to plot), the vector to use for plot titles
   # Return: nothing, saves plot instead
 
-PlotRefCt <- function(main_dir, sex_df, ref_df, groups_ordered, ref_df_name="ref", plot_titles){
+PlotRefCt <- function(main_dir, sex_df, ref_df, groups_ordered, ref_df_name="ref", plot_titles, facets_align){
   out_path <- paste0(main_dir, "Hmp_", ref_df_name, "/")
   dir.create(out_path, recursive = T, showWarnings = F)
   sex_df_filt <- sex_df[which(sex_df$groups %in% groups_ordered), ]
@@ -340,24 +356,29 @@ PlotRefCt <- function(main_dir, sex_df, ref_df, groups_ordered, ref_df_name="ref
   ref_presence_df <- separate(ref_presence_df, ids, into=c("sex", "ref_ct", "groups", "cond_ct"), sep = "/")
   ref_presence_df$groups <- factor(ref_presence_df$groups, groups_ordered[which(groups_ordered %in% unique(ref_presence_df$groups))])
   ref_presence_df <- ref_presence_df[order(ref_presence_df$groups), ]
-  for (ref_ct_id in unique(ref_presence_df$ref_ct)) {
-    print(plot_titles[[ref_ct_id]])
-    pdf(paste0(out_path, plot_titles[ref_ct_id], "_hmp.pdf"), height = 15, width = 10)
-    print(PlotHmpRef(ref_presence_df, ref_ct_id, plot_titles))
-    dev.off()
-    pdf(paste0(out_path, plot_titles[ref_ct_id], "_barplot.pdf"), height = 4, width = 16)
-    print(PlotBarPlotRef(ref_presence_df, ref_ct_id, plot_titles))
-    dev.off()
-    ref_perc <- RefPerc(ref_presence_df, ref_ct_id, sex_df)
-    pdf(paste0(out_path, plot_titles[ref_ct_id], "_barplot_perc.pdf"), height = 4, width = 16)
-    print(PlotBarPlotRefPerc(ref_perc, ref_ct_id, plot_titles, groups_ordered))
-    dev.off()
-  }
+  #for (ref_ct_id in unique(ref_presence_df$ref_ct)) {
+  #  print(plot_titles[[ref_ct_id]])
+  #  pdf(paste0(out_path, plot_titles[ref_ct_id], "_hmp.pdf"), height = 15, width = 10)
+  #  print(PlotHmpRef(ref_presence_df, ref_ct_id, plot_titles))
+  #  dev.off()
+  #  pdf(paste0(out_path, plot_titles[ref_ct_id], "_barplot.pdf"), height = 4, width = 16)
+  #  print(PlotBarPlotRef(ref_presence_df, ref_ct_id, plot_titles))
+  #  dev.off()
+  #  ref_perc <- RefPerc(ref_presence_df, ref_ct_id, sex_df)
+  #  pdf(paste0(out_path, plot_titles[ref_ct_id], "_barplot_perc.pdf"), height = 4, width = 16)
+  #  print(PlotBarPlotRefPerc(ref_perc, ref_ct_id, plot_titles, groups_ordered))
+  #  dev.off()
+  #}
   ref_perc <- list()
   ref_perc <- lapply(1:length(unique(ref_presence_df$ref_ct)), function(x) RefPerc(ref_presence_df, unique(ref_presence_df$ref_ct)[x], sex_df, plot_titles))
   ref_perc <- do.call(rbind, ref_perc)
-  ref_plot <- PlotBarPlotRefPercFaceted(ref_perc, groups_ordered)
-  pdf(paste0(out_path, ref_df_name, "_faceted_barplot_perc.pdf"), height = 14, width = 9)
+  ref_plot <- PlotBarPlotRefPercFaceted(ref_perc, groups_ordered, facets_align)
+  if (facets_align == "v") {
+    plot_param <- c(9, 14)
+  } else if (facets_align=="h") {
+    plot_param <- c(14, 7)
+  }
+  pdf(paste0(out_path, ref_df_name, "_faceted_barplot_perc_", facets_align, ".pdf"), width = plot_param[1], height = plot_param[2])
   print(ref_plot)
   dev.off()
 }
@@ -407,10 +428,10 @@ CreateDisDf <- function(main_dir, ref, sex_dfs, ref_df_name) {
   # Return: the faceted plot
 
 PlotDisDegGroup <- function(ref_deg, dis_id, groups_ordered) {
-  dis_plot <- ggplot(complete(ref_deg[which(ref_deg$disease_group==dis_id),]), aes(dis_gene_id, factor(groups, groups_ordered[which(groups_ordered %in% groups)]), fill=dis_presence)) +
+  dis_plot <- ggplot(complete(ref_deg[which(ref_deg$disease_group==dis_id),]), aes(dis_gene_id, factor(groups, rev(groups_ordered[which(groups_ordered %in% groups)])), fill=dis_presence)) +
     geom_tile() +
     facet_grid(ct ~ sex , scales = "free") +
-    labs(y="Groups", x="Disease-associated genes", fill="Genes found", title =dis_id) +
+    labs(y="Datasets", x="Disease-associated genes", fill="Genes found", title =dis_id) +
     scale_fill_manual(values = c("Yes"="#F8766D",
                                  "No"="#00BFC4"),
                       na.value = "grey",
@@ -457,7 +478,8 @@ CountSFARI <- function(main_dir, sex_dfs, ref_df, groups_ordered) {
   dir.create(path, recursive = T, showWarnings = F)
   ids <- vector()
   chr_count <- vector()
-  tot_count <- vector()
+  tot_degs_count <- vector()
+  tot_sfari_count <- vector()
   ref_df$chr_simplified <- str_replace_all(ref_df$chr, "\\d+", "Autosome")
   for (sex in c("F", "M")) {
     for (group in unique(sex_dfs$groups)) {
@@ -469,11 +491,12 @@ CountSFARI <- function(main_dir, sex_dfs, ref_df, groups_ordered) {
           ids <- c(ids, paste(group, sex, ct, chr, sep = "/"))
         }
         chr_count <- c(chr_count, id_count)
-        tot_count <- c(tot_count, rep(sum(id_count), length(id_count)))
+        tot_sfari_count <- c(tot_sfari_count, rep(sum(id_count), length(id_count)))
+        tot_degs_count <- c(tot_degs_count, rep(length(sex_dfs[which(sex_dfs$groups==group & sex_dfs$sex==sex & sex_dfs$common_annot==ct), "gene_id"]), length(id_count)))
       }
     }
   }
-  ref_count <- data.frame(ids, chr_count, tot_count)
+  ref_count <- data.frame(ids, chr_count, tot_sfari_count, tot_degs_count)
   ref_count <- separate(ref_count, ids, into = c("groups","sex",  "ct", "chr"), sep = "/", remove = T)
   ref_count$groups <- factor(ref_count$groups, groups_ordered)
   ref_count <- ref_count[order(ref_count$groups), ]
@@ -482,34 +505,53 @@ CountSFARI <- function(main_dir, sex_dfs, ref_df, groups_ordered) {
 }
 
 # 15. Calculates hypergeometric distribution for each chr
-  # Input: main directory where to save the files, count df fo SFARI genes, the background number of genes, the sfari gene counts by chromosome
+  # Input: main directory where to save the files, count df fo SFARI genes, the background number of genes, the sfari gene counts by chromosome,
+    # if split enrichment by chromosomes
   # Return: df with p-values for each combination of group/ct/sex/chr
 
-HyperGeomSFARI <- function(main_dir, sfari_df, genes_tot, sfari_count) {
+HyperGeomSFARI <- function(main_dir, sfari_df, genes_tot, sfari_count, chr_comp = T) {
   pvalues <- vector()
   ids <- vector()
   for (group_id in unique(sfari_df$groups)) {
     for (ct_id in unique(sfari_df[which(sfari_df$groups==group_id), "ct"])) {
       for (sex_id in c("F", "M")) {
-        for (chr_id in names(sfari_count)) {
+        if (chr_comp) {
+          for (chr_id in names(sfari_count)) {
+            pvalues <- c(pvalues, 
+                         phyper(
+                           sfari_df[which(sfari_df$sex==sex_id & sfari_df$chr==chr_id & sfari_df$groups==group_id & sfari_df$ct==ct_id), "chr_count"] - 1,
+                           sfari_df[which(sfari_df$sex==sex_id & sfari_df$chr==chr_id & sfari_df$groups==group_id & sfari_df$ct==ct_id), "tot_degs_count"],
+                           genes_tot - sfari_chr_gene_counts[[chr_id]],
+                           sfari_chr_gene_counts[[chr_id]],
+                           lower.tail= FALSE
+                         ))
+            ids <- c(ids, paste(group_id, ct_id, sex_id, chr_id, sep = "--"))
+          }
+        } else {
           pvalues <- c(pvalues, 
                        phyper(
-                         sfari_df[which(sfari_df$sex==sex_id & sfari_df$chr==chr_id & sfari_df$groups==group_id & sfari_df$ct==ct_id), "chr_count"] - 1,
-                         sfari_df[which(sfari_df$sex==sex_id & sfari_df$chr==chr_id & sfari_df$groups==group_id & sfari_df$ct==ct_id), "tot_count"],
-                         genes_tot - sfari_chr_gene_counts[[chr_id]],
-                         sfari_chr_gene_counts[[chr_id]],
+                         unique(sfari_df[which(sfari_df$sex==sex_id & sfari_df$groups==group_id & sfari_df$ct==ct_id), "tot_sfari_count"]) - 1,
+                         unique(sfari_df[which(sfari_df$sex==sex_id & sfari_df$groups==group_id & sfari_df$ct==ct_id), "tot_degs_count"]),
+                         genes_tot - sum(sfari_count),
+                         sum(sfari_count),
                          lower.tail= FALSE
                        ))
-          ids <- c(ids, paste(group_id, ct_id, sex_id, chr_id, sep = "--"))
+          ids <- c(ids, paste(group_id, ct_id, sex_id, sep = "--"))
         }
+        
       }
     }
   }
   sfari_hypergeom <- data.frame(ids, pvalues)
-  sfari_hypergeom <- separate(sfari_hypergeom, ids, into = c("groups", "ct", "sex", "chr"), sep = "--")
   path <- paste0(main_dir, "/SFARI/")
   dir.create(path, recursive = T, showWarnings = F)
-  write.csv(sfari_hypergeom, paste0(path, "SFARI_enrichment_pvalues.csv"))
+  if (chr_comp) {
+    sfari_hypergeom <- separate(sfari_hypergeom, ids, into = c("groups", "ct", "sex", "chr"), sep = "--")
+    write.csv(sfari_hypergeom, paste0(path, "SFARI_enrichment_pvalues_chr.csv"))
+  } else {
+    sfari_hypergeom <- separate(sfari_hypergeom, ids, into = c("groups", "ct", "sex"), sep = "--")
+    write.csv(sfari_hypergeom, paste0(path, "SFARI_enrichment_pvalues.csv"))
+  }
   sfari_hypergeom$pval_sign <- rep(NA, nrow(sfari_hypergeom))
   sfari_hypergeom[which(sfari_hypergeom$pvalues>0.05), "pval_sign"] <- "NS"
   sfari_hypergeom[which(sfari_hypergeom$pvalues<=0.05 & sfari_hypergeom$pvalues>0.01), "pval_sign"] <- "*"
@@ -530,9 +572,9 @@ PlotSFARI <- function(main_dir, ref_count, which_comp = "tot") {
   if (which_comp=="tot") {
     pdf(paste0(plot_path, "SFARI_count_total.pdf"), width = 10, height = 15)
     print(
-      ggplot(ref_count, aes(groups, tot_count, fill=sex)) +
+      ggplot(ref_count, aes(groups, tot_sfari_count, fill=sex)) +
         geom_bar(stat="identity", color="black", position = "dodge") +
-        labs(x="Groups", y="SFARI gene count", fill="") +
+        labs(x="Datasets", y="SFARI gene count", fill="") +
         facet_grid(ct ~ sex, scales = "free") +
         theme(panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
@@ -556,7 +598,7 @@ PlotSFARI <- function(main_dir, ref_count, which_comp = "tot") {
     print(
       ggplot(ref_count[which(ref_count$chr_count>0), ], aes(groups, chr_count, fill=chr)) +
         geom_bar(stat="identity", color="black", position = "stack") +
-        labs(x="Groups", y="SFARI gene count", fill="Chromosomes") +
+        labs(x="Datasets", y="SFARI gene count", fill="Chromosomes") +
         scale_fill_manual(values = c("X" = col_palette[1],
                                      "Y"= col_palette[3],
                                      "Autosome"= col_palette[2],
@@ -585,16 +627,24 @@ PlotSFARI <- function(main_dir, ref_count, which_comp = "tot") {
     # the order in which plot the groups and the cell types
   # Return: nothing, saves the plots instead
 
-PlotEnrichedPvalues <- function(main_dir, sfari_hypergeom, groups_ordered, cts_ordered) {
+PlotEnrichedPvalues <- function(main_dir, sfari_hypergeom, groups_ordered, cts_ordered, chr_comp=T) {
   plot_path <- paste0(main_dir, "/SFARI/")
   dir.create(plot_path, recursive = T, showWarnings = F)
   brewer_palette <- brewer.pal(6,"Purples")
-  pdf(paste0(plot_path, "SFARI_hypergeom.pdf"), width = 7, height = 7)
+  if (chr_comp) {
+    plot_title <- paste0(plot_path, "SFARI_hypergeom_chr.pdf")
+    plt_param <- c(7,7)
+  } else {
+    plot_title <- paste0(plot_path, "SFARI_hypergeom.pdf")
+    plt_param <- c(7,5)
+  }
+  pdf(plot_title, width = plt_param[1], height = plt_param[2])
   print(
     ggplot(sfari_hypergeom, aes(factor(groups, groups_ordered[which(groups_ordered %in% groups)]), factor(ct, rev(cts_ordered[which(cts_ordered %in% ct)])), fill=pval_sign)) +
       geom_tile(color="black") +
-      facet_grid(chr ~ sex, scales = "free") +
-      scale_fill_manual(values = c("NS"=brewer_palette[2], 
+      {if (chr_comp) facet_grid(chr ~ sex, scales = "free")} +
+      {if (chr_comp==F) facet_grid( ~ sex, scales = "free")} +
+      scale_fill_manual(values = c("NS"="white", 
                                    "*"=brewer_palette[3],
                                    "**"=brewer_palette[4],
                                    "***"=brewer_palette[5],
@@ -620,5 +670,4 @@ PlotEnrichedPvalues <- function(main_dir, sfari_hypergeom, groups_ordered, cts_o
     
   )
   dev.off()
-  
 }

@@ -18,7 +18,7 @@ main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
+main_int_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
 
 # Vectors to save the different sub-groups of DISCO and UCSC
 # the first folder "exta_files" is excluded
@@ -75,10 +75,31 @@ groups_order <- c(
                      "Multiple Sclerosis_PRJNA544731" 
 )
 
+cts_order <- c(
+  "Excitatory neurons",  
+  "Interneurons",        
+  "Astrocytes",          
+  "Microglia" ,          
+  "Oligodendrocytes",    
+  "OPCs",   
+  "Endothelial cells", 
+  "Vascular cells",      
+  "Dorsal progenitors",  
+  "Ventral progenitors",
+  "Unknown"   
+)
+
 # Imports XY enrichment from all sub-folders
 disco <- ImportDataset(main_DISCO, sub_projs, individual_projs = T)
 names(disco) <- str_replace_all(names(disco), "Normal", "Healthy")
 UCSC <- ImportDataset(main_UCSC, sub_UCSC, UCSC_flag = "yes")
 
 # Generates heatmap plot of pvalues and saves it to output folder
-PlotEnrichedPvalues(main_comparison, c(UCSC, disco), unified_annotation, groups_order)
+X_chr_genes <- 1848
+Y_chr_genes <- 431
+tot_genes <- 20000
+num_chr_genes <- list("X" = X_chr_genes, "Y" = Y_chr_genes)
+
+
+XYenrich <- HyperGeomXY(main_int_path, c(UCSC, disco), num_chr_genes, tot_genes, unified_annotation)
+PlotEnrichedPvalues(main_int_path,XYenrich, groups_order, cts_order)

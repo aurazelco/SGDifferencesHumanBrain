@@ -83,27 +83,19 @@ sexes <- CreateSexDf(c(UCSC[[1]], disco[[1]]), unified_annotation)
 hormones_filt <- hormones[names(which(lapply(hormones, length)>=10))]
 df_filt <- CreateHormonesDf(sexes, hormones_filt, groups_order)
 
-PlotHormonesRes(main_comparison, df_filt, groups_order, "abs")
-PlotHormonesRes(main_comparison, df_filt, groups_order, "perc_degs")
-PlotHormonesRes(main_comparison, df_filt, groups_order, "perc_hormones")
+#PlotHormonesRes(main_comparison, df_filt, groups_order, "abs")
+#PlotHormonesRes(main_comparison, df_filt, groups_order, "perc_degs")
+#PlotHormonesRes(main_comparison, df_filt, groups_order, "perc_hormones")
 
-PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "abs")
-PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "perc_degs")
-PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "perc_hormones")
+#PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "abs")
+#PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "perc_degs")
+#PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "perc_hormones")
 
 hormones_pval <- HormoneEnrichment(df_filt)
 write.csv(hormones_pval, paste0(main_comparison, "Hormones/hormone_target_enrichment.csv"))
 HmpHormoneEnrichment(main_comparison, hormones_pval, groups_order)
 HmpHormoneEnrichment(main_comparison, hormones_pval, groups_order, "Thymosin", "Thymosin")
 
+brewer_pal <- brewer.pal(6,"Purples")
 
-intersect(
-  tolower(unique(sexes[which(sexes$sex=="F" & sexes$common_annot=="Microglia" & sexes$condition=="Alzheimer's disease_GSE157827"), "gene_id"])),
-  hormones_filt$testosterone
-)
-# "dusp1" "calr" 
-intersect(
-  tolower(unique(sexes[which(sexes$sex=="F" & sexes$common_annot=="Microglia" & sexes$condition=="Alzheimer's disease_GSE174367"), "gene_id"])),
-  hormones_filt$testosterone
-)
-#  "spp1"
+

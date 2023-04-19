@@ -64,6 +64,7 @@ norm <- ggplot(all_ds[which(all_ds$disease=="Healthy"),], aes(factor(proj, order
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
+        strip.text = element_text(size=12, face="bold", colour = "black"),
         plot.title = element_text(size=12, face="bold", colour = "black"),
         axis.line = element_line(colour = "black"),
         axis.title.x = element_blank(),
@@ -81,6 +82,7 @@ dis <- ggplot(all_ds[which(all_ds$disease!="Healthy"),], aes(factor(proj, order_
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
+        strip.text = element_text(size=12, face="bold", colour = "black"),
         plot.title = element_text(size=12, face="bold", colour = "black"),
         axis.line = element_line(colour = "black"),
         axis.title.x = element_blank(),
@@ -178,28 +180,28 @@ order_proj_dis <- c(
 all_ds_ct$proj_dis <- factor(all_ds_ct$proj_dis, order_proj_dis[-1])
 all_ds_ct <- all_ds_ct[order(all_ds_ct$proj_dis), ]
 
-png(paste0(plot_path, "num_cells_per_ct.png"), height = 15, width = 10, units="in", res = 1200)
+png(paste0(plot_path, "num_cells_per_ct.png"), height = 16, width = 10, units="in", res = 1200)
 print(
   ggplot(all_ds_ct, aes(proj_dis, count, fill=proj_dis)) +
     geom_bar(stat = "identity", show.legend = T, color="black") +
     geom_hline(yintercept = 100, linetype="dashed") +
-    labs( y="Number of cells", fill="Datasets") +
-    facet_grid(ct ~ sex, scales = "free_y", switch = "y", drop = T) +
+    labs( y="Number of cells", x="Datasets", fill="") +
+    facet_grid(ct ~ sex, scales = "free_y") +
     theme(
       panel.grid.major = element_blank(), 
       panel.grid.minor = element_blank(),
       panel.background = element_rect(fill = NA, color = "black"), 
       panel.spacing.x = unit(0.5, "lines"),
-      plot.title = element_text(size=14, face="bold", colour = "black"),
+      strip.text.x = element_text(size=12, face="bold", colour = "black"),
+      strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
+      plot.title = element_text(size=12, face="bold", colour = "black"),
       axis.line = element_line(colour = "black"),
-      axis.title.y = element_text(size=14, face="bold", colour = "black"),
+      axis.title.y = element_text(size=12, face="bold", colour = "black"),
       axis.text.y = element_text(size=10, colour = "black", vjust = 0.7, hjust=0.5),
       axis.title.x = element_blank(),
-      axis.text.x = element_blank(), 
+      axis.text.x = element_text(size=10, colour = "black", angle = 90),
       axis.ticks.x = element_blank(), 
-      strip.text = element_text(size = 8),
-      legend.position = "bottom", 
-      legend.text = element_text(size=6, colour = "black"),
-      legend.title = element_text(size=8, face="bold", colour = "black"))
+      legend.position = "none"
+      )
 )
 dev.off()

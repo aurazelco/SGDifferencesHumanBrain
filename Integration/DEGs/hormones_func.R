@@ -28,7 +28,7 @@ library(tidyr) # to clean and re-organize dfs
 #library(ggpubr) # to assemble plots together before saving
 #library(biomaRt) # to query to which chromosome the shared genes belong to
 #library(scales) # to set the palette to be used in the PlotDEGsOverlap function
-#library(RColorBrewer) # to set a palette for the number of DEGs palette
+library(RColorBrewer) # to set a palette for the number of DEGs palette
 library(rjson) # to import the json files containing the genes associated with the corresponding hormone
 library(dplyr) # to re-organize dfs
 
@@ -322,10 +322,17 @@ HormoneEnrichment <- function(hormones_df, pval_thresh=0.05, min_num_cond=1) {
     }
   }
   pval_df <- data.frame(pval_names, pvalues)
-  pval_df <- separate(pval_df, pval_names, into = c("hormone_id", "ct", "condition", "sex"), sep = "/", remove = T)
+  pval_df <- separate(pval_df, pval_names, into = c("hormone_id", "ct", "groups", "sex"), sep = "/", remove = T)
   pval_df<- pval_df[which(pval_df$pvalues < pval_thresh), ]
   pval_df <- pval_df %>% group_by(hormone_id) %>% filter(n() > min_num_cond)
-  return(pval_df)
+  pval_df$pval_sign <- rep(NA, nrow( pval_df))
+  pval_df[which( pval_df$pvalues>0.05), "pval_sign"] <- "NS"
+  pval_df[which( pval_df$pvalues<=0.05 &  pval_df$pvalues>0.01), "pval_sign"] <- "*"
+  pval_df[which( pval_df$pvalues<=0.01 &  pval_df$pvalues>0.001), "pval_sign"] <- "**"
+  pval_df[which( pval_df$pvalues<=0.001 &  pval_df$pvalues>0.0001), "pval_sign"] <- "***"
+  pval_df[which( pval_df$pvalues<=0.0001), "pval_sign"] <- "****"
+  pval_df$pval_sign <- factor( pval_df$pval_sign, c("NS","*", "**","***","****"))
+  return(as.data.frame(pval_df))
 }
 
 # 9. Plots the results of the hormone analysis as one faceted plot
@@ -351,20 +358,27 @@ HmpHormoneEnrichment <- function(main_dir, pval_df, groups_ordered, features="Al
     plot_title <- paste0(plot_path, plot_type, ".pdf")
     params <- c(20, 15)
   }
+  brewer_palette <- brewer.pal(6,"Purples")
   pdf(plot_title, height  = params[1], width = params[2])
   print(
-    ggplot(pval_df, aes(factor(condition, groups_ordered[which(groups_ordered %in% unique(condition))]), ct, fill=pvalues)) +
+    ggplot(complete(pval_df, hormone_id, ct, groups, sex, fill=list(pvalues=1, pval_sign="NS")), aes(factor(groups, groups_ordered[which(groups_ordered %in% unique(groups))]), ct, fill=pval_sign)) +
       geom_tile(color="black") +
-      {if (features[1]=="All_hormones") facet_grid(hormone_id ~ sex, scales = "free")} +
+      {if (features[1]=="All_hormones") facet_grid(hormone_id ~ sex)} +
       {if (features[1]!="All_hormones" & multi_features==F) facet_grid( ~ sex, scales = "free")} +
       {if (features[1]!="All_hormones" & multi_features==T) facet_grid(hormone_id ~ sex, scales = "free")} +
-      scale_fill_gradient(low="gray", high="purple") +
-      labs(x="Groups", y="Cell types", fill="P-values", title = str_replace_all(plot_type, "_", " ")) +
+      scale_fill_manual(values = c("NS"="white", 
+                                   "*"=brewer_palette[3],
+                                   "**"=brewer_palette[4],
+                                   "***"=brewer_palette[5],
+                                   "****"=brewer_palette[6]),
+                        na.value = "white") +
+      labs(x="Datasets", y="Cell types", fill="P-values", title = str_replace_all(plot_type, "_", " ")) +
       theme(panel.grid.major = element_blank(), 
             panel.grid.minor = element_blank(),
             panel.background = element_blank(), 
             axis.line = element_line(colour = "black"),
-            strip.text.y = element_text(size=12, colour = "black",angle = 0),
+            strip.text.y = element_text(size=12, colour = "black",angle = 0, face = "bold"),
+            strip.text.x = element_text(size=12, colour = "black", face = "bold"),
             axis.title.x = element_text(size=12, face="bold", colour = "black"),
             axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
             axis.ticks.x=element_blank(),

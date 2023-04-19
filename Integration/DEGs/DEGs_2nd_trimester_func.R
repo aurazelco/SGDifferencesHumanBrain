@@ -27,7 +27,6 @@ library(readxl) # to import xlsx files
 library(stringr) # to modify and harmonize names
 library(dplyr) # to extract the column from the O'Brien reference
 library(RColorBrewer) # to import the Set2 palette
-library(VennDiagram) # to plot the Venn Diagram
 library(ggplot2) # to plot the percentages of overlap
 library(ggVennDiagram) # to plot the second part of Venn diagrams
 

@@ -114,12 +114,12 @@ PlotConservationComparison <- function(main_dir, cons_df_mean, cons_db, threshol
   cons_df_mean$frac_groups <- str_replace_all(cons_df_mean$frac_groups, c("F_All" = "All Female Genes", "M_All" = "All Male Genes", 
                                                                           "F_DEG_fraction" = "Female-biased genes", "M_DEG_fraction" = "Male-biased genes"))
   cons_df_mean$frac_groups <- factor(cons_df_mean$frac_groups, c("All Female Genes",  "Female-biased genes", "All Male Genes", "Male-biased genes"))
-  pdf(paste0(plot_path, "Conservation_comparison.pdf"), height = 15, width = 10)
+  pdf(paste0(plot_path, "Conservation_comparison.pdf"), height = 15, width = 12)
   print(  
-    ggplot(cons_df_mean, aes(ct, fractions, fill=frac_groups)) +
+    ggplot(cons_df_mean, aes(ct, fractions * 100, fill=frac_groups)) +
             geom_bar(stat='identity', position='dodge', color="black") + 
             facet_wrap(~condition, scales = "free_x") +
-            labs(title=paste0("Conserved in at least ", threshold, " species"), x="Cell types", y="Fraction of conserved genes", fill="Groups") +
+            labs(x="Cell types", y="Fraction of conserved genes (%)", fill="Fraction groups") +
             #scale_fill_discrete(labels=c("All Female Genes", "Female-biased genes", "All Male Genes", "Male-biased genes")) +
             scale_fill_manual(values = c("All Female Genes" = "#D3D3D3",  
                                          "Female-biased genes" = "#F8766D", 
@@ -130,6 +130,7 @@ PlotConservationComparison <- function(main_dir, cons_df_mean, cons_db, threshol
                   panel.background = element_blank(), 
                   axis.line = element_line(colour = "black"),
                   axis.title.x = element_blank(),
+                  strip.text = element_text(size=12, face="bold", colour = "black"),
                   axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
                   axis.ticks.x=element_blank(),
                   axis.title.y = element_text(size=12, face="bold", colour = "black"),

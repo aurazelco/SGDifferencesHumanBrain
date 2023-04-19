@@ -317,8 +317,8 @@ PlotAREERECombined <- function(main_dir, ARE_filt, ERE_filt, groups_ordered, leg
       ggplot(comb_ARE_ERE, aes(factor(condition, groups_ordered[which(groups_ordered %in% condition)]), percent, fill=sites)) +
         geom_bar(stat="identity", color="black", position = "stack") +
         facet_grid(ct~ARE_ERE + sex, scales = "free") +
-        labs(x="Groups", y="% of RE sites", fill="Response element sites") +
-        scale_fill_manual(values = c('ARE'="#FD61D1", 'ERE'="#39B600",   "None"="#5A5A5A")) +
+        labs(x="Datasets", y="% of RE sites", fill="Response element sites") +
+        scale_fill_manual(values = c('ARE'="#E1AD01", 'ERE'="#39B600",   "None"="#5A5A5A")) +
         theme(panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
               panel.background = element_blank(), 
@@ -345,7 +345,7 @@ PlotAREERECombined <- function(main_dir, ARE_filt, ERE_filt, groups_ordered, leg
       ggplot(comb_ARE_ERE, aes(factor(condition, groups_ordered[which(groups_ordered %in% condition)]), percent, fill=sex_sites)) +
         geom_bar(stat="identity", color="black", position = "stack") +
         facet_grid(ct~sex + ARE_ERE, scales = "free") +
-        labs(x="Groups", y="% of RE sites", fill="Response element sites") +
+        labs(x="Datasets", y="% of RE sites", fill="Response element sites") +
         scale_fill_manual(values = c(
           "F - ARE" ="#F8766D",  "M - ARE"="#00BFC4"  ,
           "F - ERE"= "#F8766D" ,  "M - ERE"="#00BFC4",

@@ -678,7 +678,7 @@ PlotNumDEGsFacets <- function(main_dir, num_degs_ct, col_palette) {
   print(
     ggplot(num_degs_ct, aes(condition, count_degs, fill=condition)) +
       geom_bar(stat = "identity", show.legend = T, color="black") +
-      labs(x="Developmental Conditions", y="Number of DEGs", fill="Conditions") +
+      labs(x="", y="Number of DEGs", fill="Datasets") +
       scale_fill_manual(values = col_palette) + 
       facet_grid(ct ~ sex, scales = "free", switch = "y", drop = T) +
       theme(
@@ -686,14 +686,13 @@ PlotNumDEGsFacets <- function(main_dir, num_degs_ct, col_palette) {
             panel.grid.minor = element_blank(),
             panel.background = element_rect(fill = NA, color = "black"), 
             panel.spacing.x = unit(0.5, "lines"),
-            plot.title = element_text(size=14, face="bold", colour = "black"),
+            strip.text = element_text(size=14, face="bold", colour = "black"),
             axis.line = element_line(colour = "black"),
             axis.title.y = element_text(size=14, face="bold", colour = "black"),
             axis.text.y = element_text(size=10, colour = "black", vjust = 0.7, hjust=0.5),
             axis.title.x = element_text(size=14, face="bold", colour = "black"),
             axis.text.x = element_blank(), 
             axis.ticks.x = element_blank(), 
-            strip.text = element_text(size = 10),
             legend.position = "bottom", 
             legend.text = element_text(size=10, colour = "black"),
             legend.title = element_text(size=14, face="bold", colour = "black"))

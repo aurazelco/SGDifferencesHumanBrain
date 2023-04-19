@@ -288,18 +288,18 @@ dir.create(plot_path, recursive = T, showWarnings = F)
 pdf(paste0(plot_path, "MT_genes.pdf"), width = 9, height = 14)
 print(
   ggplot(mit_genes, 
-         aes(factor(gene_id, rev(unique(mit_order))), factor(condition, groups_order[which(groups_order %in% unique(condition))]),  fill=presence)) +
+         aes(factor(gene_id, rev(unique(mit_order))), factor(condition, rev(groups_order[which(groups_order %in% unique(condition))])),  fill=presence)) +
     geom_tile() +
     scale_fill_manual(values = c("Yes"="#F8766D",
                                  "No"="#00BFC4"),
                       na.value = "#00BFC4",
                       guide = guide_legend(reverse = TRUE)) +
     facet_grid(ct ~ sex , scales = "free", space = "free") +
-    labs(y="Groups", x="Genes", fill="Genes found") +
+    labs(y="Datasets", x="Genes", fill="Genes found") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(), 
-          panel.spacing.x=unit(0, "lines"),
+          panel.spacing.x=unit(0.5, "lines"),
           strip.text.x = element_text(size=12, face="bold", colour = "black"),
           strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
           plot.title = element_text(size=12, face="bold", colour = "black"),
@@ -368,14 +368,14 @@ dir.create(plot_path, recursive = T, showWarnings = F)
 pdf(paste0(plot_path, "X_escaping_genes.pdf"), width = 9, height = 14)
 print(
   ggplot(complete(all_genes[which(all_genes$gene_id %in% x_escapees$V2), ], gene_id, condition,sex,ct), 
-         aes(gene_id, factor(condition, groups_order[which(groups_order %in% unique(condition))]),  fill=presence)) +
+         aes(gene_id, factor(condition, rev(groups_order[which(groups_order %in% unique(condition))])),  fill=presence)) +
     geom_tile() +
     scale_fill_manual(values = c("Yes"="#F8766D",
                                  "No"="#00BFC4"),
                       na.value = "#00BFC4",
                       guide = guide_legend(reverse = TRUE)) +
     facet_grid(ct ~ sex, scales = "free", space = "free") +
-    labs(y="Groups", x="Genes", fill="Genes found") +
+    labs(y="Datasets", x="Genes", fill="Genes found") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(), 
@@ -478,18 +478,18 @@ dir.create(plot_path, recursive = T, showWarnings = F)
 pdf(paste0(plot_path, "top_20_most_diff_genes.pdf"), width = 9, height = 15)
 print(
   ggplot(most_diff_genes,
-         aes(gene_id, factor(condition, groups_order[which(groups_order %in% unique(condition))]), fill=presence)) +
+         aes(gene_id, factor(condition, rev(groups_order[which(groups_order %in% unique(condition))])), fill=presence)) +
     geom_tile() +
     scale_fill_manual(values = c("Yes"="#F8766D",
                                  "No"="#00BFC4"),
                       na.value = "#00BFC4",
                       guide = guide_legend(reverse = TRUE)) +
     facet_grid(ct ~  sex, scales = "free", space = "free") +
-    labs(y="Groups", x="Genes", fill="Genes found") +
+    labs(y="Datasets", x="Genes", fill="Genes found") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(), 
-          panel.spacing.x=unit(0, "lines"),
+          panel.spacing.x=unit(0.5, "lines"),
           strip.text.x = element_text(size=12, face="bold", colour = "black"),
           strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
           plot.title = element_text(size=12, face="bold", colour = "black"),

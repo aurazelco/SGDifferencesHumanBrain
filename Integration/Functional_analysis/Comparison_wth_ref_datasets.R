@@ -130,7 +130,9 @@ ref_ct_names <- c(
   "oli" = "Oligodendrocytes"
 )
 
-PlotRefCt(main_int_path, sexes, ct_ref, groups_order[7:13], "McKenzie_2018", ref_ct_names)
+PlotRefCt(main_int_path, sexes, ct_ref, groups_order[7:13], "McKenzie_2018", ref_ct_names, facets_align = "v")
+PlotRefCt(main_int_path, sexes, ct_ref, groups_order[7:13], "McKenzie_2018", ref_ct_names, facets_align = "h")
+
 
 # Disease enrichment - comparison with Chlamydas 2022
 chlamydas <- as.data.frame(read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/Chlamydas_2022.xlsx", skip = 1))
@@ -144,10 +146,7 @@ PlotDisDeg(main_int_path, chl_deg, "Chlamydas_2022", groups_order)
 
 # SFARI autism db
 sfari <- read.csv(paste0(main_int_path, "SFARI-Gene_genes.csv"))
-
 count_sfari <- CountSFARI(main_int_path, sexes, sfari, groups_order)
-
-
 sfari_chr_gene_counts <- c("Autosome" = nrow(sfari[!is.na(as.numeric(sfari$chromosome)),]),
                            "X" = nrow(sfari[which(sfari$chromosome=="X"), ]),      
                            "X,Y" = nrow(sfari[which(sfari$chromosome=="X,Y"), ]),  
@@ -159,5 +158,9 @@ PlotSFARI(main_int_path, count_sfari)
 PlotSFARI(main_int_path, count_sfari, which_comp = "chr")
 
 tot_genes <- 20000
-enriched_sfari <- HyperGeomSFARI(main_int_path, count_sfari, tot_genes, sfari_chr_gene_counts)
-PlotEnrichedPvalues(main_int_path, enriched_sfari, groups_order, cts_order)
+enriched_sfari_chr <- HyperGeomSFARI(main_int_path, count_sfari, tot_genes, sfari_chr_gene_counts, chr_comp = T)
+PlotEnrichedPvalues(main_int_path, enriched_sfari_chr, groups_order, cts_order, chr_comp = T)
+
+enriched_sfari_tot <- HyperGeomSFARI(main_int_path, count_sfari, tot_genes, sfari_chr_gene_counts, chr_comp = F)
+PlotEnrichedPvalues(main_int_path, enriched_sfari_tot, groups_order, cts_order, chr_comp = F)
+
