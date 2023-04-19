@@ -118,7 +118,7 @@ sexes <- CreateSexDf(c(disco[[1]], UCSC[[1]]), unified_annotation)
 
 
 # Cell Enrichment - only adults compared to McKenzie 2018
-ct_ref <- as.data.frame(read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/McKenzie_2018_suppl.xlsx",
+ct_ref <- as.data.frame(read_xlsx(paste0(main_int_path, "McKenzie_2018_suppl.xlsx"),
                                   sheet = 'top_human_enrich',
                                   skip = 2))
 
@@ -135,7 +135,7 @@ PlotRefCt(main_int_path, sexes, ct_ref, groups_order[7:13], "McKenzie_2018", ref
 
 
 # Disease enrichment - comparison with Chlamydas 2022
-chlamydas <- as.data.frame(read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/Chlamydas_2022.xlsx", skip = 1))
+chlamydas <- as.data.frame(read_xlsx(paste0(main_int_path, "Chlamydas_2022.xlsx"), skip = 1))
 colnames(chlamydas) <- str_replace_all(colnames(chlamydas), " ", "_")
 chlamydas <- chlamydas[, c(1,2,4)]
 chlamydas <- drop_na(chlamydas)
@@ -164,3 +164,67 @@ PlotEnrichedPvalues(main_int_path, enriched_sfari_chr, groups_order, cts_order, 
 enriched_sfari_tot <- HyperGeomSFARI(main_int_path, count_sfari, tot_genes, sfari_chr_gene_counts, chr_comp = F)
 PlotEnrichedPvalues(main_int_path, enriched_sfari_tot, groups_order, cts_order, chr_comp = F)
 
+# Comparison withOliva et al 2020
+tab_names <- excel_sheets(path = paste0(main_int_path, "Oliva_2020-table-s2.xlsx"))
+oliva <- lapply(tab_names[c(14, 15, 10)], function(x) read_excel(path = paste0(main_int_path, "Oliva_2020-table-s2.xlsx"), sheet = x))
+names(oliva) <- tab_names[c(14, 15, 10)]
+oliva <- do.call(rbind, oliva)
+oliva$region <- gsub("\\..*", "", rownames(oliva))
+rownames(oliva) <- NULL
+oliva <- as.data.frame(oliva)
+oliva$chr_simplified <- str_replace_all(oliva$chr, c("chrX"="X", "chrY"="Y", "chr\\d+"="Autosome"))
+
+count_oliva_all <- CountOliva(main_int_path, sexes, oliva, groups_order)
+count_oliva_reg <- CountOliva(main_int_path, sexes, oliva, groups_order, reg_split = T)
+
+count_oliva_all$oliva_perc <- count_oliva_all$oliva_count * 100 / count_oliva_all$tot_degs_count
+count_oliva_reg$oliva_perc <- count_oliva_reg$oliva_count * 100 / count_oliva_reg$tot_degs_count
+
+
+
+pdf(paste0(main_int_path, "Oliva/perc_oliva_degs.pdf"), width = 8, height = 10)
+print(ggplot(count_oliva_all, aes(groups, oliva_perc, fill=groups)) +
+        geom_bar(color="black", stat="identity", position = "dodge") +
+        facet_grid(ct ~ chr + sex) +
+        labs(x="Datasets", y="Oliva genes in SG-biased DEGs (%)") +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              strip.text.x = element_text(size=12, face="bold", colour = "black"),
+              strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
+              axis.line = element_line(colour = "black"),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+              axis.ticks.x=element_blank(),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "none")
+)
+dev.off()
+
+pdf(paste0(main_int_path, "Oliva/perc_oliva_X_degs.pdf"), width = 8, height = 10)
+print(ggplot(count_oliva_all[which(count_oliva_all$chr=="X"), ], aes(groups, oliva_perc, fill=groups)) +
+        geom_bar(color="black", stat="identity", position = "dodge") +
+        facet_grid(ct ~ sex) +
+        labs(x="Datasets", y="Oliva X-genes in SG-biased DEGs (%)") +
+        theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(), 
+              strip.text.x = element_text(size=12, face="bold", colour = "black"),
+              strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
+              axis.line = element_line(colour = "black"),
+              axis.title.x = element_text(size=12, face="bold", colour = "black"),
+              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+              axis.ticks.x=element_blank(),
+              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              legend.position = "none")
+)
+dev.off()
+
+oliva_num <- c("X"=length(unique(oliva[which(oliva$chr_simplified=="X"), "HUGO_gene_id"])))
+tot_genes <- 20000
+
+oliva_pval <- HyperGeomOliva(main_int_path, count_oliva_all, tot_genes, oliva_num, chr_comp = T)
+oliva_pval_all <- HyperGeomOliva(main_int_path, count_oliva_all, tot_genes, oliva_num, chr_comp = F)
+
+PlotEnrichedPvaluesOliva(main_int_path, oliva_pval, groups_order, cts_order, chr_comp = T)
+PlotEnrichedPvaluesOliva(main_int_path, oliva_pval_all, groups_order, cts_order, chr_comp = F)
