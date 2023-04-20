@@ -372,7 +372,7 @@ HmpHormoneEnrichment <- function(main_dir, pval_df, groups_ordered, features="Al
                                    "***"=brewer_palette[5],
                                    "****"=brewer_palette[6]),
                         na.value = "white") +
-      labs(x="Datasets", y="Cell types", fill="P-values", title = str_replace_all(plot_type, "_", " ")) +
+      labs(x="Datasets", y="Cell types", fill="P-values") +
       theme(panel.grid.major = element_blank(), 
             panel.grid.minor = element_blank(),
             panel.background = element_blank(), 

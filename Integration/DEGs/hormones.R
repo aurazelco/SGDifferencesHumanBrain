@@ -96,6 +96,4 @@ write.csv(hormones_pval, paste0(main_comparison, "Hormones/hormone_target_enrich
 HmpHormoneEnrichment(main_comparison, hormones_pval, groups_order)
 HmpHormoneEnrichment(main_comparison, hormones_pval, groups_order, "Thymosin", "Thymosin")
 
-brewer_pal <- brewer.pal(6,"Purples")
-
 

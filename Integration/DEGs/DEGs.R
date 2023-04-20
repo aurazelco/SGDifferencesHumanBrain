@@ -20,7 +20,7 @@ main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj
 main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
+main_int_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
 
 # Vectors to save the different sub-groups of DISCO and UCSC
 sub_disco <- list.dirs(main_DISCO, full.names = F, recursive = F)[-1]
@@ -90,16 +90,18 @@ groups_order <- c(
 sexes <- CreateSexDf(c(UCSC[[1]], disco[[1]]), unified_annotation)
 
 # Heatmaps of presence of genes (yes/no) across all ages, for each ct
-PlotCts(main_comparison, sexes, groups_order)
+PlotCts(main_int_path, sexes, groups_order)
 
 # Count of how genes are shared among ages, for each ct and sex
 gene_counts <- CreateCountDfs(sexes)
-PlotNumSharedGenes(main_comparison, gene_counts)
-SaveSharedGenes(main_comparison, gene_counts, 0.75, 1)
+PlotNumSharedGenes(main_int_path, gene_counts)
+SaveSharedGenes(main_int_path, gene_counts, 0.75, 1)
+
+PlotDEGsOverlap(main_int_path, sexes, groups_order)
 
 # Count number of DEGs per ct across ages, for each ct and sex, and also create one faceted figure
 num_deg <- NumDEGsAcrossConditions(sexes, groups_order)
-PlotNumDEGs(main_comparison, num_deg)
+PlotNumDEGs(main_int_path, num_deg)
 
 brewer_palette <- c(colorRampPalette(c("white", "#228B22"))(8), "#FF0000")
 custom_palette <- c(
@@ -118,16 +120,16 @@ custom_palette <- c(
                     "Multiple Sclerosis_PRJNA544731"=brewer_palette[9] 
 )
 
-PlotNumDEGsFacets(main_comparison, num_deg, custom_palette)
+PlotNumDEGsFacets(main_int_path, num_deg, custom_palette)
 
 # Plot the number of overlapping genes between one condition and all others, divided by ct and sex
-PlotDEGsOverlap(main_comparison, sexes, groups_order)
+PlotDEGsOverlap(main_int_path, sexes, groups_order)
 # Plots the same but as a heatmap
-PlotDEGsOverlapHmp(main_comparison, sexes, groups_order)
+PlotDEGsOverlapHmp(main_int_path, sexes, groups_order)
 
 # Plots to compare 2nd trim
 #trim_2nd <- CreateConditionDf(c(UCSC[[1]], disco[[1]]), unified_annotation, groups_order[1:2])
-#PlotAcrossConditions(main_comparison, trim_2nd, "trimester_2nd")
+#PlotAcrossConditions(main_int_path, trim_2nd, "trimester_2nd")
 
 # Comparison of Healthy DISCO DEGs
 Healthy_disco <- NormDf(disco[[1]][c("Healthy_GSE157827", "Healthy_GSE174367", "Healthy_PRJNA544731")], unified_annotation)
@@ -136,15 +138,15 @@ og_cts <- CalcCommonGenes(Healthy_disco, "ct")
 og_cts$ct <- str_to_title(og_cts$ct)
 common_cts <- CalcCommonGenes(Healthy_disco, "common_annot")
 
-PlotCommonGenes(main_comparison, og_cts, "Healthy_DISCO", "Original_annotation")
-PlotCommonGenes(main_comparison, common_cts, "Healthy_DISCO", "Unified_annotation")
+PlotCommonGenes(main_int_path, og_cts, "Healthy_DISCO", "Original_annotation")
+PlotCommonGenes(main_int_path, common_cts, "Healthy_DISCO", "Unified_annotation")
 
 og_cts$annot_type <- rep("Original annotation", nrow(og_cts))
 common_cts$annot_type <- rep("Unified annotation", nrow(common_cts))
 
 all_annot <- rbind(og_cts, common_cts)
 
-PlotCommonGenes(main_comparison, all_annot, "Healthy_DISCO", "both")
+PlotCommonGenes(main_int_path, all_annot, "Healthy_DISCO", "both")
 
 # Comparison with Pattama FC
 
@@ -182,7 +184,7 @@ count_rra <- separate(count_rra, comp_names_rep, into = c("sex", "proj", "ct"), 
 nrow(rra$F$FC)
 nrow(rra$M$FC)
 
-rra_out <- paste0(main_comparison, "Pattama_RRA/")
+rra_out <- paste0(main_int_path, "Pattama_RRA/")
 dir.create(rra_out, showWarnings = F, recursive = T)
 
 write.csv(count_rra, paste0(rra_out, "rra_genes_in_healthy.csv"))
@@ -233,7 +235,7 @@ all_genes$presence <- str_replace_all(all_genes$presence, c("yes"="Yes", "no"="N
 grs <- complete(all_genes[which(all_genes$gene_id %in% c( "NR3C1", "NR3C2")),], gene_id, condition,sex,ct )
 
 
-plot_path <- paste0(main_comparison, "Hmp_Presence_Ind_DEGs/")
+plot_path <- paste0(main_int_path, "Hmp_Presence_Ind_DEGs/")
 dir.create(plot_path, recursive = T, showWarnings = F)
 pdf(paste0(plot_path, "GR_MR.pdf"), width = 9, height = 14)
 print(
@@ -283,7 +285,7 @@ mit_order <- c(
   "MT-CO3", "MT-ATP6", "MT-ATP8", "MT-RNR1", "MT-RNR2", "ACO2", "CS", "FH", 
   "MDH1", "OGDH", "PDHA1", "PDHA2", "SDHC", "SUCLG1")
 
-plot_path <- paste0(main_comparison, "Hmp_Presence_Ind_DEGs/")
+plot_path <- paste0(main_int_path, "Hmp_Presence_Ind_DEGs/")
 dir.create(plot_path, recursive = T, showWarnings = F)
 pdf(paste0(plot_path, "MT_genes.pdf"), width = 9, height = 14)
 print(
@@ -326,7 +328,7 @@ dis_mit_gene_count <- dis_mit_gene_count[order(dis_mit_gene_count$Freq, decreasi
 dis_mit$gene_id <- factor(dis_mit$gene_id, unique(dis_mit_gene_count$Var1))
 dis_mit <- complete(dis_mit, gene_id, condition,sex,ct)
 
-plot_path <- paste0(main_comparison, "Hmp_Presence_Ind_DEGs/")
+plot_path <- paste0(main_int_path, "Hmp_Presence_Ind_DEGs/")
 dir.create(plot_path, recursive = T, showWarnings = F)
 pdf(paste0(plot_path, "MT_genes_Steinmetz.pdf"), width = 9, height = 14)
 print(
@@ -363,7 +365,7 @@ dev.off()
 
 x_escapees <- read.table("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/escape_Xchr.txt", sep="\t", skip = 2)
 
-plot_path <- paste0(main_comparison, "Hmp_Presence_Ind_DEGs/")
+plot_path <- paste0(main_int_path, "Hmp_Presence_Ind_DEGs/")
 dir.create(plot_path, recursive = T, showWarnings = F)
 pdf(paste0(plot_path, "X_escaping_genes.pdf"), width = 9, height = 14)
 print(
@@ -473,7 +475,7 @@ most_diff_genes <- c(top10F_u, top10M_u)
 most_diff_genes <- complete(all_genes[which(all_genes$gene_id %in% most_diff_genes), ], gene_id, condition,sex,ct)
 most_diff_genes$gene_id <- factor(most_diff_genes$gene_id, c(top10F_u, top10M_u))
 
-plot_path <- paste0(main_comparison, "Hmp_Presence_Ind_DEGs/")
+plot_path <- paste0(main_int_path, "Hmp_Presence_Ind_DEGs/")
 dir.create(plot_path, recursive = T, showWarnings = F)
 pdf(paste0(plot_path, "top_20_most_diff_genes.pdf"), width = 9, height = 15)
 print(
@@ -509,7 +511,7 @@ disorders <- complete(all_genes[which(all_genes$gene_id %in% c( "NKAIN2", "SLTM"
 disorders <- disorders[which(disorders$gene_id!="XIST"), ]
 
 
-plot_path <- paste0(main_comparison, "Hmp_Presence_Ind_DEGs/")
+plot_path <- paste0(main_int_path, "Hmp_Presence_Ind_DEGs/")
 dir.create(plot_path, recursive = T, showWarnings = F)
 pdf(paste0(plot_path, "Blokland_snp_disorders.pdf"), width = 9, height = 14)
 print(

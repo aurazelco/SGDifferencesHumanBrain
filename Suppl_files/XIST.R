@@ -172,7 +172,7 @@ dev.off()
 
 
 # 9. Number of samples
-cell_info <- append(cell_info, list("Velmeshev_2nd_trimester"=read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/Velmeshev_2022_2nd_trimester/cell_info_Velmeshev_2022_2nd_trimester.csv")))
+cell_info <- append(cell_info, list("Velmeshev_2nd_trimester"=read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_2nd_trimester/Velmeshev_2022_2nd_trimester/cell_info_Velmeshev_2022_2nd_trimester.csv")))
   
 num_samples <- cell_info
 num_samples$DISCO <- num_samples$DISCO[, c(1,2,5)]
@@ -262,7 +262,7 @@ print(
   )
 dev.off()
 
-png("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Extra_figures/num_samples.png", res=1200, width = 15, height = 10, units = "in")
+png("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Extra_figures/num_samples.png", res=300, width = 15, height = 10, units = "in")
 print(
   ggplot(num_samples_simplified, aes(new_group, samples_count, fill=sex)) +
     geom_bar(stat = "identity", color="black", position = "dodge") +

@@ -485,7 +485,9 @@ PlotNumSharedGenesChr <- function(shared_genes_chr, col_palette) {
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(), 
-          panel.spacing.x=unit(0, "lines"),
+          panel.spacing.x=unit(0.5, "lines"),
+          strip.text.x = element_text(size=12, colour = "black", face="bold"),
+          strip.text.y = element_text(size=12, colour = "black", face="bold", angle=0),
           plot.title = element_text(size=12, face="bold", colour = "black"),
           axis.line = element_line(colour = "black"),
           axis.title.y = element_text(size=12, face="bold", colour = "black"),
@@ -752,7 +754,7 @@ PlotDEGsOverlap <- function(main_dir, ct_df_list, groups_ordered) {
         ggplot(ct_df, aes(other_cond, genes_num, fill=other_cond)) +
           geom_bar(stat = "identity", color="black") +
           facet_wrap(~ref_cond, scales = "free") +
-          labs(x="", y="Number of shared genes", fill="Groups", title = paste(ct_id, sex_id, sep = " - ")) +
+          labs(x="", y="Number of shared genes", fill="Datasets", title = paste(ct_id, sex_id, sep = " - ")) +
           fill_palette(cond_palette) +
           theme(panel.grid.major = element_blank(), 
                 panel.grid.minor = element_blank(),
