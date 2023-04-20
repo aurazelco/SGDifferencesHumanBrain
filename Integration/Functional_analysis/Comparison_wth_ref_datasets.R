@@ -166,65 +166,53 @@ PlotEnrichedPvalues(main_int_path, enriched_sfari_tot, groups_order, cts_order, 
 
 # Comparison withOliva et al 2020
 tab_names <- excel_sheets(path = paste0(main_int_path, "Oliva_2020-table-s2.xlsx"))
-oliva <- lapply(tab_names[c(14, 15, 10)], function(x) read_excel(path = paste0(main_int_path, "Oliva_2020-table-s2.xlsx"), sheet = x))
-names(oliva) <- tab_names[c(14, 15, 10)]
+brain_tabs <- c(tab_names[which(grepl("^BRN", tab_names))], "PTTARY")
+
+oliva <- lapply(brain_tabs, function(x) read_excel(path = paste0(main_int_path, "Oliva_2020-table-s2.xlsx"), sheet = x))
+names(oliva) <- brain_tabs
 oliva <- do.call(rbind, oliva)
 oliva$region <- gsub("\\..*", "", rownames(oliva))
 rownames(oliva) <- NULL
 oliva <- as.data.frame(oliva)
 oliva$chr_simplified <- str_replace_all(oliva$chr, c("chrX"="X", "chrY"="Y", "chr\\d+"="Autosome"))
+oliva <- oliva[which(!is.na(oliva$HUGO_gene_id)), ]
 
-count_oliva_all <- CountOliva(main_int_path, sexes, oliva, groups_order)
-count_oliva_reg <- CountOliva(main_int_path, sexes, oliva, groups_order, reg_split = T)
-
-count_oliva_all$oliva_perc <- count_oliva_all$oliva_count * 100 / count_oliva_all$tot_degs_count
-count_oliva_reg$oliva_perc <- count_oliva_reg$oliva_count * 100 / count_oliva_reg$tot_degs_count
-
-
-
-pdf(paste0(main_int_path, "Oliva/perc_oliva_degs.pdf"), width = 8, height = 10)
-print(ggplot(count_oliva_all, aes(groups, oliva_perc, fill=groups)) +
-        geom_bar(color="black", stat="identity", position = "dodge") +
-        facet_grid(ct ~ chr + sex) +
-        labs(x="Datasets", y="Oliva genes in SG-biased DEGs (%)") +
-        theme(panel.grid.major = element_blank(), 
-              panel.grid.minor = element_blank(),
-              panel.background = element_blank(), 
-              strip.text.x = element_text(size=12, face="bold", colour = "black"),
-              strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
-              axis.line = element_line(colour = "black"),
-              axis.title.x = element_text(size=12, face="bold", colour = "black"),
-              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
-              axis.ticks.x=element_blank(),
-              axis.title.y = element_text(size=12, face="bold", colour = "black"),
-              legend.position = "none")
-)
-dev.off()
-
-pdf(paste0(main_int_path, "Oliva/perc_oliva_X_degs.pdf"), width = 8, height = 10)
-print(ggplot(count_oliva_all[which(count_oliva_all$chr=="X"), ], aes(groups, oliva_perc, fill=groups)) +
-        geom_bar(color="black", stat="identity", position = "dodge") +
-        facet_grid(ct ~ sex) +
-        labs(x="Datasets", y="Oliva X-genes in SG-biased DEGs (%)") +
-        theme(panel.grid.major = element_blank(), 
-              panel.grid.minor = element_blank(),
-              panel.background = element_blank(), 
-              strip.text.x = element_text(size=12, face="bold", colour = "black"),
-              strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
-              axis.line = element_line(colour = "black"),
-              axis.title.x = element_text(size=12, face="bold", colour = "black"),
-              axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
-              axis.ticks.x=element_blank(),
-              axis.title.y = element_text(size=12, face="bold", colour = "black"),
-              legend.position = "none")
-)
-dev.off()
-
-oliva_num <- c("X"=length(unique(oliva[which(oliva$chr_simplified=="X"), "HUGO_gene_id"])))
+oliva_num <- c("X"=length(unique(oliva[which(oliva$chr_simplified=="X"), "HUGO_gene_id"])),
+               "Autosome" = length(unique(oliva[which(oliva$chr_simplified=="Autosome"), "HUGO_gene_id"])))
 tot_genes <- 20000
+
+oliva_num_reg <- c("BRNAMY" = length(oliva[which(oliva$region=="BRNAMY"), "HUGO_gene_id"]), 
+                  "BRNACC"  = length(oliva[which(oliva$region=="BRNACC"), "HUGO_gene_id"]),
+                  "BRNCDT"  = length(oliva[which(oliva$region=="BRNCDT"), "HUGO_gene_id"]),
+                  "BRNCHB"  = length(oliva[which(oliva$region=="BRNCHB"), "HUGO_gene_id"]),
+                  "BRNCHA"  = length(oliva[which(oliva$region=="BRNCHA"), "HUGO_gene_id"]),
+                  "BRNCTXA" = length(oliva[which(oliva$region=="BRNCTXA"), "HUGO_gene_id"]),
+                  "BRNCTXB" = length(oliva[which(oliva$region=="BRNCTXB"), "HUGO_gene_id"]),
+                  "BRNHPP"  = length(oliva[which(oliva$region=="BRNHPP"), "HUGO_gene_id"]),
+                  "BRNHPT"  = length(oliva[which(oliva$region=="BRNHPT"), "HUGO_gene_id"]),
+                  "BRNNCC"  = length(oliva[which(oliva$region== "BRNNCC"), "HUGO_gene_id"]),
+                  "BRNPTM"  = length(oliva[which(oliva$region=="BRNPTM"), "HUGO_gene_id"]),
+                  "BRNSPC"  = length(oliva[which(oliva$region=="BRNSPC"), "HUGO_gene_id"]),
+                  "BRNSNG" = length(oliva[which(oliva$region=="BRNSNG"), "HUGO_gene_id"]),
+                  "PTTARY" = length(oliva[which(oliva$region=="PTTARY"), "HUGO_gene_id"])
+                  )
+
+
+# On all regions together
+count_oliva_all <- CountOliva(main_int_path, sexes, oliva, groups_order)
+count_oliva_all$oliva_perc <- count_oliva_all$oliva_count * 100 / count_oliva_all$tot_degs_count
 
 oliva_pval <- HyperGeomOliva(main_int_path, count_oliva_all, tot_genes, oliva_num, chr_comp = T)
 oliva_pval_all <- HyperGeomOliva(main_int_path, count_oliva_all, tot_genes, oliva_num, chr_comp = F)
 
 PlotEnrichedPvaluesOliva(main_int_path, oliva_pval, groups_order, cts_order, chr_comp = T)
 PlotEnrichedPvaluesOliva(main_int_path, oliva_pval_all, groups_order, cts_order, chr_comp = F)
+
+
+# separated by region
+count_oliva_reg <- CountOliva(main_int_path, sexes, oliva, groups_order, reg_split = T)
+count_oliva_reg$oliva_perc <- count_oliva_reg$oliva_count * 100 / count_oliva_reg$tot_degs_count
+
+oliva_pval_reg <- HyperGeomOlivaReg(main_int_path, count_oliva_reg, tot_genes, oliva_num_reg)
+
+PlotEnrichedPvaluesOlivaReg(main_int_path, oliva_pval_reg, groups_order, cts_order)

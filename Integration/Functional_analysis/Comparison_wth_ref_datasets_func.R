@@ -717,7 +717,7 @@ CountOliva <- function(main_dir, sex_dfs, ref_df, groups_ordered, reg_split=F) {
   }
   ref_count <- data.frame(ids, oliva_count, tot_oliva_count, tot_degs_count)
   if (reg_split==T) {
-    ref_count <- separate(ref_count, ids, into = c("groups","sex",  "ct", "chr", "ctx"), sep = "/", remove = T)
+    ref_count <- separate(ref_count, ids, into = c("groups","sex",  "ct", "chr", "region"), sep = "/", remove = T)
     file_name <- "Oliva_count_per_chr_ctx.csv"
   } else {
     ref_count <- separate(ref_count, ids, into = c("groups","sex",  "ct", "chr"), sep = "/", remove = T)
@@ -809,6 +809,90 @@ PlotEnrichedPvaluesOliva <- function(main_dir, oliva_hypergeom, groups_ordered, 
       geom_tile(color="black") +
       {if (chr_comp) facet_grid(chr ~ sex, scales = "free")} +
       {if (chr_comp==F) facet_grid( ~ sex, scales = "free")} +
+      scale_fill_manual(values = c("NS"="white", 
+                                   "*"=brewer_palette[3],
+                                   "**"=brewer_palette[4],
+                                   "***"=brewer_palette[5],
+                                   "****"=brewer_palette[6]),
+                        na.value = "gray") +
+      labs(x="Datasets", y="Cell types", fill="P-value") +
+      theme(panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(),
+            panel.background = element_blank(), 
+            panel.spacing.x=unit(0.5, "lines"),
+            plot.title = element_text(size=12, face="bold", colour = "black"),
+            strip.text.x = element_text(size=12, face="bold", colour = "black"),
+            strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
+            axis.line = element_line(colour = "black"),
+            axis.title.x = element_text(size=12, face="bold", colour = "black"),
+            axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+            axis.ticks.x=element_blank(),
+            axis.title.y = element_text(size=12, face="bold", colour = "black"),
+            axis.text.y = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5),
+            axis.ticks.y = element_blank(),
+            legend.position = "bottom", 
+            legend.title = element_text(size=12, face="bold", colour = "black"))
+    
+  )
+  dev.off()
+}
+
+# 21. Calculates hypergeometric distribution for each chr and region
+  # Input: main directory where to save the files, count df of Oliva genes, the background number of genes, the oliva gene counts by chromosome,
+    # if split enrichment by chromosomes
+  # Return: df with p-values for each combination of group/ct/sex/chr
+
+HyperGeomOlivaReg <- function(main_dir, count_df, genes_tot, ref_count) {
+  pvalues <- vector()
+  ids <- vector()
+  for (group_id in levels(count_df$groups)) {
+    for (ct_id in unique(count_df[which(count_df$groups==group_id), "ct"])) {
+      for (reg_id in unique(count_df[which(count_df$groups==group_id & count_df$ct==ct_id), "region"])) {
+        for (sex_id in c("F", "M")) {
+          pvalues <- c(pvalues, 
+                         phyper(
+                           sum(unique(count_df[which(count_df$sex==sex_id & count_df$groups==group_id & count_df$ct==ct_id & count_df$region==reg_id), "oliva_count"])) - 1,
+                           unique(count_df[which(count_df$sex==sex_id & count_df$groups==group_id & count_df$ct==ct_id & count_df$region==reg_id), "tot_degs_count"]),
+                           genes_tot - ref_count[[reg_id]],
+                           ref_count[[reg_id]],
+                           lower.tail= FALSE
+          ))
+          ids <- c(ids, paste(group_id, ct_id, sex_id, reg_id, sep = "--"))
+        }
+      }
+    }
+  }
+  oliva_hypergeom <- data.frame(ids, pvalues)
+  path <- paste0(main_dir, "Oliva/")
+  dir.create(path, recursive = T, showWarnings = F)
+  oliva_hypergeom <- separate(oliva_hypergeom, ids, into = c("groups", "ct", "sex", "region"), sep = "--")
+  write.csv(oliva_hypergeom, paste0(path, "Oliva_enrichment_reg_pvalues.csv"))
+  oliva_hypergeom$pval_sign <- rep(NA, nrow(oliva_hypergeom))
+  oliva_hypergeom[which(oliva_hypergeom$pvalues>0.05), "pval_sign"] <- "NS"
+  oliva_hypergeom[which(oliva_hypergeom$pvalues<=0.05 & oliva_hypergeom$pvalues>0.01), "pval_sign"] <- "*"
+  oliva_hypergeom[which(oliva_hypergeom$pvalues<=0.01 & oliva_hypergeom$pvalues>0.001), "pval_sign"] <- "**"
+  oliva_hypergeom[which(oliva_hypergeom$pvalues<=0.001 & oliva_hypergeom$pvalues>0.0001), "pval_sign"] <- "***"
+  oliva_hypergeom[which(oliva_hypergeom$pvalues<=0.0001), "pval_sign"] <- "****"
+  oliva_hypergeom$pval_sign <- factor(oliva_hypergeom$pval_sign, c("NS","*", "**","***","****"))
+  return(oliva_hypergeom)
+}
+
+# 22. Plots the Oliva enrichment results
+  # Input: main directory where to save the plots, the SFARI enriched df, 
+    # the order in which plot the groups and the cell types
+  # Return: nothing, saves the plots instead
+
+PlotEnrichedPvaluesOlivaReg <- function(main_dir, oliva_hypergeom, groups_ordered, cts_ordered) {
+  plot_path <- paste0(main_dir, "Oliva/")
+  dir.create(plot_path, recursive = T, showWarnings = F)
+  brewer_palette <- brewer.pal(6,"Purples")
+  plot_title <- paste0(plot_path, "Oliva_hypergeom_reg.pdf")
+  plt_param <- c(12,15)
+  pdf(plot_title, width = plt_param[1], height = plt_param[2])
+  print(
+    ggplot(oliva_hypergeom, aes(factor(groups, groups_ordered[which(groups_ordered %in% groups)]), factor(ct, rev(cts_ordered[which(cts_ordered %in% ct)])), fill=pval_sign)) +
+      geom_tile(color="black") +
+      facet_grid(region ~ sex, scales = "free") +
       scale_fill_manual(values = c("NS"="white", 
                                    "*"=brewer_palette[3],
                                    "**"=brewer_palette[4],
