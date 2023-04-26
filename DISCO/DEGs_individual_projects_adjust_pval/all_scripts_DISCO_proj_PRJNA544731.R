@@ -4,15 +4,15 @@ library(Seurat)
 
 project_id <- "PRJNA544731"
 
-disco_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/"
-main <- paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/", project_id, "/")
+disco_path <- ""
+main <- paste0("DISCOv1.0/DEGs_proj_adjust_pval/", project_id, "/")
 
 disco_filt <- readRDS(paste0(disco_path, "brainV1.0_all_FM_filt.rds"))
 Idents(disco_filt) <- "proj_sex_disease_ct"
 
 min_cells <- 100
 
-final_groups <- read.csv(paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_common/outputs/final_filt_", min_cells, ".csv"))
+final_groups <- read.csv(paste0("DISCOv1.0/DEGs_common/outputs/final_filt_", min_cells, ".csv"))
 final_groups <- final_groups[which(final_groups$proj==project_id), ]
 sexes <- unique(final_groups$sex)
 
@@ -51,7 +51,7 @@ rm(list=ls())
 ####### GENERAL VARIABLES
 
 project_id <- "PRJNA544731"
-main <- paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/", project_id, "/")
+main <- paste0("DISCOv1.0/DEGs_proj_adjust_pval/", project_id, "/")
 
 sub_disease <- list.dirs(main, recursive=FALSE, full.names = FALSE)
 ct_order <- c(
@@ -79,7 +79,7 @@ ct_order <- c(
 
 ####### 01B_plot_num_genes.R
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs_individual_projects_adjust_pval/01B_plot_num_genes_func.R")
+source("scripts/DISCO/DEGs_individual_projects_adjust_pval/01B_plot_num_genes_func.R")
 
 # QC parameters
 pval_thresh <- 0.05
@@ -94,7 +94,7 @@ CountDEG(main, sub_disease[1], pval_thresh, FC_thresh, ct_order, min_num_thresh)
 
 ####### 01C_num_chr.R
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs_individual_projects_adjust_pval/01C_num_chr_func.R")
+source("scripts/DISCO/DEGs_individual_projects_adjust_pval/01C_num_chr_func.R")
 
 # NORMAL
 chr_normal <- ProcessCt(main, sub_disease[2])
@@ -110,12 +110,12 @@ PlotSexHmp(main, sub_disease[1], chr_ms, ct_order)
 
 ####### 01D_Xpar1,2.R
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs_individual_projects_adjust_pval/01D_Xpar1,2_func.R")
+source("scripts/DISCO/DEGs_individual_projects_adjust_pval/01D_Xpar1,2_func.R")
 
-Xpar1 <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/extra_files/Xpar1.csv",
+Xpar1 <- read.csv("DISCOv1.0/DEGs_proj_adjust_pval/extra_files/Xpar1.csv",
                   skip = 1)
 Xpar1_list <- Xpar1$Approved.symbol
-Xpar2 <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/extra_files/Xpar2.csv",
+Xpar2 <- read.csv("DISCOv1.0/DEGs_proj_adjust_pval/extra_files/Xpar2.csv",
                   skip = 1)
 Xpar2_list <- Xpar2$Approved.symbol
 
@@ -128,7 +128,7 @@ XparCt(main, sub_disease[1], Xpar1_list, Xpar2_list, ct_order)
 
 ####### 01E_CellMarker.R
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs_individual_projects_adjust_pval/01E_CellMarker_func.R")
+source("scripts/DISCO/DEGs_individual_projects_adjust_pval/01E_CellMarker_func.R")
 
 ct_list <- c(
   "Astrocyte" ="astrocyte",
@@ -192,7 +192,7 @@ data_ct <- c("CXCL14 IN" = "IN",
              "TSHZ2 L4_5 EN" = "EN",  
              "VIP IN" = "IN")
 
-extra_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/extra_files/"
+extra_path <- "DISCOv1.0/DEGs_proj_adjust_pval/extra_files/"
 
 # NORMAL
 PlotCMresults(main, sub_disease[2], 
@@ -207,8 +207,8 @@ PlotCMresults(main, sub_disease[1],
 
 ####### 02A_HyperGeom.R
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs_individual_projects_adjust_pval/01C_num_chr_func.R")
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs_individual_projects_adjust_pval/02A_HyperGeom_func.R")
+source("scripts/DISCO/DEGs_individual_projects_adjust_pval/01C_num_chr_func.R")
+source("scripts/DISCO/DEGs_individual_projects_adjust_pval/02A_HyperGeom_func.R")
 
 # as used in 02A_HyperGeom
 X_chr_genes <- 1848
@@ -227,13 +227,13 @@ PlotNumChr(main, sub_disease[1], num_chr_genes, ct_order, T)
 
 ####### 02B_ARE_ERE.R
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs_individual_projects_adjust_pval/02B_ARE_ERE_func.R")
+source("scripts/DISCO/DEGs_individual_projects_adjust_pval/02B_ARE_ERE_func.R")
 
-ARE <- read_excel("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/extra_files/AREsitesHuman.xlsx",
+ARE <- read_excel("DISCOv1.0/DEGs_proj_adjust_pval/extra_files/AREsitesHuman.xlsx",
                   skip=1)
 colnames(ARE) <- c("fullsites", "halfsites")
 
-ERE <- read_excel("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/extra_files/Hs_allEREs.xls")
+ERE <- read_excel("DISCOv1.0/DEGs_proj_adjust_pval/extra_files/Hs_allEREs.xls")
 EREgene <- ERE$`Hs Gene Name`
 
 # NORMAL
@@ -244,10 +244,10 @@ AnalysisARE_ERE(main, sub_disease[1], ARE, EREgene, ct_order)
 
 ####### 02C_Conservation.R
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/DISCO/DEGs_individual_projects_adjust_pval/02C_Conservation_func.R")
+source("scripts/DISCO/DEGs_individual_projects_adjust_pval/02C_Conservation_func.R")
 
 # CONSERVATION ACROSS PRIMATES
-conserved <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/extra_files/mart_export.txt",
+conserved <- read.csv("DISCOv1.0/DEGs_proj_adjust_pval/extra_files/mart_export.txt",
                       sep = '\t',
                       header = TRUE,
                       fill = TRUE)
@@ -272,7 +272,7 @@ conserved <- conserved %>% distinct(gene_name, .keep_all = TRUE)
 
 # SAGD CONSERVATION
 
-SAGD <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/extra_files/Sexassociatedgene_Padj0.05_PMID30380119.csv")
+SAGD <- read.csv("DISCOv1.0/DEGs_proj_adjust_pval/extra_files/Sexassociatedgene_Padj0.05_PMID30380119.csv")
 SAGD <- SAGD[, c(2,4)]
 SAGD[which(SAGD[,"Symbol"]==''), "Symbol"]  <- NA
 SAGD <- drop_na(SAGD)
@@ -298,20 +298,20 @@ for (gene in SAGD_df$gene_name) {
 }
 names(SAGD_df)[names(SAGD_df) == 'gene'] <- 'gene_name'
 
-write.csv(SAGD_df, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/extra_files/SAGD_filt.csv")
+write.csv(SAGD_df, "DISCOv1.0/DEGs_proj_adjust_pval/extra_files/SAGD_filt.csv")
 
-SAGD_df <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/extra_files/SAGD_filt.csv")
+SAGD_df <- read.csv("DISCOv1.0/DEGs_proj_adjust_pval/extra_files/SAGD_filt.csv")
 SAGD_df[,1] <- NULL
 
 # ENSEMBL 
 
-ensembl_mat <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/extra_files/binary_mat_all_species.csv")
+ensembl_mat <- read.csv("DISCOv1.0/DEGs_proj_adjust_pval/extra_files/binary_mat_all_species.csv")
 names(ensembl_mat)[names(ensembl_mat) == 'X'] <- "gene_name"
 
 # Read all DEGs from healthy patients, regardless of the sex
 
 # all genes commonly expressed in the cts
-all_genes <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/tot_genes_ct.csv")
+all_genes <- read.csv("DISCOv1.0/DEGs_proj_adjust_pval/tot_genes_ct.csv")
 all_genes$X <- NULL
 all_genes <- subset(all_genes, proj==project_id)
 all_genes$proj <- NULL

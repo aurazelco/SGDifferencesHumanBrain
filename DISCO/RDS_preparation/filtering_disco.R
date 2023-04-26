@@ -18,7 +18,7 @@ library(dplyr)
 `%!in%` <- Negate(`%in%`)
 
 # Defines the main directories
-disco_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/"
+disco_path <- ""
 
 ##################################### 1. Filter original DISCO v1.0 dataset
 
