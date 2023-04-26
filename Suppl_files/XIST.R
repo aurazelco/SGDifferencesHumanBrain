@@ -253,12 +253,12 @@ print(
               panel.background = element_blank(), 
               plot.title = element_text(size=12, face="bold", colour = "black"),
               axis.line = element_line(colour = "black"),
-              axis.title.x = element_blank(),
-              axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
-              axis.ticks.x=element_blank(),
-              axis.title.y = element_text(size=12, face="bold", colour = "black"),
+              axis.text.x = element_text(size=14, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
+              axis.text.y = element_text(size=14, colour = "black"),
+              axis.title.y = element_text(size=16, face="bold", colour = "black"),
+              axis.title.x = element_text(size=16, face="bold", colour = "black"),
               legend.position = "bottom", 
-              legend.title = element_text(size=12, face="bold", colour = "black"))
+              legend.title = element_text(size=16, face="bold", colour = "black"))
   )
 dev.off()
 
@@ -267,17 +267,17 @@ print(
   ggplot(num_samples_simplified, aes(new_group, samples_count, fill=sex)) +
     geom_bar(stat = "identity", color="black", position = "dodge") +
     geom_hline(yintercept = 3, linetype="dashed") +
-    labs(x="Groups", y="Number of samples", fill="Sex") +
+    labs(x="Datasets", y="Number of samples", fill="Sex") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(), 
           plot.title = element_text(size=12, face="bold", colour = "black"),
           axis.line = element_line(colour = "black"),
-          axis.title.x = element_blank(),
-          axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
-          axis.ticks.x=element_blank(),
-          axis.title.y = element_text(size=12, face="bold", colour = "black"),
+          axis.text.x = element_text(size=14, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
+          axis.text.y = element_text(size=14, colour = "black"),
+          axis.title.y = element_text(size=16, face="bold", colour = "black"),
+          axis.title.x = element_text(size=16, face="bold", colour = "black"),
           legend.position = "bottom", 
-          legend.title = element_text(size=12, face="bold", colour = "black"))
+          legend.title = element_text(size=16, face="bold", colour = "black"))
 )
 dev.off()

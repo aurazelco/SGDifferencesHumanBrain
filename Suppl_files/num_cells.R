@@ -64,15 +64,15 @@ norm <- ggplot(all_ds[which(all_ds$disease=="Healthy"),], aes(factor(proj, order
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
-        strip.text = element_text(size=12, face="bold", colour = "black"),
-        plot.title = element_text(size=12, face="bold", colour = "black"),
+        strip.text = element_text(size=14, face="bold", colour = "black"),
+        plot.title = element_text(size=14, face="bold", colour = "black"),
         axis.line = element_line(colour = "black"),
         axis.title.x = element_blank(),
-        axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
+        axis.text.x = element_text(size=12, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
         axis.ticks.x=element_blank(),
-        axis.title.y = element_text(size=12, face="bold", colour = "black"),
+        axis.title.y = element_text(size=14, face="bold", colour = "black"),
         legend.position = "bottom", 
-        legend.title = element_text(size=12, face="bold", colour = "black"))
+        legend.title = element_text(size=14, face="bold", colour = "black"))
 
 dis <- ggplot(all_ds[which(all_ds$disease!="Healthy"),], aes(factor(proj, order_proj), count, fill=sex)) +
   geom_bar(stat = "identity", color="black", position = "dodge") +
@@ -82,20 +82,20 @@ dis <- ggplot(all_ds[which(all_ds$disease!="Healthy"),], aes(factor(proj, order_
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
-        strip.text = element_text(size=12, face="bold", colour = "black"),
-        plot.title = element_text(size=12, face="bold", colour = "black"),
+        strip.text = element_text(size=14, face="bold", colour = "black"),
+        plot.title = element_text(size=14, face="bold", colour = "black"),
         axis.line = element_line(colour = "black"),
         axis.title.x = element_blank(),
-        axis.text.x = element_text(size=8, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
+        axis.text.x = element_text(size=12, colour = "black",angle = 90, vjust = 0.7, hjust=0.5),
         axis.ticks.x=element_blank(),
-        axis.title.y = element_text(size=12, face="bold", colour = "black"),
+        axis.title.y = element_text(size=14, face="bold", colour = "black"),
         legend.position = "bottom", 
-        legend.title = element_text(size=12, face="bold", colour = "black"))
+        legend.title = element_text(size=14, face="bold", colour = "black"))
 
 
 fig <- ggarrange(norm, dis, nrow = 2, common.legend = T, legend = "bottom")
 
-png(paste0(plot_path, "num_cells.png"), height = 15, width = 10, units="in", res = 300 )
+png(paste0(plot_path, "num_cells.png"), height = 12, width = 10, units="in", res = 300 )
 print(fig)
 dev.off()
 
