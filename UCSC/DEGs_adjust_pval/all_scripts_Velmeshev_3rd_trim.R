@@ -3,11 +3,11 @@
 library(Seurat)
 library(stringr)
 
-main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/"
+main <- "UCSC/DEGs_adjust_pval/"
 
 dir.create(main, recursive = T, showWarnings = F)
 
-trim_3rd <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Velmeshev_2022_3rd_trimester.rds")
+trim_3rd <- readRDS("UCSC/Seurat_UCSC/Velmeshev_2022_3rd_trimester.rds")
 trim_3rd@meta.data$sex_ct <- paste(trim_3rd@meta.data$sex, trim_3rd@meta.data$cluster_final, sep="_")
 Idents(trim_3rd) <- "sex_ct"
 
@@ -51,7 +51,7 @@ for (ct_type in unique(final_groups$ct)) {
 rm(list=ls())
 
 ####### GENERAL VARIABLES
-main_local <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/Velmeshev_2022_3rd_trimester/outputs/"
+main_local <- "UCSC/DEGs_adjust_pval/Velmeshev_2022_3rd_trimester/outputs/"
 
 ct_order <- c(
   "Dorsal progenitors",
@@ -68,7 +68,7 @@ ct_order <- c(
 
 ####### 01B_plot_num_genes.R
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs_adjust_pval/01B_plot_num_genes_func.R")
+source("scripts/UCSC/DEGs_adjust_pval/01B_plot_num_genes_func.R")
 
 # QC parameters
 pval_thresh <- 0.05
@@ -80,7 +80,7 @@ CountDEG(main_local, pval_thresh, FC_thresh, ct_order, min_num_thresh)
 
 ####### 01C_num_chr.R -> not on the server
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs_adjust_pval/01C_num_chr_func.R")
+source("scripts/UCSC/DEGs_adjust_pval/01C_num_chr_func.R")
 
 chr_3rd_trim <- ProcessCt(main_local)
 ExtractSharedGenes(main_local, chr_3rd_trim)
@@ -89,12 +89,12 @@ PlotSexHmp(main_local, chr_3rd_trim, ct_order)
 
 ####### 01D_Xpar1,2.R
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs_adjust_pval/01D_Xpar1,2_func.R")
+source("scripts/UCSC/DEGs_adjust_pval/01D_Xpar1,2_func.R")
 
-Xpar1 <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/extra_files/Xpar1.csv",
+Xpar1 <- read.csv("UCSC/DEGs_adjust_pval/extra_files/Xpar1.csv",
                   skip = 1)
 Xpar1_list <- Xpar1$Approved.symbol
-Xpar2 <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/extra_files/Xpar2.csv",
+Xpar2 <- read.csv("UCSC/DEGs_adjust_pval/extra_files/Xpar2.csv",
                   skip = 1)
 Xpar2_list <- Xpar2$Approved.symbol
 
@@ -102,8 +102,8 @@ XparCt(main_local, Xpar1_list, Xpar2_list, ct_order)
 
 ####### 02A_HyperGeom.R  -> not on the server
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs_adjust_pval/01C_num_chr_func.R")
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs_adjust_pval/02A_HyperGeom_func.R")
+source("scripts/UCSC/DEGs_adjust_pval/01C_num_chr_func.R")
+source("scripts/UCSC/DEGs_adjust_pval/02A_HyperGeom_func.R")
 
 # as used in 02A_HyperGeom
 X_chr_genes <- 1848
@@ -117,23 +117,23 @@ PlotNumChr(main_local, num_chr_genes, ct_order, T)
 
 ####### 02B_ARE_ERE.R
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs_adjust_pval/02B_ARE_ERE_func.R")
+source("scripts/UCSC/DEGs_adjust_pval/02B_ARE_ERE_func.R")
 
-ARE <- read_excel("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/extra_files/AREsitesHuman.xlsx",
+ARE <- read_excel("UCSC/DEGs_adjust_pval/extra_files/AREsitesHuman.xlsx",
                   skip=1)
 colnames(ARE) <- c("fullsites", "halfsites")
 
-ERE <- read_excel("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/extra_files/Hs_allEREs.xls")
+ERE <- read_excel("UCSC/DEGs_adjust_pval/extra_files/Hs_allEREs.xls")
 EREgene <- ERE$`Hs Gene Name`
 
 AnalysisARE_ERE(main_local, ARE, EREgene, ct_order)
 
 ####### 02C_Conservation.R
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/UCSC/DEGs_adjust_pval/02C_Conservation_func.R")
+source("scripts/UCSC/DEGs_adjust_pval/02C_Conservation_func.R")
 
 # CONSERVATION ACROSS PRIMATES
-conserved <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/extra_files/mart_export.txt",
+conserved <- read.csv("UCSC/DEGs_adjust_pval/extra_files/mart_export.txt",
                       sep = '\t',
                       header = TRUE,
                       fill = TRUE)
@@ -157,7 +157,7 @@ for (sp in seq(5,10)) {
 conserved <- conserved %>% distinct(gene_name, .keep_all = TRUE)
 
 # SAGD CONSERVATION
-SAGD <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/extra_files/Sexassociatedgene_Padj0.05_PMID30380119.csv")
+SAGD <- read.csv("UCSC/DEGs_adjust_pval/extra_files/Sexassociatedgene_Padj0.05_PMID30380119.csv")
 SAGD <- SAGD[, c(2,4)]
 SAGD[which(SAGD[,"Symbol"]==''), "Symbol"]  <- NA
 SAGD <- drop_na(SAGD)
@@ -183,17 +183,17 @@ for (gene in SAGD_df$gene_name) {
 }
 names(SAGD_df)[names(SAGD_df) == 'gene'] <- 'gene_name'
 
-write.csv(SAGD_df, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/extra_files/SAGD_filt.csv")
-SAGD_df <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/extra_files/SAGD_filt.csv")
+write.csv(SAGD_df, "UCSC/DEGs_adjust_pval/extra_files/SAGD_filt.csv")
+SAGD_df <- read.csv("UCSC/DEGs_adjust_pval/extra_files/SAGD_filt.csv")
 SAGD_df[,1] <- NULL
 
 # ENSEMBL 
 
-ensembl_mat <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/extra_files/binary_mat_all_species.csv")
+ensembl_mat <- read.csv("UCSC/DEGs_adjust_pval/extra_files/binary_mat_all_species.csv")
 names(ensembl_mat)[names(ensembl_mat) == 'X'] <- "gene_name"
 
 # all genes commonly expressed in the cts
-all_genes <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/Velmeshev_2022_3rd_trimester/tot_genes_ct_Velmeshev_2022_3rd_trimester.csv")
+all_genes <- read.csv("UCSC/DEGs_adjust_pval/Velmeshev_2022_3rd_trimester/tot_genes_ct_Velmeshev_2022_3rd_trimester.csv")
 all_genes$X <- NULL
 all_genes$sex <- str_replace_all(all_genes$sex, c("Female"="F", "Male"="M"))
 col_factors <- c("sex", "ct")

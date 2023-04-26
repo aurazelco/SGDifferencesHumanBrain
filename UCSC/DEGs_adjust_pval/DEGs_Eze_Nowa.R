@@ -2,9 +2,9 @@
 
 library(Seurat)
 
-main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_2nd_trimester/Eze_Nowakowski_integrated_2nd_trimester/outputs/"
+main <- "UCSC/DEGs_2nd_trimester/Eze_Nowakowski_integrated_2nd_trimester/outputs/"
 
-trim_2nd <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated_2nd_trimester.rds")
+trim_2nd <- readRDS("UCSC/Seurat_UCSC/Eze_Nowakowski_integrated_2nd_trimester.rds")
 Idents(trim_2nd) <- "sex_ct"
 
 min_cells <- 100

@@ -7,18 +7,21 @@
 		* [split_big_ExprMtx](#split_big_exprmtx)
 	* [Dataset sources for second trimester integration](#dataset-sources-for-second-trimester-integration)
 * [Brief description of the DEGs scripts](#brief-description-of-the-degs-scripts)
+* [Workflow](#workflow)
 
 
 ## Brief description of the scripts used to prepare the RDS from UCSC
 
-* [Eze_Nowa_integration.R](RDS_preparation/Eze_Nowa_integration.R) -  R script to integrate Eze_2021 and Nowakowski_2017 datasets
-* [Eze_Nowa_rds.R](RDS_preparationEze_Nowa_rds.R) - R script to create the SeuratObjects from the expression matrices for the Nowakowski and Eze projects
-* [split_big_ExprMtx.sh](RDS_preparation/split_big_ExprMtx.sh) - bash script to split a heavy TSV.GZ file into multiple smaller TSV.GZ files according to indexes provided in .TXT files
-* [UCSC_integration_2nd_trimester_all.R](RDS_preparation/UCSC_integration_2nd_trimester_all.R) -  R script to integrate all datasets with data from the 2nd trimester (Eze, Nowakowski, Velmeshev) - just to verify that we do not have separation based on dataset alone
 * [UCSC_metadata_parsing.R](RDS_preparation/UCSC_metadata_parsing.R) - R script to collect metadata about the UCSC potential datasets to analyze
-* [UCSC_Velmeshev_all_ages_furu.R](RDS_preparation/UCSC_Velmeshev_all_ages_furu.R) - R script to integrate all previous RDS SeuratObjects from Velmeshev
+* [Eze_Nowa_rds.R](RDS_preparationEze_Nowa_rds.R) - R script to create the SeuratObjects from the expression matrices for the Nowakowski and Eze projects
+* [Eze_Nowa_integration.R](RDS_preparation/Eze_Nowa_integration.R) -  R script to integrate Eze_2021 and Nowakowski_2017 datasets
+* [Velmeshev_split.R](RDS_preparation/Velmeshev_split.R) - script to prepares files for [split_big_ExprMtx.sh](RDS_preparation/split_big_ExprMtx.sh)
+* [split_big_ExprMtx.sh](RDS_preparation/split_big_ExprMtx.sh) - bash script to split a heavy TSV.GZ file into multiple smaller TSV.GZ files according to indexes provided in .TXT files
 * [Velmeshev_furu_rds.R](RDS_preparation/Velmeshev_furu_rds.R) -  R script to create the RDS SeuratObjects for the larger Velmeshev subsets (2nd trimester, 10-20 years)
-* [Velmeshev_rds.R](RDS_preparation/Velmeshev_rds.R) -  R script to create the RDS SeuratObjects for the smaller Velmeshev subsets, also prepares files for [split_big_ExprMtx.sh](RDS_preparation/split_big_ExprMtx.sh)
+* [Velmeshev_rds.R](RDS_preparation/Velmeshev_rds.R) -  R script to create the RDS SeuratObjects for the smaller Velmeshev subsets
+* [prep_DEG_files.R](DEGs_individual_projects_adjust_pval/prep_DEG_files.R) - script containing functions for preparing files for the DEG analysis, run in [Velmeshev_furu_rds.R](RDS_preparation/Velmeshev_furu_rds.R) and [Velmeshev_rds.R](RDS_preparation/Velmeshev_rds.R)
+* [UCSC_integration_2nd_trimester_all.R](RDS_preparation/UCSC_integration_2nd_trimester_all.R) -  R script to integrate all datasets with data from the 2nd trimester (Eze, Nowakowski, Velmeshev) - just to verify that we do not have separation based on dataset alone
+* [UCSC_Velmeshev_all_ages_furu.R](RDS_preparation/UCSC_Velmeshev_all_ages_furu.R) - R script to integrate all previous RDS SeuratObjects from Velmeshev
 
 The RDS from UCSC were filtered according to the following steps:
 - excluded projects that did not contain data from both sexes (at least 2-3/samples per sex) -> Velmeshev 4-10 years excluded, and Eze-Nowakowski integrated
@@ -45,7 +48,7 @@ The following script does not mantain the header; however, we can easily retriev
 
 The script takes the following arguments:
 * **-i** - input expression matrix to be split in multiple subsets (extract different columns)
-* **-b** - input directory where the indexes of the columns to be extracted for each subset are saved (separate .TXT files, indexes listed in one line with commas as separator -> see  the object split_indexes in [00_UCSC_Seurat_Velmeshev.R](00_UCSC_Seurat_Velmeshev.R))
+* **-b** - input directory where the indexes of the columns to be extracted for each subset are saved (separate .TXT files, indexes listed in one line with commas as separator -> see  the object split_indexes in [Velmeshev_rds.R](RDS_preparation/Velmeshev_rds.R)
 * **-o** - the output directory where to save the split expression matrices
 
 **Example**
@@ -78,7 +81,7 @@ These two datasets all contained fetal samples, with both female and male sample
 * [01B_plot_num_genes_func.R](DEGs_individual_projects_adjust_pval/01B_plot_num_genes_func.R) - functions to extract the common DEGs among F and M DEGs per each subtype, and plot the results
 * [01C_num_chr_func.R](DEGs_individual_projects_adjust_pval/01C_num_chr_func.R) - functions to map the DEGs obtained from 01B to the genome and plot the fraction of DEGs belonging to X, Y or autosomial chromosome; it also plots a heatmap of the X- and Y-genes expression across the different subtypes
 * [01D_Xpar1,2_func.R](DEGs_individual_projects_adjust_pval/01D_Xpar1,2_func.R) - script to calculate and plot the number of genes belonging to Xpar1 and Xpar2
-* [02A_Fisher_func.R](DEGs_individual_projects_adjust_pval/02A_Fisher_func.R) - functions to calculate the enrichment of sex chromosomes compared to autosomial genes - used in 01C to add significance to plot
+* [02A_HyperGeom_func.R](DEGs_individual_projects_adjust_pval/02A_HyperGeom_func.R) - functions to calculate the enrichment of sex chromosomes compared to autosomial genes - used in 01C to add significance to plot
 * [02B_ARE_ERE_func.R](DEGs_individual_projects_adjust_pval/02B_ARE_ERE_func.R) - functions to calculate and plot the ARE and ERE sites percentages in the cell types, separated F and M, but in the individual projects instead of on the intersected DEGs
 * [02C_Conservation_func.R](DEGs_individual_projects_adjust_pval/02C_Conservation_func.R) - functions to plot the conserved fraction of DEGs across mammals and primates
 * [all_scripts_Velmeshev_2nd_trim.R](DEGs/all_scripts_Velmeshev_2nd_trim.R) - script containing the previous scripts, 01A-02C, to be run for the Velmeshev 2nd trimester
@@ -91,5 +94,14 @@ These two datasets all contained fetal samples, with both female and male sample
 * [DEGs_Eze_Nowa.R](Second_trimester/DEGs_Eze_Nowa.R) - script to generate the SG-biased DEGs used in the [DEGs_2nd_trimester.R](DEGs/DEGs_2nd_trimester.R) script
 
 
+## Workflow
 
-
+The scripts should be run in the following order:
+1. [UCSC_metadata_parsing.R](RDS_preparation/UCSC_metadata_parsing.R)
+2. [Eze_Nowa_rds.R](RDS_preparationEze_Nowa_rds.R) **BEFORE** [Eze_Nowa_integration.R](RDS_preparation/Eze_Nowa_integration.R)
+3. [Velmeshev_split.R](RDS_preparation/Velmeshev_split.R)
+4. [split_big_ExprMtx.sh](RDS_preparation/split_big_ExprMtx.sh)
+5. [Velmeshev_furu_rds.R](RDS_preparation/Velmeshev_furu_rds.R), [Velmeshev_rds.R](RDS_preparation/Velmeshev_rds.R)
+6. [UCSC_integration_2nd_trimester_all.R](RDS_preparation/UCSC_integration_2nd_trimester_all.R)
+7. [UCSC_Velmeshev_all_ages_furu.R](RDS_preparation/UCSC_Velmeshev_all_ages_furu.R)
+8. [all_scripts_Velmeshev_2nd_trim.R](DEGs/all_scripts_Velmeshev_2nd_trim.R), [all_scripts_Velmeshev_3rd_trim.R](DEGs/all_scripts_Velmeshev_3rd_trim.R), [all_scripts_Velmeshev_0_1_years.R](DEGs/all_scripts_Velmeshev_0_1_years.R), [all_scripts_Velmeshev_1_2_years.R](DEGs/all_scripts_Velmeshev_1_2_years.R), [all_scripts_Velmeshev_2_4_years.R](DEGs/all_scripts_Velmeshev_2_4_years.R), [all_scripts_Velmeshev_10_20_years.R](DEGs/all_scripts_Velmeshev_10_20_years.R), [all_scripts_Velmeshev_Adult.R](DEGs/all_scripts_Velmeshev_Adult.R), [DEGs_Eze_Nowa.R](Second_trimester/DEGs_Eze_Nowa.R) - in no particular order

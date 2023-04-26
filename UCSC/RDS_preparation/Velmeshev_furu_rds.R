@@ -9,10 +9,10 @@ library(dplyr)
 `%!in%` <- Negate(`%in%`)
 
 
-out_path <- "/Home/ii/auraz/data/UCSC"
+out_path <- "UCSC"
 rds_path <- paste0(out_path, "/Seurat_UCSC/Velmeshev/")
-main_deg <- "/Home/ii/auraz/data/UCSC/outputs/DEGs/"
-main_scenic <- "/Home/ii/auraz/data/UCSC/outputs/SCENIC/"
+main_deg <- "UCSC/outputs/DEGs/"
+main_scenic <- "UCSC/outputs/SCENIC/"
 
 # Clusters annotation using Fig 1B and Fig S1a from paper
 
@@ -182,7 +182,7 @@ FiltDF <- function(df, min_num_cells) {
 
 min_num_cells <- c(10,50,100)
 
-main_deg <- "/Home/ii/auraz/data/UCSC/outputs/DEGs/"
+main_deg <- "UCSC/outputs/DEGs/"
 
 velm_2nd_trim_output <- paste0(main_deg, velm_2nd_trim@project.name, "/outputs/")
 
@@ -337,7 +337,7 @@ if (identical(length(which(expr_sums>0)), length(expr_sums))) {
 expr_mat_all <- expr_mat_all %>% 
   relocate(SD, .after = Genes)
 
-velm_2nd_trim_scenic <- paste0("/Home/ii/auraz/data/UCSC/outputs/SCENIC/", velm_2nd_trim@project.name, "/")
+velm_2nd_trim_scenic <- paste0("UCSC/outputs/SCENIC/", velm_2nd_trim@project.name, "/")
 
 dir.create(velm_2nd_trim_scenic, showWarnings = F, recursive = T)
 
@@ -628,7 +628,7 @@ write.csv(velm_num_sex_ct, paste0(output_10_20_yo, velm_10_20_years@project.name
 
 ################ FOR DEGs ANALYSIS
 
-source("/Home/ii/auraz/scripts/00_DEGs_and_SCENIC_files_prep.R")
+source("scripts/prep_DEG_files.R")
 
 velm_10_20_years <- readRDS(paste0(rds_path, "Velmeshev_2022_10_20_years.rds"))
 
@@ -714,7 +714,7 @@ RandomSampling(df_list100, 3, 100, velm_10_20_years_scenic)
 
 ################ FOR DEGs ANALYSIS
 
-source("/Home/ii/auraz/scripts/00_DEGs_and_SCENIC_files_prep.R")
+source("scripts/prep_DEG_files.R")
 
 velm_3rd_trim <- readRDS(paste0(rds_path, "Velmeshev_2022_3rd_trimester.rds"))
 

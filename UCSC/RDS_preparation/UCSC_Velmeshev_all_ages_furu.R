@@ -39,16 +39,16 @@ rm(ann_clusters)
 #
 ####################################################################################################
 
-out_path <- "/Home/ii/auraz/data/UCSC/outputs/Velmeshev_integrated/"
-rds_path <- "/Home/ii/auraz/data/UCSC/Seurat_UCSC/Velmeshev/"
+out_path <- "UCSC/outputs/Velmeshev_integrated/"
+rds_path <- "UCSC/Seurat_UCSC/Velmeshev/"
 dir.create(out_path, recursive=T, showWarnings = F)
 dir.create(rds_path, recursive=T, showWarnings = F)
 
-meta <- read.csv("/Home/ii/auraz/data/UCSC/UCSC_downloads/new_meta_Velmeshev_2022.csv", 
+meta <- read.csv("UCSC/UCSC_downloads/new_meta_Velmeshev_2022.csv", 
                  header=T, sep=",", as.is=T, row.names=1)
 rownames(meta) <- meta$cell
 
-mat_Velm_all <- fread("/Home/ii/auraz/data/UCSC/UCSC_downloads/exprMtx_filt_Velmeshev_2022.tsv.gz")
+mat_Velm_all <- fread("UCSC/UCSC_downloads/exprMtx_filt_Velmeshev_2022.tsv.gz")
 genes <- mat_Velm_all[,1][[1]]
 genes <- gsub(".+[|]", "", genes)
 mat_Velm_all <- data.frame(mat_Velm_all[,-1], row.names=genes)

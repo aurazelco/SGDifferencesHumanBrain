@@ -5,16 +5,16 @@ library(stringr)
 library(dplyr)
 
 
-main <- "/Home/ii/auraz/data/UCSC/outputs/Eze_Nowakowski_Velmeshev_2nd_trimester_integrated"
+main <- "UCSC/outputs/Eze_Nowakowski_Velmeshev_2nd_trimester_integrated"
 
 dir.create(main, recursive = T, showWarnings = F)
 
 # Modified tutorial from https://satijalab.org/seurat/articles/integration_introduction.html
 
-input_rds_path <-  "/Home/ii/auraz/data/UCSC/Seurat_UCSC/integrated"
-input_rds_files <- c("/Home/ii/auraz/data/UCSC/Seurat_UCSC/others/Eze_2021.rds",
-                     "/Home/ii/auraz/data/UCSC/Seurat_UCSC/others/Nowakowski_2017.rds",
-                     "/Home/ii/auraz/data/UCSC/Seurat_UCSC/Velmeshev/Velmeshev_2022_2nd_trimester.rds")
+input_rds_path <-  "UCSC/Seurat_UCSC/integrated"
+input_rds_files <- c("UCSC/Seurat_UCSC/others/Eze_2021.rds",
+                     "UCSC/Seurat_UCSC/others/Nowakowski_2017.rds",
+                     "UCSC/Seurat_UCSC/Velmeshev/Velmeshev_2022_2nd_trimester.rds")
 input_rds <- lapply(input_rds_files,function(x) {
   readRDS(file = x)
 })

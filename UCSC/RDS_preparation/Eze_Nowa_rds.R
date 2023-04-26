@@ -8,7 +8,7 @@ library(ggplot2)
 library(ggpubr)
 library(scales)
 
-main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/"
+main <- "UCSC/outputs/"
 
 
 # from this tutorial UCSC CellBrowser https://cellbrowser.readthedocs.io/en/master/load.html
@@ -19,14 +19,14 @@ main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/"
 #
 ####################################################################################################
 
-mat <- fread("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/exprMatrix_Eze_2021.tsv.gz")
+mat <- fread("UCSC/UCSC_downloads/exprMatrix_Eze_2021.tsv.gz")
 genes <- mat[,1][[1]]
 genes <- gsub(".+[|]", "", genes)
 mat <- data.frame(mat[,-1], row.names=genes)
 
 
 
-meta <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/new_meta_Eze_2021.csv", header=T, sep=",", as.is=T, row.names=1)
+meta <- read.csv("UCSC/UCSC_downloads/new_meta_Eze_2021.csv", header=T, sep=",", as.is=T, row.names=1)
 meta <- subset(meta, subset = Cell %in% colnames(mat))
 keep <- c("Cell", "nGene.x", "nUMI.x", "Age_.Carnegie_Stage.","Individual.x","Area_As_Annotated", "Area.x", 
           "V1", "Cluster.x", "Cell.Type" ,  "Age",  "Age.Range",  "Progenitor.Cluster.Original" , "Progenitor.Combined.Cluster")
@@ -112,7 +112,7 @@ num_cells <- separate(num_cells, Var1, into=c("id", "sex", "age"), sep="_")
 num_cells <- cbind("proj" = rep("Eze_2021", nrow(num_cells)), num_cells)
 num_cells$age <- paste0("GW", num_cells$age)
 
-saveRDS(eze, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_2021.rds")
+saveRDS(eze, "UCSC/Seurat_UCSC/Eze_2021.rds")
 
 
 ####################################################################################################
@@ -123,13 +123,13 @@ saveRDS(eze, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze
 
 
 # from this tutorial UCSC CellBrowser https://cellbrowser.readthedocs.io/en/master/load.html
-mat <- fread("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/exprMatrix_Nowakowski_2017.tsv.gz")
+mat <- fread("UCSC/UCSC_downloads/exprMatrix_Nowakowski_2017.tsv.gz")
 #mat <- mat[-c(which(grepl("^$", mat[,1][[1]])))]
 genes <- mat[,1][[1]]
 genes <- gsub(".+[|]", "", genes)
 mat <- data.frame(mat[,-1], row.names=genes)
 
-meta <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/new_meta_Nowakowski_2017.csv", header=T, sep=",", as.is=T, row.names=1)
+meta <- read.csv("UCSC/UCSC_downloads/new_meta_Nowakowski_2017.csv", header=T, sep=",", as.is=T, row.names=1)
 
 rownames(meta) <- meta$Cell
 
@@ -244,12 +244,12 @@ num_cells3 <- separate(num_cells3, Var1, into=c("id", "sex", "age"), sep="_")
 num_cells3 <- cbind("proj" = rep(nowa@project.name, nrow(num_cells3)), num_cells3)
 num_cells3$age <- paste0("GW", num_cells3$age)
 
-num_cells <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/num_cells_per_project.csv")
+num_cells <- read.csv("UCSC/outputs/num_cells_per_project.csv")
 num_cells[,1] <- NULL
 num_cells <- rbind(num_cells, num_cells3)
-write.csv(num_cells, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/num_cells_per_project.csv")
+write.csv(num_cells, "UCSC/outputs/num_cells_per_project.csv")
 
-saveRDS(nowa, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/", nowa@project.name, ".rds"))
+saveRDS(nowa, paste0("UCSC/Seurat_UCSC/", nowa@project.name, ".rds"))
 
 ####################################################################################################
 #
@@ -257,7 +257,7 @@ saveRDS(nowa, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_
 #
 ####################################################################################################
 
-num_cells <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/num_cells_per_project.csv")
+num_cells <- read.csv("UCSC/outputs/num_cells_per_project.csv")
 num_cells[,1] <- NULL
 num_cells$age <- as.factor(as.numeric(str_remove_all(num_cells$age, "GW")))
 

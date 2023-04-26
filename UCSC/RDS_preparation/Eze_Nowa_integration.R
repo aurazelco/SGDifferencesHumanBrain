@@ -12,10 +12,10 @@ library(readxl)
 library(matrixStats)
 `%!in%` <- Negate(`%in%`)
 
-main_outs <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Eze_Nowakowski_integrated/"
-main_deg <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs/Eze_Nowakowski_integrated_2nd_trimester/"
-main_scenic <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/SCENIC/Eze_Nowakowski_integrated_2nd_trimester/"
-input_rds_path <-  "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC"
+main_outs <- "UCSC/outputs/Eze_Nowakowski_integrated/"
+main_deg <- "UCSC/DEGs/Eze_Nowakowski_integrated_2nd_trimester/"
+main_scenic <- "UCSC/SCENIC/Eze_Nowakowski_integrated_2nd_trimester/"
+input_rds_path <-  "UCSC/Seurat_UCSC"
 
 ####### Modified tutorial from https://satijalab.org/seurat/articles/integration_introduction.html
 input_rds_files <- list.files(path = input_rds_path, pattern = ".rds", full.names = T)[1:2]
@@ -56,7 +56,7 @@ DimPlot(rds.combined, reduction = "umap")
 DimPlot(rds.combined, reduction = "umap", group.by = "proj")
 ggsave(paste0(main_outs, rds.combined@project.name, "_proj.pdf"))
 
-saveRDS(rds.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
+saveRDS(rds.combined, "UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
 #rm(input_rds, input_rds_files, input_rds_path)
 
 
@@ -98,7 +98,7 @@ DimPlot(rds.combined, reduction = "umap", group.by = "trimesters")
 ggsave(paste0(main_outs, rds.combined@project.name, "_trimesters.pdf"))
 
 
-saveRDS(rds.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
+saveRDS(rds.combined, "UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
 
 rds.combined@meta.data$sex_age <- paste(rds.combined@meta.data$sex, rds.combined@meta.data$age_final, sep="_")
 
@@ -221,7 +221,7 @@ DefaultAssay(rds.combined) <- "RNA"
 
 VlnPlot(rds.combined, features = "XIST", group.by = "id_sex_age_trimester") + NoLegend()
 
-saveRDS(rds.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
+saveRDS(rds.combined, "UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
 
 ####### CLUSTERS
 
@@ -363,12 +363,12 @@ rds.combined@meta.data[which(rds.combined@meta.data$cluster_final=="Nowakowski")
 
 DimPlot(rds.combined, reduction = "umap", group.by = "cluster_final")
 
-saveRDS(rds.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
+saveRDS(rds.combined, "UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
 
 
 ########################
 
-rds.combined <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
+rds.combined <- readRDS("UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
 DimPlot(rds.combined, reduction = "umap", group.by = "cluster_final")
 DimPlot(rds.combined, reduction = "umap", group.by = "cluster_final", split.by = "sex")
 ggsave(paste0(main_outs, "clusters_by_sex.pdf"))
@@ -386,7 +386,7 @@ other_cl <- FindClusters(other_cl, resolution = 0.5)
 DimPlot(other_cl, reduction = "umap", group.by = "WGCNAcluster")
 
 
-extra_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/extra_files/"
+extra_path <- "DISCOv1.0/20220817_DEGs/extra_files/"
 
 cm1 <- read.csv(paste0(extra_path, "CellMarker.csv"))
 cm2 <- read.csv(paste0(extra_path, "CellMarker-2.csv"))
@@ -491,7 +491,7 @@ DoHeatmap(other_cl,markers[[12]]) # no features  "T"
 other_cl@meta.data$other_ann <- rep("no_data", nrow(other_cl@meta.data))
 other_cl@meta.data[which(other_cl@meta.data$seurat_clusters==8), "other_ann"] <- "Microglia"
 
-nowa_markers <- read_xlsx("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/meta_Nowakowski_2017_suppl.xlsx",
+nowa_markers <- read_xlsx("UCSC/UCSC_downloads/meta_Nowakowski_2017_suppl.xlsx",
                          sheet = 5)
 
 nowa_sub <- unique(other_cl$WGCNAcluster)
@@ -502,11 +502,11 @@ nowa_markers <- subset(nowa_markers, cluster %in% nowa_sub)
 DoHeatmap(other_cl, unique(nowa_markers$gene)) + RotatedAxis()
 
 
-saveRDS(rds.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
+saveRDS(rds.combined, "UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
 
 #####################
 
-rds.combined <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
+rds.combined <- readRDS("UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
 DimPlot(rds.combined, reduction = "umap", group.by = "cluster_final")
 
 other_cl <- subset(rds.combined, cluster_final == "Other")
@@ -566,7 +566,7 @@ if (identical(length(which(expr_sums>0)), length(expr_sums))) {
 expr_mat_all <- expr_mat_all %>% 
   relocate(SD, .after = Genes)
  
-#saveRDS(expr_mat_all, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/20220817_DEGs/top_2000_SD_expr_matrix.rds")
+#saveRDS(expr_mat_all, "DISCOv1.0/20220817_DEGs/top_2000_SD_expr_matrix.rds")
 
 
 avg_expr <- data.frame(expr_mat_all[,1])
@@ -609,7 +609,7 @@ microglia_cells <- WhichCells(other_cl, idents = "Microglia")
 rds.combined@meta.data[which(rds.combined@meta.data$Cell %in% microglia_cells), "cluster_final"] <- "Microglia"
 
 
-saveRDS(rds.combined, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
+saveRDS(rds.combined, "UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
 
 rds.combined@meta.data$id_sex_age_cluster <- paste(rds.combined@meta.data$id_sex_age, rds.combined@meta.data$cluster_final, sep="_")
 rds.combined@meta.data$proj_id_sex_age_cluster <- paste(rds.combined@meta.data$proj, rds.combined@meta.data$id_sex_age_cluster, sep="_")
@@ -648,7 +648,7 @@ dev.off()
 
 ########################
 
-rds.combined <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
+rds.combined <- readRDS("UCSC/Seurat_UCSC/Eze_Nowakowski_integrated.rds")
 DimPlot(rds.combined, reduction = "umap", group.by = "cluster_final")
 DimPlot(rds.combined, reduction = "umap", group.by = "trimesters")
 
@@ -667,11 +667,11 @@ trim_2nd <- FindNeighbors(trim_2nd, dims = 1:13)
 trim_2nd <- FindClusters(trim_2nd, resolution = 0.5)
 DimPlot(trim_2nd, reduction = "umap", group.by = "cluster_final")
 DimPlot(trim_2nd, reduction = "umap", group.by = "trimesters")
-saveRDS(trim_2nd, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated_2nd_trimester.rds")
+saveRDS(trim_2nd, "UCSC/Seurat_UCSC/Eze_Nowakowski_integrated_2nd_trimester.rds")
 
 ########################
 
-trim_2nd <- readRDS("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/Eze_Nowakowski_integrated_2nd_trimester.rds")
+trim_2nd <- readRDS("UCSC/Seurat_UCSC/Eze_Nowakowski_integrated_2nd_trimester.rds")
 trim_2nd@meta.data$sex_ct <- paste(trim_2nd@meta.data$sex, trim_2nd@meta.data$cluster_final, sep="_")
 
 trim_2nd@project.name <- "Eze_Nowakowski_integrated_2nd_trimester"
@@ -1042,4 +1042,4 @@ trim_2nd <- readRDS(paste0(input_rds_path, "/Eze_Nowakowski_integrated_2nd_trime
 
 num_cells <- as.data.frame(table(trim_2nd@meta.data$sex_ct))
 num_cells <- separate(num_cells, Var1, into = c("sex", "ct"), sep = "_")
-write.csv(num_cells, paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Eze_Nowakowski_num_cells.csv"))
+write.csv(num_cells, paste0("UCSC/outputs/Eze_Nowakowski_num_cells.csv"))

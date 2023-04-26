@@ -4,7 +4,7 @@ library(tidyr)
 library(readxl)
 
 
-input_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads"
+input_path <- "UCSC/UCSC_downloads"
 
 all_meta_files <- list.files(input_path, pattern = "\\.tsv$", full.names = T)
 
@@ -165,24 +165,24 @@ df_meta[which(df_meta$projects=="van_Bruggen_2022"), "area"] <- "forebrain"
 # put suppl together
 suppl_files <- list()
 suppl_files <- append(suppl_files,
-                      list(as.data.frame(read_excel("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/meta_Bhaduri_2021_suppl.xlsx",
+                      list(as.data.frame(read_excel("UCSC/UCSC_downloads/meta_Bhaduri_2021_suppl.xlsx",
                                                     sheet = 5))))
 suppl_files <- append(suppl_files,
-                      list(as.data.frame(read_excel("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/meta_Bhaduri_2021_suppl.xlsx",
+                      list(as.data.frame(read_excel("UCSC/UCSC_downloads/meta_Bhaduri_2021_suppl.xlsx",
                                  sheet = 1))))
 suppl_files <- append(suppl_files,
-                      list(as.data.frame(read_excel("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/meta_Darmanis_2015_suppl.xlsx",
+                      list(as.data.frame(read_excel("UCSC/UCSC_downloads/meta_Darmanis_2015_suppl.xlsx",
                                                     sheet = 1, col_names = T, skip=1))))
 suppl_files <- append(suppl_files,
-                      list(as.data.frame(read_excel("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/meta_Eze_2021_suppl.xlsx",
+                      list(as.data.frame(read_excel("UCSC/UCSC_downloads/meta_Eze_2021_suppl.xlsx",
                                                     sheet = 6))))
 suppl_files <- append(suppl_files,
-                      list(as.data.frame(read_excel("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/meta_Han_2020_suppl.xlsx",
+                      list(as.data.frame(read_excel("UCSC/UCSC_downloads/meta_Han_2020_suppl.xlsx",
                                                     sheet = 2, skip = 2))))
 suppl_files <- append(suppl_files,
-                      list(as.data.frame(read_excel("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/meta_Muller_2018_suppl.xlsx"))))
+                      list(as.data.frame(read_excel("UCSC/UCSC_downloads/meta_Muller_2018_suppl.xlsx"))))
 suppl_files <- append(suppl_files,
-                      list(as.data.frame(read_excel("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/meta_Nowakowski_2017_suppl.xlsx",
+                      list(as.data.frame(read_excel("UCSC/UCSC_downloads/meta_Nowakowski_2017_suppl.xlsx",
                                                     sheet = 2))))
 names(suppl_files) <- c("meta_Bhaduri_2021_neocortex_suppl.xlsx", list.files(input_path, pattern = "\\.xlsx$"))
 names(suppl_files) <- str_remove_all(names(suppl_files), "meta_")
@@ -212,7 +212,7 @@ df_meta[which(df_meta$projects=="Han_2020"), "sex"] <- paste(sort(unique(suppl_f
 #df_meta[which(df_meta$projects=="Muller_2018"), "age"] <- paste("YEARS", df_meta[which(df_meta$projects=="Muller_2018"), "age"], sep = " ")
 #df_meta[which(df_meta$projects=="Muller_2018"), "sex"] <- paste(unique(suppl_files[["Muller_2018"]]$Gender), collapse = ", ")
 
-write.csv(df_meta, "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/meta_summary.csv")
+write.csv(df_meta, "UCSC/meta_summary.csv")
 
 
 ############## need to create new more complete metadata for each project
@@ -245,5 +245,5 @@ new_meta[["Velmeshev_2022"]] <- all_meta_files[["Velmeshev_2022"]]
 
 lapply(1:length(new_meta), function(i) 
                             write.csv(new_meta[[i]], 
-                                      file = paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/UCSC_downloads/new_meta_", names(new_meta)[i], ".csv")))
+                                      file = paste0("UCSC/UCSC_downloads/new_meta_", names(new_meta)[i], ".csv")))
 
