@@ -17,7 +17,7 @@ library(data.table)
 library(dplyr)
 
 # Defines the main directories
-disco_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/"
+disco_path <- "DISCOv1.0/"
 
 
 ##################################### 1. XIST expression

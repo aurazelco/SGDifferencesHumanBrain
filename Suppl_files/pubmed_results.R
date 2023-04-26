@@ -15,8 +15,8 @@ library(ggplot2)
 library(ggpubr)
 `%!in%` <- Negate(`%in%`)
 
-files_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Thesis_draft/extra_files/"
-dir.create("/Users/aurazelco/Desktop/Lund_MSc/Thesis/thesis_draft/images/", showWarnings = F, recursive = T)
+files_path <- "scripts/extra_files/"
+dir.create("images/", showWarnings = F, recursive = T)
 
 sexdiff_brain_all <- read.csv(paste0(files_path, "PubMed_Timeline_Results_by_Year_sexdiff_AND_brain.csv"), 
                               sep=",", row.names = NULL, skip = 1)
@@ -82,5 +82,5 @@ perc <- ggplot(pubmed, aes(year, count, fill=publ)) +
 
 
 ggarrange(all, perc, nrow = 2, common.legend = T, legend = "bottom")
-ggsave("/Users/aurazelco/Desktop/Lund_MSc/Thesis/thesis_draft/images/publications.png")
+ggsave("images/publications.png")
 

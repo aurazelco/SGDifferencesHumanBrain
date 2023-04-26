@@ -5,14 +5,14 @@ library(tidyr)
 library(ggpubr)
 
 
-out_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/thesis_draft/suppl_files/"
-plot_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Extra_figures/"
+out_path <- "suppl_files/"
+plot_path <- "Extra_figures/"
 
 
-disco <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_common/num_proj_sex_ct.csv")
+disco <- read.csv("DISCOv1.0/DEGs_common/num_proj_sex_ct.csv")
 
-velm <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_sex_ct_per_age.csv")
-#eze_nowa <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Eze_Nowakowski_num_cells.csv")
+velm <- read.csv("UCSC/outputs/Velmeshev_num_sex_ct_per_age.csv")
+#eze_nowa <- read.csv("UCSC/outputs/Eze_Nowakowski_num_cells.csv")
 
 disco$X <- NULL
 disco$disease <- str_replace_all(disco$disease, "Normal", "Healthy")

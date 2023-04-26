@@ -7,7 +7,7 @@ The following scripts were used to generate extra figures not plotted during the
 * [num_cells.R](num_cells.R) - plots the number of cells in the datasets, divided by sex and cell type
 * [num_cells_vs_DEGs.R](num_cells_vs_DEGs.R) - plots the number of cells *versus* the numebr of DEGs, divided by sex
 * [pubmed_results.R](pubmed_results.R) - script that take as input csv files downloaded from Pubmed, and generates plots to show the absolute number and percentage of publication for the following queries:
- * *"brain" AND "sex differences"*
- * *"brain" AND "sex differences" AND "development"*
+    1. *"brain" AND "sex differences"*
+    2. *"brain" AND "sex differences" AND "development"*
 * [XIST.R](XIST.R) - plots the XIST expression in all datasets and the number of samples in each dataset, split by sex
 

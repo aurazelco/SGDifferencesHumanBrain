@@ -2,9 +2,9 @@ library(Seurat)
 library(SeuratObject)
 library(stringr)
 
-main <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/"
+main <- "UCSC/outputs/"
 
-rds_path <-  "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC"
+rds_path <-  "UCSC/Seurat_UCSC"
 
 rds_files <- list.files(rds_path, "Velmeshev_2022", full.names = T)
 

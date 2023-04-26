@@ -23,13 +23,13 @@ library(ggplot2)
 
 #---------------------------------------------------------------------------------------------------
 ####### ON FURU
-out_path <- "/Home/ii/auraz/data/UCSC/XIST/"
+out_path <- "UCSC/XIST/"
 dir.create(out_path, recursive = T, showWarnings = F)
 
 # Velmeshev 2nd trimester -> No XIST
 
 # Velmeshev 10-20 years
-velm_10_20_years <- readRDS("/Home/ii/auraz/data/UCSC/Seurat_UCSC/Velmeshev/Velmeshev_2022_10_20_years.rds")
+velm_10_20_years <- readRDS("UCSC/Seurat_UCSC/Velmeshev/Velmeshev_2022_10_20_years.rds")
 velm_10_20_years_xist <- GetAssayData(velm_10_20_years[["RNA"]], slot="data")["XIST",]
 write.csv(as.data.frame(velm_10_20_years_xist), paste0(out_path, "Velmeshev_2022_10_20_years_XIST.csv"))
 
@@ -38,12 +38,12 @@ write.csv(as.data.frame(velm_10_20_years_xist), paste0(out_path, "Velmeshev_2022
 
 # 1. Read local RDS and save XIST info in list, and cell info in another list
 
-ds_paths <- c("Velmeshev_3rd_trimester"= "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/",
-             "Velmeshev_0_1_years"="/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/",
-             "Velmeshev_1_2_years"= "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/",
-             "Velmeshev_2_4_years"= "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/",
-             "Velmeshev_Adults" = "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/Seurat_UCSC/",
-             "DISCO" = "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/")
+ds_paths <- c("Velmeshev_3rd_trimester"= "UCSC/Seurat_UCSC/",
+             "Velmeshev_0_1_years"="UCSC/Seurat_UCSC/",
+             "Velmeshev_1_2_years"= "UCSC/Seurat_UCSC/",
+             "Velmeshev_2_4_years"= "UCSC/Seurat_UCSC/",
+             "Velmeshev_Adults" = "UCSC/Seurat_UCSC/",
+             "DISCO" = "DISCOv1.0/")
 
 ds_names <- c("Velmeshev_3rd_trimester"= "Velmeshev_2022_3rd_trimester",
               "Velmeshev_0_1_years"= "Velmeshev_2022_0_1_years",
@@ -65,7 +65,7 @@ for (id in names(ds_paths)) {
   } else {
     id_seurat <- readRDS(paste0(ds_paths[[id]], ds_names[[id]], ".rds"))
     xist_ls <- append(xist_ls, list(data.frame("XIST"=GetAssayData(id_seurat[["RNA"]], slot="data")["XIST",])))
-    cell_info <- append(cell_info, list(read.csv(paste0("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/", ds_names[[id]], "/cell_info_", ds_names[[id]], ".csv"))))
+    cell_info <- append(cell_info, list(read.csv(paste0("UCSC/DEGs_adjust_pval/", ds_names[[id]], "/cell_info_", ds_names[[id]], ".csv"))))
     rm(id_seurat)
   }
 }
@@ -73,11 +73,11 @@ names(xist_ls) <- names(ds_paths)
 names(cell_info) <- names(ds_paths)
 
 # 2. Manually add Velmeshev_10_20 years
-xist_ls <- append(xist_ls, list("Velmeshev_10_20_years"=read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev/Velmeshev_2022_10_20_years_XIST.csv")))
+xist_ls <- append(xist_ls, list("Velmeshev_10_20_years"=read.csv("UCSC/outputs/Velmeshev/Velmeshev_2022_10_20_years_XIST.csv")))
 rownames(xist_ls$Velmeshev_10_20_years) <- xist_ls$Velmeshev_10_20_years$X
 xist_ls$Velmeshev_10_20_years$X <- NULL
 colnames(xist_ls$Velmeshev_10_20_years) <- "XIST"
-cell_info <- append(cell_info, list("Velmeshev_10_20_years"=read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/Velmeshev_2022_10_20_years/cell_info_Velmeshev_2022_10_20_years.csv")))
+cell_info <- append(cell_info, list("Velmeshev_10_20_years"=read.csv("UCSC/DEGs_adjust_pval/Velmeshev_2022_10_20_years/cell_info_Velmeshev_2022_10_20_years.csv")))
 
 # 3. Merge XIST in df and formats the information
 xist_df <- do.call(rbind, xist_ls)
@@ -148,7 +148,7 @@ xist_df$samples <- factor(xist_df$samples, unique(xist_df$samples))
 xist_df <- xist_df[order(xist_df$samples), ]
 
 
-pdf("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Extra_figures/XIST_faceted.pdf", width = 15, height = 20)
+pdf("Extra_figures/XIST_faceted.pdf", width = 15, height = 20)
 print(
   ggplot(xist_df, aes(samples, XIST, fill=sex)) +
     geom_violin() +
@@ -172,7 +172,7 @@ dev.off()
 
 
 # 9. Number of samples
-cell_info <- append(cell_info, list("Velmeshev_2nd_trimester"=read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_2nd_trimester/Velmeshev_2022_2nd_trimester/cell_info_Velmeshev_2022_2nd_trimester.csv")))
+cell_info <- append(cell_info, list("Velmeshev_2nd_trimester"=read.csv("UCSC/DEGs_2nd_trimester/Velmeshev_2022_2nd_trimester/cell_info_Velmeshev_2022_2nd_trimester.csv")))
   
 num_samples <- cell_info
 num_samples$DISCO <- num_samples$DISCO[, c(1,2,5)]
@@ -222,7 +222,7 @@ sum(num_samples_simplified[which(num_samples_simplified$sex=="F"), "samples_coun
 sum(num_samples_simplified[which(num_samples_simplified$sex=="M"), "samples_count"])
 
 
-velm_4_10 <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_cells_per_age.csv")
+velm_4_10 <- read.csv("UCSC/outputs/Velmeshev_num_cells_per_age.csv")
 velm_4_10 <- subset(velm_4_10, age=="4-10 years")
 num_samples_simplified <- rbind(num_samples_simplified,
                                 c("Velmeshev_4_10_years", "F", nrow(velm_4_10[which(velm_4_10$sex=="Female"),])),
@@ -242,7 +242,7 @@ num_samples_simplified$new_group <- factor(num_samples_simplified$new_group, gro
 num_samples_simplified <- num_samples_simplified[order(num_samples_simplified$new_group), ]
 
 
-pdf("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Extra_figures/num_samples.pdf")
+pdf("Extra_figures/num_samples.pdf")
 print(
   ggplot(num_samples_simplified, aes(new_group, samples_count, fill=sex)) +
         geom_bar(stat = "identity", color="black", position = "dodge") +
@@ -262,7 +262,7 @@ print(
   )
 dev.off()
 
-png("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Extra_figures/num_samples.png", res=300, width = 15, height = 10, units = "in")
+png("Extra_figures/num_samples.png", res=300, width = 15, height = 10, units = "in")
 print(
   ggplot(num_samples_simplified, aes(new_group, samples_count, fill=sex)) +
     geom_bar(stat = "identity", color="black", position = "dodge") +

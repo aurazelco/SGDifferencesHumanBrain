@@ -4,8 +4,8 @@ library(ggplot2)
 library(tidyr)
 library(ggpubr)
 
-out_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/thesis_draft/suppl_files/"
-plot_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Extra_figures/"
+out_path <- "suppl_files/"
+plot_path <- "Extra_figures/"
 
 
 ####################################################################################################
@@ -15,10 +15,10 @@ plot_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Extra_figures/"
 ####################################################################################################
 
 
-disco <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_common/num_proj_sex_ct.csv")
+disco <- read.csv("DISCOv1.0/DEGs_common/num_proj_sex_ct.csv")
 
-velm <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Velmeshev_num_sex_ct_per_age.csv")
-#eze_nowa <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/outputs/Eze_Nowakowski_num_cells.csv")
+velm <- read.csv("UCSC/outputs/Velmeshev_num_sex_ct_per_age.csv")
+#eze_nowa <- read.csv("UCSC/outputs/Eze_Nowakowski_num_cells.csv")
 
 disco$X <- NULL
 disco$disease <- str_replace_all(disco$disease, "Normal", "Healthy")
@@ -48,14 +48,11 @@ all_ds_ct$sex <- str_replace_all(all_ds_ct$sex, c("Female"="F", "Male"="M"))
 #
 ####################################################################################################
 
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Comparison_adjust_pval/DEGs/Compare_DEGs_func.R")
+source("scripts/Integration/DEGs/DEGs_func.R")
 
 # sets the directories where to find the DEG csv files
-main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/"
-main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/"
-
-# set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Comparison_adjust_pval/"
+main_DISCO <- "DISCOv1.0/DEGs_proj_adjust_pval/"
+main_UCSC <- "UCSC/DEGs_adjust_pval/"
 
 # Vectors to save the different sub-groups of DISCO and UCSC
 sub_disco <- list.dirs(main_DISCO, full.names = F, recursive = F)[-1]
