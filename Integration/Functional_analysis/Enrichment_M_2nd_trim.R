@@ -25,10 +25,10 @@
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("~/Desktop/Lund_MSc/Thesis/scripts/Integration/Functional_analysis/Enrichment_M_2nd_trim_func.R")
+source("scripts/Integration/Functional_analysis/Enrichment_M_2nd_trim_func.R")
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
+main_comparison <- "Integration/"
 
 # Need to register for account before running this:
 disgenet_api_key <- get_disgenet_api_key(
@@ -100,7 +100,7 @@ cts_order <- c(
 )
 
 # Import shared DEGs for M second trimester
-M_shared <- read.csv("/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/Velmeshev_2022_2nd_trimester/outputs/01C_num_chr/M_shared_genes.csv")
+M_shared <- read.csv("UCSC/DEGs_adjust_pval/Velmeshev_2022_2nd_trimester/outputs/01C_num_chr/M_shared_genes.csv")
 M_shared$X <- NULL
 M_shared_ls <- split(M_shared[, c(1,2)], M_shared$ct, drop = T) 
 M_shared_ls <- lapply(M_shared_ls, function(x) { x["ct"] <- NULL; x })

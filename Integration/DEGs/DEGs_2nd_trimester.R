@@ -10,13 +10,13 @@
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Integration/DEGs/DEGs_2nd_trimester_func.R")
+source("scripts/Integration/DEGs/DEGs_2nd_trimester_func.R")
 
 # sets the directories where to find the DEG csv files
-main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_2nd_trimester/"
+main_UCSC <- "UCSC/DEGs_2nd_trimester/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_int_path <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
+main_int_path <- "Integration/"
 
 # the 2nd_trimester folders are selected
 sub_UCSC <- list.dirs(main_UCSC, full.names = F, recursive = F)

@@ -11,14 +11,14 @@
 #---------------------------------------------------------------------------------------------------
 
 # sources the script containing all functions run here
-source("/Users/aurazelco/Desktop/Lund_MSc/Thesis/scripts/Integration/DEGs/ARE_ERE_func.R")
+source("Integration/DEGs/ARE_ERE_func.R")
 
 # sets the directories where to find the DEG csv files
-main_DISCO <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/DISCOv1.0/DEGs_proj_adjust_pval/"
-main_UCSC <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/UCSC/DEGs_adjust_pval/"
+main_DISCO <- "DISCOv1.0/DEGs_proj_adjust_pval/"
+main_UCSC <- "UCSC/DEGs_adjust_pval/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "/Users/aurazelco/Desktop/Lund_MSc/Thesis/data/Integration/"
+main_comparison <- "Integration/"
 
 # Vectors to save the different sub-groups of DISCO and UCSC
 # the first folder "exta_files" is excluded
