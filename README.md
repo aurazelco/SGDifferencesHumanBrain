@@ -84,7 +84,7 @@ The workflows contained the following steps:
 - calculate how many SG-biased DEGs are cell type specific using CellMarker database (not included in the paper)
 - calculate the X and Y chromosome enrichment in the SG-biased DEGs through hyper-geometric distribution
 - calculate the percentage of androgen and estrogen response element binding sites in the SG-biased DEGs
-- calculate the percentage of SG-biased DEGs which are conserved in other primate species
+- calculate the percentage of SG-biased DEGs which are conserved in other primate species (not included in the paper)
 
 Each of these steps was run for each project/age in separate scripts. More details can be found in the [DISCO](DISCO/README.md) and [UCSC](UCSC/README.md) README files. 
 
