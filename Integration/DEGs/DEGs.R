@@ -16,11 +16,11 @@
 source("scripts/Integration/DEGs/DEGs_func.R")
 
 # sets the directories where to find the DEG csv files
-main_DISCO <- "DISCOv1.0/DEGs_proj_adjust_pval/"
-main_UCSC <- "UCSC/DEGs_adjust_pval/"
+main_DISCO <- "data/DISCOv1.0/DEGs_proj_adjust_pval/"
+main_UCSC <- "data/UCSC/DEGs_adjust_pval/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_int_path <- "Integration/"
+main_int_path <- "data/Integration/"
 
 # Vectors to save the different sub-groups of DISCO and UCSC
 sub_disco <- list.dirs(main_DISCO, full.names = F, recursive = F)[-1]
@@ -103,7 +103,8 @@ PlotDEGsOverlap(main_int_path, sexes, groups_order)
 num_deg <- NumDEGsAcrossConditions(sexes, groups_order)
 PlotNumDEGs(main_int_path, num_deg)
 
-brewer_palette <- c(colorRampPalette(c("white", "#228B22"))(8), "#FF0000")
+brewer_palette <- c(colorRampPalette(c("#DFEEDF", "#1A451E"))(8), "#FF0000")
+#brewer_palette <- c(colorRampPalette(c("#44fc57", "#114015"))(8), "#FF0000")
 custom_palette <- c(
                     "Velmeshev_2022_2nd_trimester"=brewer_palette[1],           
                     "Velmeshev_2022_3rd_trimester"=brewer_palette[2], 
@@ -122,14 +123,93 @@ custom_palette <- c(
 
 PlotNumDEGsFacets(main_int_path, num_deg, custom_palette)
 
+# Plot dotplot for figure 1
+
+cts_order <- c(
+  "Excitatory neurons",  
+  "Interneurons",        
+  "Astrocytes",          
+  "Microglia" ,          
+  "Oligodendrocytes",    
+  "OPCs",   
+  "Endothelial cells", 
+  "Vascular cells",      
+  "Dorsal progenitors",  
+  "Ventral progenitors",
+  "Unknown"   
+)
+
+num_deg$ct <- factor(num_deg$ct, levels = cts_order[which(cts_order %in% unique(num_deg$ct))])
+
+library(gridExtra)
+library(gtable)
+library(grid)
+
+# Create and extract color legend
+p1 <- ggplot(num_deg, aes(condition, ct, fill=condition)) +
+  geom_point(color="black", shape=21) +
+  scale_fill_manual(values = custom_palette) +
+  theme_bw() +
+  labs(x="Developmental stages", 
+       y="Cell types", 
+       fill="Developmental stages") +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size=14, colour = "black"),
+        legend.title = element_text(size=16, face="bold", colour = "black"),) +
+  guides(fill = guide_legend(ncol = 3))
+leg_color <- gtable_filter(ggplot_gtable(ggplot_build(p1)), "guide-box") 
+
+# Create and extract size legend
+p2 <- ggplot(num_deg, aes(condition, ct)) +
+  geom_point(aes(size=count_degs)) +
+  scale_color_manual(values = custom_palette) +
+  scale_y_discrete(limits=rev) +
+  theme_bw() +
+  labs(x="Developmental stages", 
+       y="Cell types", 
+       size="Number of DEGs") +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size=14, colour = "black"),
+        legend.title = element_text(size=16, face="bold", colour = "black"),)
+leg_size <- gtable_filter(ggplot_gtable(ggplot_build(p2)), "guide-box")
+
+# Create actual plot without any legend
+new_fig1 <- ggplot(num_deg, 
+       aes(condition, ct, size=count_degs, fill=condition)) + 
+  geom_point(color="black", shape=21) +
+  scale_fill_manual(values = custom_palette) +
+  scale_y_discrete(limits=rev) +
+  labs(x="Developmental stages", 
+       y="Cell types") +
+  facet_wrap(~ sex,drop = T) + 
+  theme(
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(),
+    panel.background = element_rect(fill = NA, color = "black"), 
+    panel.spacing.x = unit(0.5, "lines"),
+    strip.text = element_text(size=14, face="bold", colour = "black"),
+    axis.line = element_line(colour = "black"),
+    axis.title.y = element_text(size=16, face="bold", colour = "black"),
+    axis.text.y = element_text(size=14, colour = "black", vjust = 0.7, hjust=0.5),
+    axis.title.x = element_text(size=16, face="bold", colour = "black"),
+    axis.text.x = element_blank(), 
+    legend.position = "none"
+  ) 
+
+# Arrange the three elements in a new plot
+fig1_v2 <- ggarrange(new_fig1, leg_size, leg_color, nrow = 3,
+          heights = c(1, 0.2, 0.2))
+
+pdf("data/Integration/Num_Total_DEGs_across_conditions/Faceted_tot_DEGs_v2.pdf",
+    width = 14, height = 12)
+print(fig1_v2)
+dev.off()
+
+
 # Plot the number of overlapping genes between one condition and all others, divided by ct and sex
 PlotDEGsOverlap(main_int_path, sexes, groups_order)
 # Plots the same but as a heatmap
 PlotDEGsOverlapHmp(main_int_path, sexes, groups_order)
-
-# Plots to compare 2nd trim
-#trim_2nd <- CreateConditionDf(c(UCSC[[1]], disco[[1]]), unified_annotation, groups_order[1:2])
-#PlotAcrossConditions(main_int_path, trim_2nd, "trimester_2nd")
 
 # Comparison of Healthy DISCO DEGs
 Healthy_disco <- NormDf(disco[[1]][c("Healthy_GSE157827", "Healthy_GSE174367", "Healthy_PRJNA544731")], unified_annotation)
@@ -147,122 +227,6 @@ common_cts$annot_type <- rep("Unified annotation", nrow(common_cts))
 all_annot <- rbind(og_cts, common_cts)
 
 PlotCommonGenes(main_int_path, all_annot, "Healthy_DISCO", "both")
-
-# Comparison with Pattama FC
-
-load("Integration/Pattama_RRA.RData")
-rra <- list("F"=RRA_F, "M"=RRA_M)
-
-healthy <- NormDf(c(UCSC[[1]]["Velmeshev_2022_Adult"], disco[[1]][c("Healthy_GSE157827", "Healthy_GSE174367", "Healthy_PRJNA544731")]), unified_annotation)
-
-region_of_interest <- "FC"
-
-num_genes_rra <- vector()
-comp_names <- vector()
-genes_rra <- vector()
-comp_names_rep <- vector()
-for (sex in c("F", "M")) {
-  for (proj in unique(healthy[[sex]]$proj_id)) {
-    for (ct in unique(healthy[[sex]][which(healthy[[sex]]$proj_id==proj), "common_annot"])) {
-      comp_names <- c(comp_names, paste(sex, proj, ct, sep = "/"))
-      num_genes_rra <- c(num_genes_rra, length(intersect(healthy[[sex]][which(healthy[[sex]]$proj_id==proj & healthy[[sex]]$common_annot==ct), "Gene"],
-                                                               rra[[sex]][[region_of_interest]][, "Gene"])))
-      comp_names_rep <- c(comp_names_rep, rep(paste(sex, proj, ct, sep = "/"), length(intersect(healthy[[sex]][which(healthy[[sex]]$proj_id==proj & healthy[[sex]]$common_annot==ct), "Gene"],
-                                                                                                rra[[sex]][[region_of_interest]][, "Gene"]))))
-      genes_rra <- c(genes_rra, intersect(healthy[[sex]][which(healthy[[sex]]$proj_id==proj & healthy[[sex]]$common_annot==ct), "Gene"],
-                                                     rra[[sex]][[region_of_interest]][, "Gene"]))
-    }
-  } 
-}
-rra_common <- data.frame(comp_names, num_genes_rra)
-rra_common <- separate(rra_common, comp_names, into = c("sex", "proj", "ct"), sep = "/")
-
-count_rra <- data.frame(comp_names_rep, genes_rra)
-count_rra <- separate(count_rra, comp_names_rep, into = c("sex", "proj", "ct"), sep = "/")
-
-
-nrow(rra$F$FC)
-nrow(rra$M$FC)
-
-rra_out <- paste0(main_int_path, "Pattama_RRA/")
-dir.create(rra_out, showWarnings = F, recursive = T)
-
-write.csv(count_rra, paste0(rra_out, "rra_genes_in_healthy.csv"))
-
-pdf(paste0(rra_out, "num_of_shared_genes_per_ct.pdf"))
-print(ggplot(rra_common, aes(proj, num_genes_rra, fill=sex)) +
-        geom_bar(stat = "identity", position = "dodge", color="black") +
-        facet_wrap( ~ ct, scales = "free_x") +
-        scale_y_continuous(breaks=seq(min(num_genes_rra), max(num_genes_rra), by=1)) +
-        labs(x = "Healthy adult datasets", y="Number of shared DEGs with RRA", fill="Sex") +
-        theme(panel.grid.major = element_blank(), 
-              panel.grid.minor = element_blank(),
-              panel.background = element_blank(), 
-              panel.spacing.x=unit(0, "lines"),
-              plot.title = element_text(size=12, face="bold", colour = "black"),
-              axis.line = element_line(colour = "black"),
-              axis.title.y = element_text(size=12, face="bold", colour = "black"),
-              axis.text.y = element_text(size=8, colour = "black"),
-              axis.title.x = element_text(size=12, face="bold", colour = "black"),
-              axis.text.x = element_text(size=8, colour = "black", angle = 90),
-              legend.position = "bottom", 
-              legend.title = element_text(size=12, face="bold", colour = "black"))
-)
-dev.off()
-
-
-# Glucocorticoids Binding sites
-gbs <- readxl::read_xlsx("Integration/Polman_2012_GBS.xlsx", skip=9)
-gbs_genes <- toupper(gbs$`nearest gene`)
-
-for (i in names(sexes)) {
-  for (sex in c("F", "M")) {
-    print(paste(i, sex, sep = " "))
-    print(length(intersect(gbs_genes, sexes[[i]][which(sexes[[i]]$sex==sex), "gene_id"])))
-    print(nrow(sexes[[i]]))
-    if (toupper("Nr3c1") %in% sexes[[i]][which(sexes[[i]]$sex==sex), "gene_id"]) {
-      print(paste0(toupper("Nr3c1"), " found in ", i, " ", sex))
-    } else if (toupper("Nr3c2") %in% sexes[[i]][which(sexes[[i]]$sex==sex), "gene_id"]) {
-      print(paste0(toupper("Nr3c2"), " found in ", i, " ", sex))
-    } 
-  }
-}
-
-all_genes <- do.call(rbind, sexes)
-all_genes$ct <- gsub("\\..*", "", rownames(all_genes))
-all_genes$presence <- str_replace_all(all_genes$presence, c("yes"="Yes", "no"="No"))
-
-grs <- complete(all_genes[which(all_genes$gene_id %in% c( "NR3C1", "NR3C2")),], gene_id, condition,sex,ct )
-
-
-plot_path <- paste0(main_int_path, "Hmp_Presence_Ind_DEGs/")
-dir.create(plot_path, recursive = T, showWarnings = F)
-pdf(paste0(plot_path, "GR_MR.pdf"), width = 9, height = 14)
-print(
-  ggplot(grs, aes(gene_id, factor(condition, groups_order[which(groups_order %in% unique(condition))]),  fill=presence)) +
-    geom_tile() +
-    scale_fill_manual(values = c("Yes"="#F8766D",
-                                 "No"="#00BFC4"),
-                      na.value = "#00BFC4",
-                      guide = guide_legend(reverse = TRUE)) +
-    facet_grid(ct ~ sex , scales = "free", space = "free") +
-    labs(y="Groups", x="Genes", fill="Genes found") +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          panel.background = element_blank(), 
-          panel.spacing.x=unit(0, "lines"),
-          strip.text.x = element_text(size=12, face="bold", colour = "black"),
-          strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
-          plot.title = element_text(size=12, face="bold", colour = "black"),
-          axis.line = element_line(colour = "black"),
-          axis.title.y = element_text(size=12, face="bold", colour = "black"),
-          axis.title.x = element_text(size=12, face="bold", colour = "black"),
-          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
-          legend.position = "bottom", 
-          legend.title = element_text(size=12, face="bold", colour = "black"))
-  
-)
-dev.off()
 
 # Mitochondrial genes
 
@@ -487,7 +451,7 @@ print(
                       na.value = "#00BFC4",
                       guide = guide_legend(reverse = TRUE)) +
     facet_grid(ct ~  sex, scales = "free", space = "free") +
-    labs(y="Datasets", x="Genes", fill="Genes found") +
+    labs(y="Datasets", x="Genes", fill="SG-biased genes") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           panel.background = element_blank(), 
@@ -505,38 +469,211 @@ print(
 )
 dev.off()
 
-# Blokland et al
 
-disorders <- complete(all_genes[which(all_genes$gene_id %in% c( "NKAIN2", "SLTM", "MOCOS", "IDO2", "XIST")),], gene_id, condition,sex, ct )
-disorders <- disorders[which(disorders$gene_id!="XIST"), ]
 
+library(tidyverse)
+library(purrr)
+library(RColorBrewer)
+
+
+disco_folders <- sapply(sub_disco, function(x) {
+  deg_folders <- list.dirs(paste0(main_DISCO, x), full.names = T, recursive = T)
+  deg_folders <- deg_folders[which(grepl("01B_num_DEGs", deg_folders))]
+})
+  
+ucsc_folders <- sapply(sub_UCSC, function(x) {
+  deg_folders <- list.dirs(paste0(main_UCSC, x), full.names = T, recursive = T)
+  deg_folders <- deg_folders[which(grepl("01B_num_DEGs", deg_folders))]
+})
+
+deg_folders <- unlist(c(ucsc_folders, disco_folders), use.names = F)
+
+deg_list <- lapply(deg_folders, function(x) {
+  ImportDE(x)
+})
+names(deg_list) <- deg_folders
+
+deg_list <- deg_list[lapply(deg_list,length)>0]
+
+
+names(deg_list) <- str_remove_all(names(deg_list), paste(c("data/DISCOv1.0/DEGs_proj_adjust_pval/",
+                                                         "data/UCSC/DEGs_adjust_pval/",
+                                                         "/outputs/01B_num_DEGs"), 
+                                                         collapse = "|"))
+deg_names <- str_replace_all(names(deg_list), 
+                             c("GSE174367/" = "GSE174367_", 
+                               "GSE157827/"="GSE157827_", 
+                               "PRJNA544731/"="PRJNA544731_", 
+                               "Normal"="Healthy"))
+
+deg_list <- lapply(1:length(deg_list), function(x) {
+  tmp <- lapply(names(deg_list[[x]]), function(y) {
+    deg_list[[x]][[y]] %>%
+      rownames_to_column(var = "gene") %>%
+      select(-index)
+  })
+  names(tmp) <- str_remove_all(names(deg_list[[x]]), "_filt")
+  new_list <- bind_rows(tmp, .id = "sex")
+  return(new_list)
+})
+names(deg_list) <- deg_names
+
+annot_df <- tibble(names(unified_annotation), unified_annotation) %>%
+            rename("ct" = `names(unified_annotation)`)
+
+full_df <- bind_rows(deg_list, .id = "groups_id") %>%
+            separate(groups_id, into = c("group", "ct"), sep = "/") %>%
+            mutate(ct = tolower(ct)) %>%
+            left_join(., annot_df, by = "ct") %>%
+            select(-ct) %>%
+            rename("ct" = unified_annotation) %>%
+            select(group, ct, everything())
+
+mit_genes_ids <- full_df %>% 
+                  filter(grepl("^MT-|^TIMM|^TOMM", gene)) %>% 
+                  pull(gene) %>% 
+                  unique()
+tca_genes <- c("ACO2", "CS", "FH", "MDH1", "OGDH", "PDHA1", "PDHA2", "SDHC", "SUCLG1")
+# https://maayanlab.cloud/Harmonizome/gene_set/TCA+cycle/PANTHER+Pathways
+mit_genes_ids <- c("XIST", mit_genes_ids, tca_genes)
+mit_order <- c(
+  "XIST", "TIMM17A", "TIMM23B", "TOMM7", "TOMM20", "MT-CYB", "MT-ND1",  
+  "MT-ND2",  "MT-ND3", "MT-ND4", "MT-ND4L", "MT-ND5", "MT-CO1", "MT-CO2",  
+  "MT-CO3", "MT-ATP6", "MT-ATP8", "MT-RNR1", "MT-RNR2", "ACO2", "CS", "FH", 
+  "MDH1", "OGDH", "PDHA1", "PDHA2", "SDHC", "SUCLG1")
+
+
+
+check_duplicates <- full_df %>% 
+                      filter(gene %in% mit_genes_ids) %>%
+                      group_by(group, sex, gene) %>% 
+                      count() %>%
+                      filter(n > 1)
+
+
+
+mt_df <- full_df %>%
+          filter(gene %in% mit_genes_ids) %>%
+          mutate(gene = factor(gene, levels = mit_order),
+                 group = factor(
+                           str_replace_all(group, c(
+                             "GSE157827_Alzheimer's disease" = "Alzheimer's disease_GSE157827", 
+                             "GSE157827_Healthy" = "Healthy_GSE157827",
+                             "GSE174367_Alzheimer's disease" = "Alzheimer's disease_GSE174367",
+                             "GSE174367_Healthy" = "Healthy_GSE174367", 
+                             "PRJNA544731_Multiple Sclerosis" = "Multiple Sclerosis_PRJNA544731",
+                             "PRJNA544731_Healthy" = "Healthy_PRJNA544731" 
+                           )), 
+                          levels = groups_order),
+                 pval_sign = case_when(
+                               p_val_adj > 0.05 ~ "NS",
+                               p_val_adj > 0.01 & p_val_adj <= 0.05 ~ "*",
+                               p_val_adj > 0.001 & p_val_adj <= 0.01 ~ "**",
+                               p_val_adj > 0.0001 & p_val_adj <= 0.001 ~ "***",
+                              p_val_adj <= 0.0001 ~ "****"
+                                       ))
+
+
+
+
+brewer_palette <- brewer.pal(4,"Purples")
+
+p <- ggplot(mt_df, aes(gene, group, fill=pval_sign, size=avg_log2FC)) +
+  geom_point(color="black", shape=21) +
+  facet_grid(ct ~ sex, scales = "free_y", space = "free") +
+  scale_fill_manual(values = c("NS"="white", 
+                               "*"=brewer_palette[1],
+                               "**"=brewer_palette[2],
+                               "***"=brewer_palette[3],
+                               "****"=brewer_palette[4]),
+                    na.value = "gray") +
+  labs(x="Genes of interest", y="Groups", size="Average Log2FC", fill="Adjusted p-values") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        panel.spacing.x=unit(0.5, "lines"),
+        strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
+        strip.text.x = element_text(size=12, face="bold", colour = "black"),
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(size=12, face="bold", colour = "black"),
+        axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+        axis.text.y = element_text(size=8, colour = "black"),
+        axis.ticks.x=element_blank(),
+        axis.title.y = element_text(size=12, face="bold", colour = "black"),
+        legend.position = "bottom", 
+        legend.box = "vertical",
+        legend.title = element_text(size=12, face="bold", colour = "black"))
+
+
+
+pdf(paste0(main_int_path, "Hmp_Presence_Ind_DEGs/MT_genes_v2.pdf"), width = 10, height = 14)
+print(p)
+dev.off()
+
+
+library(biomaRt)
+
+mart <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl", mirror = "useast")
+Annot_idf <- getBM(attributes = c("hgnc_symbol",
+                                  "chromosome_name",
+                                  "description"),
+                   filters = c("hgnc_symbol") ,
+                   values=list(full_df %>% pull(gene) %>% unique()),
+                   mart = mart)
+mt_annot <- Annot_idf %>%
+              filter(chromosome_name == "MT")
+
+
+
+# Ribosomial genes
+
+library(dplyr)
+
+rb_genes_ids <- unique(all_genes$gene_id[which(grepl("^RPL|^RPS|^MRP", all_genes$gene_id))])
+rb_genes <- all_genes[which(all_genes$gene_id %in% rb_genes_ids), ]
+rb_gene_count <- as.data.frame(table(rb_genes[which(rb_genes$presence=="Yes"), "gene_id"]))
+rb_gene_count <- rb_gene_count[order(rb_gene_count$Freq, decreasing = T),]
+rb_genes$gene_id <- factor(rb_genes$gene_id, unique(rb_gene_count$Var1))
+rb_genes <- complete(rb_genes, gene_id, condition,sex,ct)
+
+rb_genes <- rb_genes %>%
+              mutate("ribo_group" = case_when(grepl("^RPL", gene_id) ~ "RPL",
+                                              grepl("^RPS", gene_id) ~ "RPS",
+                                              grepl("^MRP", gene_id) ~ "MRP"))
 
 plot_path <- paste0(main_int_path, "Hmp_Presence_Ind_DEGs/")
 dir.create(plot_path, recursive = T, showWarnings = F)
-pdf(paste0(plot_path, "Blokland_snp_disorders.pdf"), width = 9, height = 14)
-print(
-  ggplot(disorders, aes(gene_id,factor(condition, groups_order[which(groups_order %in% unique(condition))]),  fill=presence)) +
-    geom_tile() +
-    scale_fill_manual(values = c("Yes"="#F8766D",
-                                 "No"="#00BFC4"),
-                      na.value = "#00BFC4",
-                      guide = guide_legend(reverse = TRUE)) +
-    facet_grid(ct ~  sex, scales = "free", space = "free") +
-    labs(y="Groups", x="Genes", fill="Genes found") +
-    theme(panel.grid.major = element_blank(), 
-          panel.grid.minor = element_blank(),
-          panel.background = element_blank(), 
-          panel.spacing.x=unit(0, "lines"),
-          strip.text.x = element_text(size=12, face="bold", colour = "black"),
-          strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
-          plot.title = element_text(size=12, face="bold", colour = "black"),
-          axis.line = element_line(colour = "black"),
-          axis.title.y = element_text(size=12, face="bold", colour = "black"),
-          axis.title.x = element_text(size=12, face="bold", colour = "black"),
-          axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
-          legend.position = "bottom", 
-          legend.title = element_text(size=12, face="bold", colour = "black"))
+
+lapply(unique(rb_genes$ribo_group), function(x) {
+  pdf(paste0(plot_path, "ribo_genes_", x,".pdf"), width = 12, height = 15)
+  print(
+    ggplot(rb_genes %>% filter(ribo_group == x), 
+           aes(gene_id, factor(condition, rev(groups_order[which(groups_order %in% unique(condition))])),  fill=presence)) +
+      geom_tile() +
+      scale_fill_manual(values = c("Yes"="#F8766D",
+                                   "No"="#00BFC4"),
+                        na.value = "#00BFC4",
+                        guide = guide_legend(reverse = TRUE)) +
+      facet_grid(ct ~ sex, scales = "free", space = "free") +
+      labs(y="Datasets", x="Genes", fill="Genes found") +
+      theme(panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(),
+            panel.background = element_blank(), 
+            panel.spacing.x=unit(0.5, "lines"),
+            strip.text.x = element_text(size=12, face="bold", colour = "black"),
+            strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
+            plot.title = element_text(size=12, face="bold", colour = "black"),
+            axis.line = element_line(colour = "black"),
+            axis.title.y = element_text(size=12, face="bold", colour = "black"),
+            axis.title.x = element_text(size=12, face="bold", colour = "black"),
+            axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+            legend.position = "bottom", 
+            legend.title = element_text(size=12, face="bold", colour = "black"))
+    
+    
+  )
+  dev.off()
   
-)
-dev.off()
+  
+})
 

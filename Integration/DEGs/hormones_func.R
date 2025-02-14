@@ -302,8 +302,9 @@ PlotHormonesRes <- function(main_dir, hormones_df, groups_ordered, plot_type="ab
   # Return: dataframe with all the significant pvalues
 
 HormoneEnrichment <- function(hormones_df, pval_thresh=0.05, min_num_cond=1) {
-  pval_names <- vector()
+  comp_names <- vector()
   pvalues <- vector()
+  overlap_hormone_degs <- vector()
   for (horm in unique(hormones_df$hormones)) {
     for (ct in unique(hormones_df[which(hormones_df$hormones==horm), "ct"])) {
       for (cond in unique(hormones_df[which(hormones_df$hormones==horm & hormones_df$ct==ct), "condition"])) {
@@ -316,13 +317,15 @@ HormoneEnrichment <- function(hormones_df, pval_thresh=0.05, min_num_cond=1) {
             lower.tail= FALSE
           )
           pvalues <- c(pvalues, pval)
-          pval_names <- c(pval_names, paste(horm, ct, cond, sex, sep="/"))
+          comp_names <- c(comp_names, paste(horm, ct, cond, sex, sep="/"))
+          overlap_hormone_degs <- c(overlap_hormone_degs,
+                                    as.numeric(hormones_df[which(hormones_df$hormones==horm & hormones_df$ct==ct & hormones_df$condition==cond & hormones_df$sex==sex), "hormone_tgs"]))
         }
       }
     }
   }
-  pval_df <- data.frame(pval_names, pvalues)
-  pval_df <- separate(pval_df, pval_names, into = c("hormone_id", "ct", "groups", "sex"), sep = "/", remove = T)
+  pval_df <- data.frame(comp_names, pvalues, overlap_hormone_degs)
+  pval_df <- separate(pval_df, comp_names, into = c("hormone_id", "ct", "groups", "sex"), sep = "/", remove = T)
   pval_df<- pval_df[which(pval_df$pvalues < pval_thresh), ]
   pval_df <- pval_df %>% group_by(hormone_id) %>% filter(n() > min_num_cond)
   pval_df$pval_sign <- rep(NA, nrow( pval_df))

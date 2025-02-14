@@ -15,15 +15,15 @@ library(ggplot2)
 library(ggpubr)
 `%!in%` <- Negate(`%in%`)
 
-files_path <- "scripts/extra_files/"
-dir.create("images/", showWarnings = F, recursive = T)
+files_path <- "scripts/Suppl_files/extra_files"
+dir.create("OneDrive - University of Bergen/data/Extra_figures/", showWarnings = F, recursive = T)
 
-sexdiff_brain_all <- read.csv(paste0(files_path, "PubMed_Timeline_Results_by_Year_sexdiff_AND_brain.csv"), 
+sexdiff_brain_all <- read.csv(file.path(files_path, "PubMed_Timeline_Results_by_Year_sexdiff_AND_brain_2024.csv"), 
                               sep=",", row.names = NULL, skip = 1)
 colnames(sexdiff_brain_all) <- c("Year", "Count_all")
 sexdiff_brain_all <- sexdiff_brain_all[order(sexdiff_brain_all$Year),]
 
-sexdiff_brain_dev <- read.csv(paste0(files_path, "PubMed_Timeline_Results_by_Year_sexdiff_AND_brain_AND_dev.csv"), 
+sexdiff_brain_dev <- read.csv(file.path(files_path, "PubMed_Timeline_Results_by_Year_sexdiff_AND_brain_AND_dev_2024.csv"), 
                        sep=",", row.names = NULL, skip = 1)
 colnames(sexdiff_brain_dev) <- c("Year", "Count_dev")
 sexdiff_brain_dev <- sexdiff_brain_dev[order(sexdiff_brain_dev$Year),]
@@ -82,5 +82,5 @@ perc <- ggplot(pubmed, aes(year, count, fill=publ)) +
 
 
 ggarrange(all, perc, nrow = 2, common.legend = T, legend = "bottom")
-ggsave("images/publications.png")
+ggsave("OneDrive - University of Bergen/data/Extra_figures/publications_2024.png")
 

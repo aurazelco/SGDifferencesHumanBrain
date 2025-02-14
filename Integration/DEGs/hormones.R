@@ -2,11 +2,11 @@
 source("scripts/Integration/DEGs/hormones_func.R")
 
 # sets the directories where to find the DEG csv files
-main_DISCO <- "DISCOv1.0/DEGs_proj_adjust_pval/"
-main_UCSC <- "UCSC/DEGs_adjust_pval/"
+main_DISCO <- "data/DISCOv1.0/DEGs_proj_adjust_pval/"
+main_UCSC <- "data/UCSC/DEGs_adjust_pval/"
 
 # set the main directory where to save the generated plots - sub-directories are created (if they do not already exist) within the plotting functions
-main_comparison <- "Integration/"
+main_comparison <- "data/Integration/"
 
 # Vectors to save the different sub-groups of DISCO and UCSC
 # the first folder "exta_files" is excluded
@@ -73,7 +73,7 @@ groups_order <- c(
 )
 
 # Imports the hormone file
-hormones <- fromJSON(file="Integration/hgv1_hormone_genes.json")
+hormones <- fromJSON(file="data/Integration/hgv1_hormone_genes.json")
 # hormones_source_tgs <- fromJSON(file="Comparison/hgv1_hormone_src_tgt_genes.json")
 # hgv1_hormone_src_tgt_genes.json is the same, but the genes are split in source and targets
 
@@ -83,17 +83,48 @@ sexes <- CreateSexDf(c(UCSC[[1]], disco[[1]]), unified_annotation)
 hormones_filt <- hormones[names(which(lapply(hormones, length)>=10))]
 df_filt <- CreateHormonesDf(sexes, hormones_filt, groups_order)
 
-#PlotHormonesRes(main_comparison, df_filt, groups_order, "abs")
-#PlotHormonesRes(main_comparison, df_filt, groups_order, "perc_degs")
-#PlotHormonesRes(main_comparison, df_filt, groups_order, "perc_hormones")
-
-#PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "abs")
-#PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "perc_degs")
-#PlotHormonesResFaceted(main_comparison, df_filt, groups_order, "perc_hormones")
-
 hormones_pval <- HormoneEnrichment(df_filt)
 write.csv(hormones_pval, paste0(main_comparison, "Hormones/hormone_target_enrichment.csv"))
 HmpHormoneEnrichment(main_comparison, hormones_pval, groups_order)
 HmpHormoneEnrichment(main_comparison, hormones_pval, groups_order, "Thymosin", "Thymosin")
 
 
+plot_path <- "data/Integration/Hormones/"
+brewer_palette <- brewer.pal(6,"Purples")
+
+
+hormones_pval_filt <- hormones_pval %>% filter(overlap_hormone_degs > 1)
+
+p <- ggplot(hormones_pval_filt, aes(hormone_id, groups, fill=pval_sign, size=overlap_hormone_degs)) +
+  geom_point(color="black", shape=21) +
+  facet_grid(ct ~ sex, scales = "free", space = "free") +
+  scale_fill_manual(values = c("NS"="white", 
+                               "*"=brewer_palette[3],
+                               "**"=brewer_palette[4],
+                               "***"=brewer_palette[5],
+                               "****"=brewer_palette[6]),
+                    na.value = "gray") +
+  scale_size_binned(range = c(min(hormones_pval_filt$overlap_hormone_degs), 
+                                  max(hormones_pval_filt$overlap_hormone_degs))) +
+  labs(x="Hormones", y="Groups", size="Number of hormone targets found in SG-DEGs", fill="P-values") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        panel.spacing.x=unit(0.5, "lines"),
+        strip.text.y = element_text(size=12, face="bold", colour = "black", angle = 0),
+        strip.text.x = element_text(size=12, face="bold", colour = "black"),
+        axis.line = element_line(colour = "black"),
+        axis.title.x = element_text(size=12, face="bold", colour = "black"),
+        axis.text.x = element_text(size=8, colour = "black", vjust = 0.7, hjust=0.5, angle = 90),
+        axis.text.y = element_text(size=8, colour = "black"),
+        axis.ticks.x=element_blank(),
+        axis.title.y = element_text(size=12, face="bold", colour = "black"),
+        legend.position = "bottom", 
+        legend.box = "vertical",
+        legend.title = element_text(size=12, face="bold", colour = "black"))
+
+
+
+pdf(paste0(plot_path, "Hormones_hypergeom.pdf"), width = 10, height = 14)
+print(p)
+dev.off()

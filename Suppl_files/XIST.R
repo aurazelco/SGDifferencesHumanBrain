@@ -119,9 +119,6 @@ disco <- as.data.frame(do.call(rbind, str_split(xist_df[which(xist_df$group=="DI
 proj_ids <- unique(disco$V1)
 dis_ids <- unique(disco$V3)
 
-#for (i in 1:(length(names(cell_info)) -1)) {
-#   xist_df[which(xist_df$sample_id %in% cell_info[[i]]$cell_id), "group"] <- names(cell_info)[i]
-#}
 
 xist_df$new_group <- xist_df$group
 for (proj in proj_ids) {
@@ -180,6 +177,9 @@ num_samples <- do.call(rbind, num_samples)
 num_samples <- cbind("group" = gsub('\\..*', '', rownames(num_samples)), num_samples)
 rownames(num_samples) <- NULL
 num_samples$X <- NULL
+
+library(stringr)
+library(tidyverse)
 
 num_samples$new_ids <- num_samples$cell_id
 num_samples$new_ids <- str_replace_all(num_samples$new_ids, c("-1_"="-1/", "-1--"="-1/"))
@@ -241,12 +241,14 @@ groups_order <- c("Velmeshev_2nd_trimester_Healthy", "Velmeshev_3rd_trimester_He
 num_samples_simplified$new_group <- factor(num_samples_simplified$new_group, groups_order)
 num_samples_simplified <- num_samples_simplified[order(num_samples_simplified$new_group), ]
 
+write.csv(num_samples_simplified, file = "Extra_figures/num_samples.csv", quote = F)
+
 
 pdf("Extra_figures/num_samples.pdf")
 print(
   ggplot(num_samples_simplified, aes(new_group, samples_count, fill=sex)) +
         geom_bar(stat = "identity", color="black", position = "dodge") +
-        geom_hline(yintercept = 3, linetype="dashed") +
+        geom_hline(yintercept = 2, linetype="dashed") +
         labs(x="Groups", y="Number of samples", fill="Sex") +
         theme(panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(),
@@ -266,7 +268,7 @@ png("Extra_figures/num_samples.png", res=300, width = 15, height = 10, units = "
 print(
   ggplot(num_samples_simplified, aes(new_group, samples_count, fill=sex)) +
     geom_bar(stat = "identity", color="black", position = "dodge") +
-    geom_hline(yintercept = 3, linetype="dashed") +
+    geom_hline(yintercept = 2, linetype="dashed") +
     labs(x="Datasets", y="Number of samples", fill="Sex") +
     theme(panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
